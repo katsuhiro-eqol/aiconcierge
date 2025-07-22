@@ -13,11 +13,10 @@ export default function DownloadableQRCode(){
     const [event, setEvent] = useState<string>("")
     const [organization, setOrganization] = useState<string>("")
     const [code, setCode] = useState<string>("")
+    const [voiceSetting, setVoiceSetting] = useState<boolean>(false)
     const [url, setUrl] = useState<string|null>(null)
     const [rootUrl, setRootUrl] = useState<string>("")
     const [status, setStatus] = useState<string>("")
-    const [selectedOption, setSelectedOption] = useState<string>("AIcon")
-    const [isStaffChat, setIsStaffChat] = useState<boolean>(false)
     const qrCodeRef = useRef(null);
     const size:number = 144
 
@@ -52,8 +51,10 @@ export default function DownloadableQRCode(){
                     const data = docSnap.data()
                     if (data.qaData){
                         setCode(data.code)
-                        if (data.isStaffChat){
-                            setIsStaffChat(data.isStaffChat)
+                        if (data.voiceSetting === "音声入力／AIボイスあり"){
+                            setVoiceSetting(true)
+                        } else {
+                            setVoiceSetting(false)
                         }
                     }else{
                         alert("イベントにQ&Aデータが登録されていません")
@@ -84,8 +85,6 @@ export default function DownloadableQRCode(){
     };
 
     const selectEvent = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setIsStaffChat(false)
-        setSelectedOption("AIcon")
         setEvent(e.target.value);
         loadEventData(e.target.value)
     }
@@ -123,35 +122,14 @@ export default function DownloadableQRCode(){
 
     useEffect(() => {
         
-        if (code!=="" && selectedOption === "AIcon"){
+        if (code!=="" && voiceSetting){
             const eventUrl = `${rootUrl}aicon/chat?attribute=${organization}_${event}&code=${code}`
             setUrl(eventUrl)
-        } else if (code!=="" && selectedOption === "AIcon + HumanStaff") {
-            const eventUrl = `${rootUrl}aicon/chat3?attribute=${organization}_${event}&code=${code}`
+        } else if (code!=="" && !voiceSetting) {
+            const eventUrl = `${rootUrl}aicon/chat2?attribute=${organization}_${event}&code=${code}`
             setUrl(eventUrl)
         }
-        /*
-        if (code!=="") {
-            const eventUrl = `${hostUrl}aicon/chat?attribute=${organization}_${event}&code=${code}`
-            setUrl(eventUrl)
-        }
-        */
     }, [code])
-
-
-    useEffect(() => {
-        if (code!=="" && selectedOption === "AIcon"){
-            const eventUrl = `${rootUrl}aicon/chat?attribute=${organization}_${event}&code=${code}`
-            setUrl(eventUrl)
-        } else if (code!=="" && selectedOption === "AIcon + HumanStaff") {
-            const eventUrl = `${rootUrl}aicon/chat3?attribute=${organization}_${event}&code=${code}`
-            setUrl(eventUrl)
-        }
-    }, [selectedOption])
-
-    useEffect(() => {
-        console.log(isStaffChat)
-    }, [isStaffChat])
 
     useEffect(() => {
         const org = sessionStorage.getItem("user")
@@ -173,21 +151,6 @@ export default function DownloadableQRCode(){
             return <option key={name} value={name}>{name}</option>;
             })}
             </select>
-
-            {isStaffChat && (
-            <div className="flex flex-row gap-x-4">
-                {options.map((option) => (
-                    <div
-                    key={option}
-                    className="flex items-center mb-2 cursor-pointer hover:bg-gray-200 p-2 rounded"
-                    onClick={() => setSelectedOption(option)}
-                    >
-                    {(selectedOption === option) ? <CircleDot className="w-4 h-4 text-blue-500" /> : <Circle className="w-4 h-4 text-gray-400" />}
-                    <span className="ml-2 text-gray-700 text-sm">{option}</span>
-                </div>
-                ))}
-            </div>    
-            )} 
 
         {url && (
             <div>

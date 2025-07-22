@@ -607,7 +607,7 @@ export default function Aicon() {
         {wavReady ? (
         <div className="fixed inset-0 flex flex-col items-center h-full bg-stone-200">
             <div className="my-2 text-lg font-bold text-center">ai concierge</div>
-            <div className="flex-none h-[72vh] w-11/12 max-w-96 overflow-auto">
+            <div className="flex-none h-[64vh] w-11/12 max-w-96 overflow-auto">
             {messages.map((message) => (
                 <div 
                     key={message.id} 
