@@ -29,17 +29,7 @@ export interface ModalFile {
     [key: string]: string;
 }
 
-export interface EventData {
-    image:Image;
-    languages:string[];
-    voice:string;
-    embedding:string;
-    qaData: boolean;
-    code: string;
-    pronunciations:Pronunciation[]|null;
-}
-
-interface ForeignAnswer {
+export interface ForeignAnswer {
     [key: string]:string
 }
 export interface ForeignAnswers {
@@ -51,11 +41,12 @@ export interface CsvData {
 export type Message = {
     id: string;
     text: string;
-    sender: 'user' | 'AIcon';
+    sender: 'user' | 'AIcon' | 'system';
     modalUrl: string | null;
     modalFile: string | null;
     similarity: number | null;
     nearestQ: string | null;
+    thumbnail?: string | null;
 }
 //aiconに読み込むデータ
 export interface EmbeddingsData {
@@ -65,33 +56,26 @@ export interface EmbeddingsData {
     modalUrl: string;
     modalFile: string;
     foreign: Foreign;
-    voiceUrl: string;
-    frame: number;
-    read: string;
 }
 
-/*
+export interface VoiceData {
+    lang:string;
+    text:string;
+    fText:string;
+    url:string;
+    frame:number;
+}
+
+
 export interface EventData {
-    image:Image;
-    languages:string[];
-    voice:string;
-    embedding:string;
-}
-*/
-
-//EventList用
- export interface Event {
-    id: string;
-    name: string;
+    id:string;
+    name:string;
     code: string;
-    image: string;
-    voice: string;
-    langString:string;
-    languages: string[];
-    period: string;
+    voiceSetting:string;
     qaData: boolean;
-    pronunceStr: string;
-    [key: string]: string | boolean | string[]; 
+    languages:string[];
+    embedding:string;
+    langStr:string;
 }
 
 export interface MenuItem {
@@ -106,22 +90,26 @@ export interface SubmenuItem {
 title: string;
 path: string;
 }
+
+export interface Answer {
+    [key: string]: string;
+}
+export interface TranslatedAnswers {
+    [key: string]:Answer
+}
 //データリストに読み込む形式
 export interface QaData {
     id: string;
     code: string;
     question: string;
     answer: string;
+    read: string;
     modalFile: string;
     modalUrl: string;
-    voiceId: string;
-    voiceUrl: string;
-    foreignStr: string;
-    foreign: Foreign[];
+    foreign: Answer;
     vector: string;
-    read: string;
     pronunciations:Pronunciation[];
-    [key: string]: string | Foreign[] | Pronunciation[];
+    [key: string]: string | Answer | Pronunciation[];
 }
 
 export interface ModalData {

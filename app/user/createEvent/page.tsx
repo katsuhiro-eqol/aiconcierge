@@ -3,35 +3,20 @@ import React from "react";
 import { useState, useEffect } from "react";
 import { db } from "@/firebase"
 import { doc, getDoc, collection, setDoc, updateDoc, arrayUnion } from "firebase/firestore"
-import { PronunciationRegistration } from "../../components/pronunciation"
-import EventOption from "../../components/eventOption"
-import VoiceSample from "../../components/voiceSample"
 import { Circle, CircleDot } from 'lucide-react'
-import { Pronunciation, Image } from "@/types"
-
 
 export default function CreateEvent(){
     const [newEvent, setNewEvent] = useState<string>("")
     const [organization, setOrganization] = useState<string>("")
     const [events, setEvents] = useState<string[]>([])
-    const [usePrevious, setUsePrevious] = useState<boolean>(false)
-    const [event, setEvent] = useState<string>("")
+    const [voiceSetting, setVoiceSetting] = useState<string>("音声入力／AIボイスなし")
     const [comment, setComment] = useState<string>("")
     const [selectedOptions, setSelectedOptions] = useState<string[]>(["日本語"]);
     const [other, setOther] = useState<string>("")//他言語
-    const [isListen, setIsListen] = useState<boolean>(false)
-    const [voice, setVoice] = useState<string>("voice_m")//音声モデル
-    const [model, setModel] = useState<string>("text-embedding-3-small")//embeddingモデル
-    const [image, setImage] = useState<Image>({name:"AI-con_man_01.png", url:"/AI-con_man_01.png"})
-    const [isEventOption, setIsEventOption] = useState<boolean>(false)
-    const [pronunciations, setPronunciations] = useState<Pronunciation[]|null>(null)
-    const [isNewPronunciation, setIsNewPronunciation] = useState<boolean>(false)
-    const [isHumanStaff, setIsHumanStaff] = useState<boolean>(false)
-    const [startTime, setStartTime] = useState<string>("制限なし")//利用開始時間
-    const [endTime, setEndTime] = useState<string>("制限なし")//利用終了時間
     const options = ["英語", "中国語（簡体）", "中国語（繁体）", "韓国語"];
     const otherOptions = ["その他","フランス語","ポルトガル語","スペイン語"]
-    const voiceList = ["voice_m", "voice_w2"]
+    const voiceSettingOptions = ["音声入力／AIボイスなし", "音声入力／AIボイスあり"]
+    const model = "text-embedding-3-small" //embeddingモデル
 
     const loadEvents = async (org:string) => {
         try {           
@@ -57,18 +42,6 @@ export default function CreateEvent(){
         } else if (events.includes(newEvent)){
             alert("既に同じ名前のイベントが登録されています")
             return false
-        } else if (selectedOptions.length == 0){
-            alert("使用する言語を選択してください")
-            return false
-        } else if (voice == ""){
-            alert("AIボイスを選択してください")
-            return false
-        } else if (startTime == ""){
-            alert("利用開始日時を登録してください")
-            return false
-        } else if (endTime == ""){
-            alert("利用終了日時を登録してください")
-            return false
         } else {
             return true
         }
@@ -93,15 +66,10 @@ export default function CreateEvent(){
                 organization: organization,
                 event: newEvent,
                 languages: selectedOptions,
-                voice: voice,
-                startTime: startTime,
-                endTime: endTime,
                 embedding: model,
-                image:image,
                 qaData: false,
-                pronunciation:pronunciations,
                 code: code,
-                isStaffChat: isHumanStaff
+                voiceSetting:voiceSetting
             }
             
                 const eventRef = collection(db, "Events")
@@ -148,14 +116,6 @@ export default function CreateEvent(){
         window.location.reload()
     }
 
-    const toggleState = () => {
-        setIsEventOption((prev) => !prev); // 現在の状態を反転させる
-    };
-
-    const isAlphanumeric = (str:string) => {
-        return /^[a-zA-Z0-9]+$/.test(str);
-    }
-
     useEffect(() => {
         if (typeof window !== 'undefined') {
             //const value = sessionStorage.getItem('user');
@@ -182,7 +142,6 @@ export default function CreateEvent(){
             <div className="text-base font-semibold text-gray-700">・ステップ２: イベント基本設定</div>
 
             <div>
-            <div className="mt-2 text-xs text-red-600">（イベント登録時のみ設定できる項目です。ステップ３の「イベントオプション設定」は何度でも変更可能です。）</div>
             <div className="font-semibold text-sm ml-3 mt-5 underline">対応言語（日本語はデフォルト）</div>
             <div className="flex flex-row gap-x-4">
             {options.map((option) => (
@@ -208,37 +167,20 @@ export default function CreateEvent(){
                 選択した言語: {selectedOptions.join(', ') || 'None'}
                 </p>
             </div>
-            <div className="font-semibold mt-5 text-sm ml-3 underline">AIボイス<button className="ml-5 p-1 text-xs bg-gray-500 hover:bg-gray-600 text-white" onClick={()=>setIsListen(true)}>サンプル音声はこちら</button></div>
-            {isListen && (<VoiceSample setIsListen={setIsListen}/>)}
-            <div className="flex flex-row gap-x-4">
-            {voiceList.map((option) => (
-                <div
-                key={option}
-                className="flex items-center mb-2 cursor-pointer hover:bg-gray-100 p-2 rounded"
-                onClick={() => setVoice(option)}
-                >
-                {/* 選択されている場合は CircleDot、それ以外は Circle を表示 */}
-                {(voice === option) ? <CircleDot className="w-4 h-4 text-blue-500" /> : <Circle className="w-4 h-4 text-gray-400" />}
-                <span className="ml-2 text-gray-700 text-sm">{option}</span>
-            </div>
-            ))}
-            </div>
 
+            <div className="font-semibold text-sm ml-3 mt-8 underline">音声入力／AIボイス設定</div>
             <div className="flex flex-row gap-x-4">
-            <div className="font-semibold mt-2 text-sm ml-3 underline">読み登録</div>
-            <button className="px-2 ml-3 mt-1 text-xs border-2 bg-gray-200 hover:bg-gray-300" onClick={() => setIsNewPronunciation(true)}>+追加</button>
-            </div>
-            <PronunciationRegistration pronunciations={pronunciations} setPronunciations={setPronunciations} isNewPronunciation={isNewPronunciation} setIsNewPronunciation={setIsNewPronunciation} />
-            <div className="flex flex-row gap-x-4">
-            <div className="text-base mt-10 font-semibold text-gray-700">・ステップ３: イベントオプション設定  </div>
-            {!isEventOption && (
-                <button className="text-sm mt-9 px-2 border-2 bg-gray-100 hover:bg-gray-200 rounded" onClick={toggleState} >オプション入力</button>
-            )}
-            </div>
-            <div className="mt-2 text-xs text-red-600">（イベント設定後でも設定・修正できる項目です）</div>        
-            {isEventOption && (
-                <EventOption organization={organization} setImage={setImage} setStartTime={setStartTime} setEndTime={setEndTime} isHumanStaff={isHumanStaff} setIsHumanStaff={setIsHumanStaff} />
-            )}
+                {voiceSettingOptions.map((item) => (
+                    <div
+                    key={item}
+                    className="flex items-center mb-2 cursor-pointer hover:bg-gray-200 p-2 rounded"
+                    onClick={() => setVoiceSetting(item)}
+                    >
+                    {(voiceSetting === item) ? <CircleDot className="w-4 h-4 text-blue-500" /> : <Circle className="w-4 h-4 text-gray-400" />}
+                    <span className="ml-2 text-gray-700 text-sm">{item}</span>
+                </div>
+                ))}
+            </div>    
             </div>
             <div className="flex flex-row gap-x-4">
             <button className="h-10 mt-10 px-2 border-2 rounded" onClick={pageReload}>キャンセル</button>
@@ -248,16 +190,3 @@ export default function CreateEvent(){
         </div>
     )
 }
-
-/*
-    <div className="flex flex-row gap-x-4">
-    <div className="text-base mt-10 font-semibold text-gray-700">・ステップ３: イベントオプション設定  </div>
-    {!isEventOption && (
-        <button className="text-sm mt-9 px-2 border-2 bg-gray-100 hover:bg-gray-200 rounded" onClick={toggleState} >オプション入力</button>
-    )}
-    </div>
-    <div className="mt-2 text-xs text-red-600">（イベント設定後でも設定・修正できる項目です）</div>        
-    {isEventOption && (
-        <EventOption organization={organization} setImage={setImage} setStartTime={setStartTime} setEndTime={setEndTime}/>
-    )}
-*/

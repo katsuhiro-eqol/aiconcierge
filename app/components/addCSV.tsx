@@ -1,31 +1,26 @@
-//CSVファイルで追加
 "use client"
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import UploadFiles2 from "@/app/components/uploadFiles2"
+import UploadFiles2 from "../components/uploadFiles2"
 import { db } from "@/firebase"
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore"
-import {registerVoice} from "@/app/func/updateWav"
-import createEmbedding from "@/app//func/createEmbedding"
-import validateCreatedQA from '@/app/func/verificationQA';
-import {ProgressBar} from "@/app/components/progressBar"
-import { ModalData, EventData, ForeignAnswers, CsvData, Pronunciation, QaData } from "@/types"
+import { doc, setDoc, updateDoc } from "firebase/firestore"
+import {registerVoice} from "../func/createWav"
+import createEmbedding from "../func/createEmbedding"
+import {ProgressBar} from "../components/progressBar"
+import { ModalData, EventData, TranslatedAnswers,  Answer, CsvData} from "@/types"
 import md5 from 'md5';
 import { Check} from 'lucide-react'
 import Papa from 'papaparse'
-//import { ParseResult } from 'papaparse'
 import jschardet from 'jschardet'
 
-//interface Voice {organization:string, event:string, answer:string, read:string, voice:string, qaId:string}
-interface Read {answer:string, read:string, voiceId:string}
 interface AddCSVProps {
-    qaData: QaData[];
     eventData: EventData;
     organization: string;
     event: string;
+    voiceSetting: boolean;
 }
 
-export default function AddCSV({qaData, eventData, organization, event}:AddCSVProps) {
+export default function AddCSV({eventData, organization, event, voiceSetting}: AddCSVProps) {
     const [jsonData, setJsonData] = useState<CsvData[]>([])
     const [fileType, setFileType] = useState<string>("")
     const [columns, setColumns] = useState<string[]>([])
@@ -35,13 +30,9 @@ export default function AddCSV({qaData, eventData, organization, event}:AddCSVPr
     const [selectedEncoding, setSelectedEncoding] = useState<string>("");
     const [error, setError] = useState<string>("");
     const [modalFiles, setModalFiles] = useState<string[]>([])
-    const [events, setEvents] = useState<string[]>([""]) //firestoreから読み込む
-    //const [event, setEvent] = useState<string>("")
-    //const [organization, setOrganization] = useState<string>("")
     const [isModal, setIsModal] = useState<boolean>(false)
     const [isReady, setIsReady] = useState<boolean>(false)
     const [modalData, setModalData] = useState<ModalData[]>([])
-    //const [eventData, setEventData] = useState<EventData|null>(null)
     const [isSecondStep, setIsSecondStep] = useState<boolean>(false)
     const [isThirdStep, setIsThirdStep] = useState<boolean>(false)
     const [status, setStatus] = useState<string>("")
@@ -52,8 +43,8 @@ export default function AddCSV({qaData, eventData, organization, event}:AddCSVPr
 
     const steps = [
         { name: '外国語翻訳', progress: foreignProgress },
-        { name: 'ベクトル化', progress: vectorProgress },
         { name: '音声合成', progress: voiceProgress },
+        { name: 'ベクトル化', progress: vectorProgress },
     ];
 
     const detectDelimiter = (text:string) => {
@@ -81,11 +72,8 @@ export default function AddCSV({qaData, eventData, organization, event}:AddCSVPr
             // 文字コードを検出
             const result = jschardet.detect(Buffer.from(new Uint8Array(buffer)));
             const encoding = result.encoding;
-            console.log(encoding)
             setDetectedEncoding(encoding);
-            setSelectedEncoding(encoding); // デフォルトで検出されたエンコーディングを選択
-    
-            // 検出されたエンコーディングでファイルを読み込む
+            setSelectedEncoding(encoding);
             parseFileWithEncoding(buffer, encoding);
           };
           
@@ -132,83 +120,42 @@ export default function AddCSV({qaData, eventData, organization, event}:AddCSVPr
         }
     })
 
-    const convertPronunciation = (pronunciations: Pronunciation[]|null, text:string) => {
-        if (pronunciations){
-            let newRead = text.trim()
-            pronunciations.forEach((pronunciation) => {
-               newRead = newRead?.replaceAll(pronunciation.text,pronunciation.read)
-            })
-            //const readByOpenAI = await getHiragana(newRead)
-            return newRead
-        }else{
-            //const readByOpenAI = await getHiragana(text)
-            return text.trim()
-        }        
-    }
-  //音声合成し、Voiceに登録
-    const readRegistration = async () => {
-        const answerList = jsonData.map((item) => item.answer)
-        const answerSet = new Set(answerList)
-        const readings = []
-        for (const answer of answerSet){
-            const newRead = convertPronunciation(eventData?.pronunciations||null, answer)
-            const hashString = md5(newRead)
-            const voiceId = eventData?.voice + "-" + hashString            
-            const data = {
-                answer: answer,
-                read: newRead,
-                voiceId: voiceId
+    const voiceRegistration = async (answers: TranslatedAnswers) => {
+        let count = 0
+        const answerKeys = Object.keys(answers)
+        for (const answer in answers){
+            for (const lang in answers[answer]){
+                const ans = answers[answer][lang]
+                const voiceId = `${md5(answer)}-${lang}`
+                await registerVoice(voiceId, ans, lang)
             }
-            readings.push(data)
-        }
-        return readings
-    }
-
-    const voiceRegistration = async (readings:Read[]) => {
-        setStatus("音声合成を準備しています")
-        const answerCount = readings.length
-        let n = 0
-        for (const item of readings){
-            //const newRead = await convertPronunciation(eventData?.pronunciations||null, answer)
-            await registerVoice(organization, event, item.answer, item.read, eventData?.voice??"", item.voiceId, "")
-            n += 1
-            if (n>0){
-                setStatus("音声合成を行っています")
-            }
-            const ratio = Math.floor(n*100/answerCount)
+            count += 1
+            const ratio = Math.floor(count*100/answerKeys.length)
             setVoiceProgress(ratio)
         }
     }
 
     //EmbeddingをEventのサブコレクションQADBに登録
-    const registerQADB = async (foreinAnswers:ForeignAnswers, readings:Read[]) => {
-        //既存のquestionと重ならないようにする。
-        const questionList = qaData.map((item) => item.question)
-        const idList = qaData.map((item) => item.id)
-
+    const registerQADB = async (foreinAnswers:TranslatedAnswers) => {
         setStatus("ベクトル化を行っています")
         let count = 0
         for (const item of jsonData){
-            if (item.id == "" || item.question=="" || item.answer==""){
+            if (item.id=="" || item.question=="" || item.answer==""){
                 alert("id、question、answerに空欄がないようにしてください")
-            } else if (questionList.includes(item.question) || idList.includes(item.id)) {
-                console.log("既存のid or questionと重複", item.id, item.question)
             } else {
             try {
-                const embedding = await createEmbedding(item.question, eventData.embedding)
-                const ans = readings.filter((read) => read.answer === item.answer)
+                const embedding = await createEmbedding(item.question, eventData!.embedding)
                 let data2 = {}
                 if (item.modal_file && modalData){
                     const modalList = modalData.filter((m) => m.name == item.modal_file )
                     data2 = {
                         question: item.question,
                         answer: item.answer,
+                        read: item.answer,
                         modalFile:item.modal_file,
                         modalUrl: modalList[0].url,
                         modalPath: modalList[0].path,
                         vector: embedding,
-                        voiceId: ans[0].voiceId,
-                        read: ans[0].read,
                         foreign:foreinAnswers[item.answer],
                         pronunciations:[]
                     }          
@@ -216,19 +163,18 @@ export default function AddCSV({qaData, eventData, organization, event}:AddCSVPr
                     data2 = {
                         question: item.question,
                         answer: item.answer,
+                        read: item.answer,
                         modalFile:"",
                         modalUrl: "",
                         modalPath: "",
                         vector: embedding,
-                        voiceId: ans[0].voiceId,
-                        read: ans[0].read,
                         foreign:foreinAnswers[item.answer],
                         pronunciations:[]
                     }          
                 }
                 const id = organization + "_" + event
                 const docRef = doc(db, "Events", id, "QADB", item.id)
-                await setDoc(docRef,data2, {merge:true})
+                await setDoc(docRef,data2)
                 count += 1
                 const ratio = Math.floor(count*100/jsonData.length)
                 setVectorProgress(ratio)
@@ -245,25 +191,29 @@ export default function AddCSV({qaData, eventData, organization, event}:AddCSVPr
         const answerList = jsonData.map((item) => item.answer)
         const answerSet = new Set(answerList)
         const languages = eventData?.languages ?? ["日本語"]
-        const translateLang = languages.filter((item) => item != "日本語")
         let count = 0
-        const translated:ForeignAnswers = {}
+        const translated:TranslatedAnswers = {}
         for (const answer of answerSet){
-            translated[answer] = []
-            for (const language of translateLang){
-                const response = await fetch("/api/translate", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    //body: JSON.stringify({ input: userInput, character: character, fewShot: fewShot, previousData: previousData, sca: scaList[character] }),
-                    body: JSON.stringify({ answer: answer, language:language}),
-                  });
-          
-                const lang = await response.json();
-                //const key = answer + "-" + language
-                translated[answer].push({[language]:lang.foreign})
+            const answers: Answer = {}
+            translated[answer] = {}
+            for (const language of languages){
+                if (language === "日本語"){
+                    answers[language] = answer
+                } else {
+                    const response = await fetch("/api/translate", {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                        },
+                        //body: JSON.stringify({ input: userInput, character: character, fewShot: fewShot, previousData: previousData, sca: scaList[character] }),
+                        body: JSON.stringify({ answer: answer, language:language}),
+                      });
+              
+                    const lang = await response.json();
+                    answers[language]=lang.foreign
+                }
             }
+            translated[answer] = answers
             count += 1
             const ratio = Math.floor(count*100/answerSet.size)
             //setStatus(`外国語翻訳：${ratio}%完了`)
@@ -272,16 +222,31 @@ export default function AddCSV({qaData, eventData, organization, event}:AddCSVPr
         return translated
     }
 
+    const updateEventStatus = async () => {
+        const id = organization + "_" + event
+        const data = {
+            qaData:true
+        }
+        const eventRef = doc(db, "Events", id)
+        await updateDoc(eventRef,data)
+    }
+
     const registerToFirestore = async () => {
-        if (judgeNewQA()){
+        console.log("voiceSetting", voiceSetting)
+        if (judgeNewQA() && voiceSetting){
             setStatus("Q&Aデータ登録を始めます")
-            const readings = await readRegistration()
             const translated = await registerForeignLang()
-            await registerQADB(translated, readings)
-            await voiceRegistration(readings)
-            setStatus("データを検証しています")
-            const comment = await validateCreatedQA(organization, event, eventData!.voice, eventData!.embedding, eventData!.languages)
-            setStatus(comment)
+            console.log("translated", translated)
+            await voiceRegistration(translated)
+            await registerQADB(translated)
+            await updateEventStatus()
+            setStatus("Q&Aデータ登録が完了しました。イベントデータ一覧で登録データ内容を確認してください。")
+        } else if (judgeNewQA() && !voiceSetting){
+            setStatus("Q&Aデータ登録を始めます。")
+            const translated = await registerForeignLang()
+            await registerQADB(translated)
+            await updateEventStatus()
+            setStatus("Q&Aデータ登録が完了しました。イベントデータ一覧で登録データ内容を確認してください。音声合成はされていません。")
         }
     }
   
@@ -341,6 +306,7 @@ export default function AddCSV({qaData, eventData, organization, event}:AddCSVPr
         if (isReady){
             setStatus("以下のステップでデータベース登録します")
         }
+        console.log(eventData)
     }, [isReady])
 
     useEffect(() => {
@@ -353,19 +319,19 @@ export default function AddCSV({qaData, eventData, organization, event}:AddCSVPr
         //setIsThirdStep(false)
         console.log(modalData)
     }, [modalData])
-
+    
     return (
             <div>
-            <div className="mt-5">
+            <div className="font-bold text-xl mt-3 mb-7">CSVファイルでQ&Aデータベースに追加</div>
+            <div className="mt-10">
             <div className="flex flex-row gap-x-4">
-            <div className="text-sm font-bold">・ステップ１: 追加するCSVを登録</div>
+            <div className="text-base font-bold">・ステップ１: CSVファイルを登録</div>
             {(isThirdStep||isReady) && (
                 <div>
                 <Check className="text-green-500"/>
                 </div>
             )}
             </div>
-            <div className="text-red-500 text-xs ml-3">既存QAに存在するqestionは追加できません</div>
             </div>
             <div className="ml-3">
             <div 
@@ -404,7 +370,7 @@ export default function AddCSV({qaData, eventData, organization, event}:AddCSVPr
         )}
             <div className="mt-10">
             <div className="flex flex-row gap-x-4">
-            <div className="text-sm font-bold">・ステップ２：添付ファイルがある場合はファイルを登録</div>
+            <div className="text-base font-bold">・ステップ２：添付ファイルがある場合はファイルを登録</div>
             
             {(isReady) && (
                 <div><Check className="text-green-500"/>
@@ -420,12 +386,12 @@ export default function AddCSV({qaData, eventData, organization, event}:AddCSVPr
             )}
             {isReady && (<div className="text-sm ml-3 text-green-500">ファイル登録完了</div>)}
 
-            <div className="text-sm font-bold mt-10">・ステップ３：データベースに追加登録</div>
+            <div className="text-base font-bold mt-10">・ステップ３：データベース新規登録</div>
             {isReady && (
             <div className="ml-3">
             <div className="flex flex-row gap-x-4">
             <button className="h-10 my-5 px-2 border-2 rounded" onClick={pageReload}>キャンセル</button>
-            <button className="h-10 my-5 px-2 border-2 bg-amber-200 rounded hover:bg-amber-300" onClick={() => registerToFirestore()}>データベースに追加</button>
+            <button className="h-10 my-5 px-2 border-2 bg-amber-200 rounded hover:bg-amber-300" onClick={() => registerToFirestore()}>データベースに登録</button>
             </div>
             <div className="text-green-500 font-semibold text-sm mb-5">{status}</div>
             <ProgressBar steps={steps} />

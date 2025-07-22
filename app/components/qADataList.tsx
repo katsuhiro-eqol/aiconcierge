@@ -4,7 +4,7 @@ import {useState, useEffect} from "react"
 import ForeignModal from "./foreignModal"
 import ModalModal from "./modalModal"
 import ListenVoice from "./listenVoice"
-import { QaData, Foreign } from "@/types"
+import { QaData, Answer } from "@/types"
 import { Speech, Paperclip, Languages } from 'lucide-react';
 
 interface QADataProps {
@@ -13,7 +13,7 @@ interface QADataProps {
 
 export default function QADataList({qaData}: QADataProps){
     const [isForeign, setIsForeign] = useState<boolean>(false)
-    const [foreignData, setForeignData] = useState<Foreign[]>([])
+    const [foreignData, setForeignData] = useState<Answer>({})
     const [answer, setAnswer] = useState<string>("")
     const [isModal, setIsModal] = useState<boolean>(false)
     const [modalUrl, setModalUrl] = useState<string>("")
@@ -32,12 +32,25 @@ export default function QADataList({qaData}: QADataProps){
         { key: 'vector', label: 'Embedding' }
     ]
 
+    const qaDataList = (data:QaData) => {
+        let foreignStr = ""
+        for (const answer in data.foreign){
+            foreignStr += `${answer}：${data.foreign[answer]}\n\n`
+        }
+        const dataList = {
+            id: data.id,
+            question:data.question,
+            answer:data.answer,
+            read:data.foreign["日本語"],
+            foreignStr:foreignStr,
+            foreign:data.foreign
+        }
+    }
+
     const showModal = (id:string) => {
         const selectedData = qaData.filter((item) => item.id == id)
         const url = selectedData[0].modalUrl
         const file = selectedData[0].modalFile
-        console.log(url)
-        console.log(file)
         setIsModal(true)
         setModalUrl(url)
         setModalFile(file)
@@ -50,19 +63,17 @@ export default function QADataList({qaData}: QADataProps){
             const foreign = selectedData[0].foreign
             setForeignData(foreign)
         } else {
-            setForeignData([])
+            setForeignData({})
         }
-        
         setIsForeign(true)
-        
         setAnswer(selectedData[0].answer)
     }
 
     const listenVoice = (id:string) => {
         const selectedData = qaData.filter((item) => item.id == id)
-        const vUrl = selectedData[0].voiceUrl
         setIsAudio(true)
-        setVoiceUrl(vUrl)
+        const foreign = selectedData[0].foreign
+        setForeignData(foreign)
         setAnswer(selectedData[0].answer)
     }
 
@@ -158,7 +169,7 @@ export default function QADataList({qaData}: QADataProps){
                     <ModalModal setIsModal={setIsModal} modalUrl={modalUrl} modalFile={modalFile} />
                 )}  
                 {isAudio && (
-                    <ListenVoice setIsAudio={setIsAudio} voiceUrl={voiceUrl} answer={answer} />
+                    <ListenVoice setIsAudio={setIsAudio} foreign={foreignData} answer={answer} />
                 )}                       
             </div>
             </div>

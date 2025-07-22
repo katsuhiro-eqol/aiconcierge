@@ -4,46 +4,43 @@ import {registerVoice} from "./updateWav"
 import createEmbedding from "./createEmbedding"
 import createForeign from "./createForeign"
 import { QaData } from "@/types"
+import md5 from 'md5';
 
 
-export default async function validateCreatedQA(organization:string, event:string, voice:string, embeddingModel:string, languages:string[]){
+export default async function validateCreatedQA(organization:string, event:string, languages:string[], voiceSetting:boolean, jsonLength:number){
     console.log("validating")
     const eventId = organization + "" + event
     const qa = await loadQA(eventId)
-    try {
-        for (const item of qa){
-            const voiceDoc = doc(db, "Voice", item.voiceId)
-            const docSnap = await getDoc(voiceDoc)
-            if (!docSnap.exists()){
-                console.log(`${item.voiceId}の音声合成をリトライします`)
-                await registerVoice(organization, event, item.answer, item.read, voice, item.voiceId, item.id)
-            }
-        }
-        const errEmbedding = qa.filter((item) => item.vector.length < 10)
-        if (Array.isArray(errEmbedding)){
-            for (const err of errEmbedding){
-                await createEmbedding(err.question, embeddingModel)
-            }
-        }
-        
-        if (languages.length === 1){
-            return "Q&Aデータの登録が完了しました"
-        }else{
-            const errForeign = qa.filter((item) => item.foreign.length !== languages.length-1)
-            if (Array.isArray(errForeign)){
-                for (const err of errForeign){
-                    await createForeign(err.answer, languages)
+    console.log(jsonLength, qa.length)
+    if (qa.length < jsonLength){
+        return "未登録のQ&Aデータがある可能性があります。イベント情報一覧で内容を確認してください。"
+    } else {
+        let voiceErrors = ""
+        try {
+            for (const item of qa){
+                for (const lang of languages){
+                    const voiceId = `${md5(item.answer)}-${lang}`
+                    const voiceDoc = doc(db, "Voice", voiceId)
+                    const voiceSnap = await getDoc(voiceDoc)
+                    if (!voiceSnap.exists()){
+                       voiceErrors += `${item.id}-${lang},`
+                    }
                 }
             }
-        }
+            
+        } catch (error) {
     
-        return "Q&Aデータの登録が完了しました"
-    } catch (error){
-        console.log(error)
-        return "Q&Aデータ登録に不備がある可能性があります。イベント情報一覧で内容を確認してください"
+        }
+        if (voiceErrors === ""){
+            return "Q&Aデータ登録が正常に終了しました"
+        } else {
+            voiceErrors.trim()
+            return `未登録音声データがある可能性があります。イベント情報一覧で内容を確認してください。${voiceErrors}`
+        }
     }
-}
+    
 
+}
 
 async function loadQA(eventId:string){
     const querySnapshot = await getDocs(collection(db, "Events", eventId, "QADB"));
@@ -58,9 +55,6 @@ async function loadQA(eventId:string){
             answer:data.answer,
             modalFile:data.modalFile,
             modalUrl:data.modalUrl,
-            voiceId:data.voiceId,
-            voiceUrl:data.voiceUrl,
-            foreignStr:"",
             foreign:data.foreign,
             vector:vector,
             read:data.read,

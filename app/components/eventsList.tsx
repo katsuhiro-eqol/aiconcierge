@@ -2,10 +2,10 @@
 import React from "react";
 import { useState, useEffect } from 'react';
 import { Circle, CircleDot } from 'lucide-react';
-import { Event } from "@/types"
+import { EventData } from "@/types"
 
 interface EventsListProps {
-    eventsData: Event[];
+    eventsData: EventData[];
     setEventId: (id: string | null) => void;
 }
 
@@ -17,11 +17,8 @@ export default function EventsList({eventsData, setEventId}:EventsListProps){
         { key: 'selection', label: '' },
         { key: 'name', label: 'イベント名' },
         { key: 'code', label: 'コード' },
-        { key: 'image', label: 'UI画像' },
-        { key: 'voice', label: 'Voice' },
-        { key: 'langString', label: '対応外国語' },
-        { key: 'pronunceStr', label: '読み辞書' },
-        { key: 'period', label: '利用期間' }
+        { key: 'voiceSetting', label: '音声入力／AIボイス' },
+        { key: 'langString', label: '対応外国語' }
     ]
 
     const toggleRowSelection = (rowId: string) => {
@@ -57,12 +54,6 @@ export default function EventsList({eventsData, setEventId}:EventsListProps){
             setComment("")
         }
     }, [selectedRowId])
-
-    /*
-    useEffect(() => {
-        console.log(eventsData)
-    }, [eventsData])
-    */
 
     return (
         <div>
@@ -109,7 +100,7 @@ export default function EventsList({eventsData, setEventId}:EventsListProps){
                             key={`${row.id}-${column.key}`}
                             className="border border-gray-300 px-4 py-2 text-xs"
                         >
-                            {row[column.key]}
+                            {row[column.key as keyof typeof row]}
                         </td>
                         );
                     })}

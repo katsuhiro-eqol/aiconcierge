@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { db } from "@/firebase"
@@ -7,12 +8,12 @@ import QADataSelection from "../../components/qaDataSelection"
 import QADataSelection2 from "../../components/qaDataSelection2"
 import QADataList from "../../components/qADataList"
 import { PronunciationRegistration } from "../../components/pronunciation"
-import {registerVoice} from "../../func/updateWav"
 import createForeign from "../../func/createForeign"
 import createEmbedding from "../../func/createEmbedding"
+import {registerVoice} from "../../func/createWav"
 import validateCreatedQA from '@/app/func/verificationQA';
 import { Circle, CircleDot, ArrowBigRight } from 'lucide-react'
-import { EventData, QaData, ModalData, Pronunciation } from "@/types"
+import { EventData, QaData, ModalData, Pronunciation, TranslatedAnswers } from "@/types"
 import md5 from 'md5';
 import AddCSV from "../../components/addCSV"
 
@@ -34,6 +35,7 @@ export default function UpdaateQA(){
     const [modalFiles, setModalFiles] = useState<string[]|null>(null)
     const [modalData, setModalData] = useState<ModalData[]|null>(null)
     const [pronunciations, setPronunciations] = useState<Pronunciation[]|null>([])
+    const [voiceSetting, setVoiceSetting] = useState<boolean>(false)
 
     const [isNewPronunciation, setIsNewPronunciation] = useState<boolean>(false)
     const [isReady, setIsReady] = useState<boolean>(false)
@@ -97,16 +99,22 @@ export default function UpdaateQA(){
                 if (docSnap.exists()) {
                     const data = docSnap.data()
                     const data3 = {
-                        image: data.image,
+                        id: docSnap.id,
+                        name: event,
                         languages: data.languages,
-                        voice: data.voice,
+                        voiceSetting: data.voiceSetting,
                         embedding: data.embedding,
                         qaData: data.qaData,
                         code:data.code,
-                        pronunciations:data.pronunciation
+                        langStr:""
                     }
                     setEventData(data3)
-                    
+                    if (data.voiceSetting === "音声入力／AIボイスあり"){
+                        setVoiceSetting(true)
+                        console.log("voiceSetting: ture")
+                    } else {
+                        setVoiceSetting(false)
+                    }
                 }
             } catch (error) {
                 console.log(error)
@@ -131,9 +139,6 @@ export default function UpdaateQA(){
                     answer:data.answer,
                     modalFile:data.modalFile,
                     modalUrl:data.modalUrl,
-                    voiceId:data.voiceId,
-                    voiceUrl:data.voiceUrl,
-                    foreignStr:"",
                     foreign:data.foreign,
                     vector:vector,
                     read:data.read,
@@ -207,24 +212,40 @@ export default function UpdaateQA(){
         }
     }
 
+    /*
+    const voiceRegistration = async (answers: TranslatedAnswers) => {
+        let count = 0
+        const answerKeys = Object.keys(answers)
+        for (const answer in answers){
+            for (const lang in answers[answer]){
+                const ans = answers[answer][lang]
+                const voiceId = `${md5(answer)}-${lang}`
+                await registerVoice(voiceId, ans, lang)
+            }
+        }
+    }
+        */
+
     const updateQA = async () => {
         if ((newAnswer !== ""&& newQuestion !== "") && selectedQA){
-            setStatus2("更新を開始しました（音声合成に時間がかかる場合があります）")
-            const readText = convertPronunciation(eventData!.pronunciations, newAnswer)
-            const foreign = await createForeign(newAnswer, eventData!.languages)
-            const foreignAns = foreign[newAnswer]
-            const hashString = md5(readText)
-            const voiceId = eventData!.voice + "-" + hashString
+            setStatus2("更新を開始しました")
+            const translatedAnswers = await createForeign(newAnswer, eventData!.languages)
+            if (voiceSetting){
+                for (const answer of translatedAnswers){
+                    const lang = Object.keys(answer)[0]
+                    const ans = answer[lang]
+                    const voiceId = `${md5(ans)}-$${lang}`
+                    await registerVoice(voiceId, ans, lang)
+                }
+            }
             const embedding = await createEmbedding(newQuestion,eventData!.embedding)
             const eventId = organization + "_" + event
             const qaId = selectedQA.id
-            await registerVoice(organization, event, newAnswer, readText, eventData!.voice, voiceId, qaId)
             const data = {
                 question:newQuestion,
                 answer:newAnswer,
-                read:readText,
-                foreign:foreignAns,
-                voiceId:voiceId,
+                read:newAnswer,
+                foreign:translatedAnswers,
                 vector:embedding
             }
             const docRef = doc(db, "Events", eventId, "QADB",qaId)
@@ -232,20 +253,22 @@ export default function UpdaateQA(){
             setStatus2("Q&Aの更新が完了しました")
             setIsUpdateFinished(true)
         } else if ((newQuestion === "" && newAnswer !== "") && selectedQA) {
-            setStatus2("更新を開始しました（音声合成に時間がかかる場合があります）")
-            const readText = convertPronunciation(eventData!.pronunciations, newAnswer)
-            const foreign = await createForeign(newAnswer, eventData!.languages)
-            const foreignAns = foreign[newAnswer]
-            const hashString = md5(readText)
-            const voiceId = eventData!.voice + "-" + hashString
+            setStatus2("更新を開始しました")
+            const translatedAnswers = await createForeign(newAnswer, eventData!.languages)
+            if (voiceSetting){
+                for (const answer of translatedAnswers){
+                    const lang = Object.keys(answer)[0]
+                    const ans = answer[lang]
+                    const voiceId = `${md5(ans)}-$${lang}`
+                    await registerVoice(voiceId, ans, lang)
+                }
+            }
             const eventId = organization + "_" + event
             const qaId = selectedQA.id
-            await registerVoice(organization, event, newAnswer, readText, eventData!.voice, voiceId, qaId)
             const data = {
                 answer:newAnswer,
-                read:readText,
-                foreign:foreignAns,
-                voiceId:voiceId,
+                read:newAnswer,
+                foreign:translatedAnswers,
             }
             const docRef = doc(db, "Events", eventId, "QADB",qaId)
             await setDoc(docRef, data, {merge:true})
@@ -297,7 +320,6 @@ export default function UpdaateQA(){
                 alert("更新する添付書類(modal_file)が登録されていません")
             }
         }
-
     }
 
     const convertPronunciation = (pronunciations: Pronunciation[]|null, text:string) => {
@@ -316,35 +338,38 @@ export default function UpdaateQA(){
     }
 
     const updateVoice = async() => {
-        const readText = convertPronunciation(pronunciations, selectedQA!.read)
-        console.log(readText)
-
-        const hashString = md5(readText)
-        const voiceId = eventData!.voice + "-" + hashString
-        setStatus2("音声合成の準備をしています")
-        if (eventData && selectedQA){
-            await registerVoice(organization, event, selectedQA.answer, readText, eventData.voice, voiceId, selectedQA.id)
-            const data = {
-                read:readText,
-                pronunciations:pronunciations
+        if (voiceSetting){
+            const readText = convertPronunciation(pronunciations, selectedQA!.read)
+            console.log(readText)
+            setStatus2("音声合成の準備をしています")
+            if (eventData && selectedQA){
+                const voiceId = `${md5(selectedQA.answer)}-日本語`
+                await registerVoice(voiceId, readText, "日本語")
+                const data = {
+                    read:readText,
+                    pronunciations:pronunciations
+                }
+                const eventId = organization + "_" + event
+                const docRef = doc(db, "Events", eventId, "QADB", selectedQA?.id)
+                await setDoc(docRef, data, {merge:true})
+                setStatus2("Q&Aの更新が完了しました")
+                setIsUpdateFinished(true)
             }
-            const eventId = organization + "_" + event
-            const docRef = doc(db, "Events", eventId, "QADB", selectedQA?.id)
-            await setDoc(docRef, data, {merge:true})
-            setStatus2("Q&Aの更新が完了しました")
-            setIsUpdateFinished(true)
         }
     }
         
     const addQA = async() => {
         if (newQuestion && newAnswer){
             setStatus2("Q&A登録を開始しました")
-            const readText = convertPronunciation(eventData!.pronunciations ||null, newAnswer)
-            const hashString = md5(readText)
-            const voiceId = eventData!.voice + "-" + hashString
-            const foreign = await createForeign(newAnswer, eventData!.languages)
-            //setStatus2("外国語翻訳が完了しました")
-            const foreignAns = foreign[newAnswer]
+            const translatedAnswers = await createForeign(newAnswer, eventData!.languages)
+            if (voiceSetting){
+                for (const answer of translatedAnswers){
+                    const lang = Object.keys(answer)[0]
+                    const ans = answer[lang]
+                    const voiceId = `${md5(ans)}-$${lang}`
+                    await registerVoice(voiceId, ans, lang)
+                }
+            }
             const embedding = await createEmbedding(newQuestion,eventData!.embedding)
             //setStatus2("ベクトル化が完了しました")
             const lastId = qaData.at(-1)
@@ -357,21 +382,17 @@ export default function UpdaateQA(){
                     const data = {
                         question:newQuestion,
                         answer:newAnswer,
-                        read:readText,
+                        read:newAnswer,
                         pronunciations:[],
                         modalFile:modalData[0].name,
                         modalUrl: modalData[0].url,
                         modalPath: modalData[0].path,
                         vector:embedding,
-                        foreign:foreignAns,
-                        voiceId:voiceId
+                        foreign:translatedAnswers,
                     }
                     await setDoc(docRef, data)
-                    await registerVoice(organization, event, newAnswer, readText, eventData!.voice, voiceId, "") 
-                    const comment = await validateCreatedQA(organization, event, eventData!.voice, eventData!.embedding, eventData!.languages)
-                    console.log("comment",comment)
                     setTimeout(() => {
-                        setStatus2(comment)
+                        setStatus2("Q&Aの追加が完了しました")
                         setCreatedId(newId)
                         setIsUpdateFinished(true)
                     }, 3000)
@@ -382,18 +403,15 @@ export default function UpdaateQA(){
                     const data = {
                         question:newQuestion,
                         answer:newAnswer,
-                        read:readText,
+                        read:newAnswer,
                         pronunciations:[],
                         modalFile:"",
                         modalUrl: "",
                         modalPath: "",
                         vector:embedding,
-                        foreign:foreignAns,
-                        voiceId:voiceId
+                        foreign:translatedAnswers,
                     }
                     await setDoc(docRef, data)
-                    await registerVoice(organization, event, newAnswer, readText, eventData!.voice, voiceId, "") 
-                    //loadQADB()
                     setStatus2("Q&Aの追加が完了しました")
                     setCreatedId(newId)
                     setIsUpdateFinished(true)
@@ -450,8 +468,6 @@ export default function UpdaateQA(){
                         answer:data.answer,
                         modalFile:data.modalFile,
                         modalUrl:data.modalUrl,
-                        voiceId:data.voiceId,
-                        voiceUrl:data.voiceUrl,
                         foreignStr:"",
                         foreign:data.foreign,
                         vector:vector,
@@ -561,7 +577,7 @@ export default function UpdaateQA(){
         <div>
         <div className="mb-5 font-bold text-xl">Q&Aデータの更新</div>
         <div className="text-base">・イベントを選択</div>
-            <select className="mb-5 w-48 h-8 text-center border-2 border-lime-600" value={event} onChange={selectEvent}>
+            <select className="mb-5 w-96 h-8 text-center border-2 border-lime-600" value={event} onChange={selectEvent}>
             {events.map((name) => {
             return <option key={name} value={name}>{name}</option>;
             })}
@@ -751,7 +767,7 @@ export default function UpdaateQA(){
 
             {(selectedButton === "add2") && (
                 <div>
-                {Array.isArray(qaData) && (<AddCSV qaData={qaData} eventData={eventData!} organization={organization} event={event}/>)}
+                {Array.isArray(qaData) && (<AddCSV eventData={eventData!} organization={organization} event={event} voiceSetting={voiceSetting} />)}
                 </div>
             )}
 

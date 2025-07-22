@@ -13,14 +13,11 @@ export default async function getQAData(eventId:string):Promise<QaData[]>{
             code:data.code,
             question:data.question,
             answer:data.answer,
+            read:data.read,
             modalFile:data.modalFile,
             modalUrl:data.modalUrl,
-            voiceId:data.voiceId,
-            voiceUrl:data.voiceUrl,
-            foreignStr:"",
             foreign:data.foreign,
             vector:vector,
-            read:data.read,
             pronunciations:data.pronunciations
         }
         qa.push(qadata)

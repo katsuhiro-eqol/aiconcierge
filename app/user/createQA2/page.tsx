@@ -4,22 +4,19 @@ import { useDropzone } from 'react-dropzone';
 import UploadFiles2 from "../../components/uploadFiles2"
 import { db } from "@/firebase"
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore"
-import {registerVoice} from "../../func/updateWav"
+import {registerVoice} from "../../func/createWav"
 import createEmbedding from "../../func/createEmbedding"
 import validateCreatedQA from '@/app/func/verificationQA';
 import {ProgressBar} from "../../components/progressBar"
-import { ModalData, EventData, ForeignAnswers, CsvData, Pronunciation } from "@/types"
+import { ModalData, EventData, TranslatedAnswers,  Answer, CsvData, Pronunciation } from "@/types"
 import md5 from 'md5';
 import { Check} from 'lucide-react'
 import Papa from 'papaparse'
-import { ParseResult } from 'papaparse'
 import jschardet from 'jschardet'
-
-//interface Voice {organization:string, event:string, answer:string, read:string, voice:string, qaId:string}
-interface Read {answer:string, read:string, voiceId:string}
 
 export default function RegisterCSV() {
     const [jsonData, setJsonData] = useState<CsvData[]>([])
+    const [voiceSetting, setVoiceSetting] = useState<boolean>(false)
     const [fileType, setFileType] = useState<string>("")
     const [columns, setColumns] = useState<string[]>([])
     const [fileName, setFileName] = useState<string>("");
@@ -42,21 +39,11 @@ export default function RegisterCSV() {
     const [vectorProgress, setVectorProgress] = useState<number>(0)
     const [voiceProgress, setVoiceProgress] = useState<number>(0)
     const [errors, setErrors] = useState<string>("")
-    
-    /*
-    const encodings = [
-        { value: 'UTF-8', label: 'UTF-8' },
-        { value: 'Shift_JIS', label: 'Shift-JIS (日本語)' },
-        { value: 'EUC-JP', label: 'EUC-JP (日本語)' },
-        { value: 'ISO-8859-1', label: 'ISO-8859-1 (西欧)' },
-        { value: 'windows-1252', label: 'Windows-1252 (西欧)' }
-    ]
-    */
 
     const steps = [
         { name: '外国語翻訳', progress: foreignProgress },
-        { name: 'ベクトル化', progress: vectorProgress },
         { name: '音声合成', progress: voiceProgress },
+        { name: 'ベクトル化', progress: vectorProgress },
     ];
 
     const detectDelimiter = (text:string) => {
@@ -84,11 +71,8 @@ export default function RegisterCSV() {
             // 文字コードを検出
             const result = jschardet.detect(Buffer.from(new Uint8Array(buffer)));
             const encoding = result.encoding;
-            console.log(encoding)
             setDetectedEncoding(encoding);
-            setSelectedEncoding(encoding); // デフォルトで検出されたエンコーディングを選択
-    
-            // 検出されたエンコーディングでファイルを読み込む
+            setSelectedEncoding(encoding);
             parseFileWithEncoding(buffer, encoding);
           };
           
@@ -135,56 +119,23 @@ export default function RegisterCSV() {
         }
     })
 
-    const convertPronunciation = (pronunciations: Pronunciation[]|null, text:string) => {
-        if (pronunciations){
-            let newRead = text.trim()
-            pronunciations.forEach((pronunciation) => {
-               newRead = newRead?.replaceAll(pronunciation.text,pronunciation.read)
-            })
-            //const readByOpenAI = await getHiragana(newRead)
-            return newRead
-        }else{
-            //const readByOpenAI = await getHiragana(text)
-            return text.trim()
-        }        
-    }
-  //音声合成し、Voiceに登録
-    const readRegistration = async () => {
-        const answerList = jsonData.map((item) => item.answer)
-        const answerSet = new Set(answerList)
-        const readings = []
-        for (const answer of answerSet){
-            const newRead = convertPronunciation(eventData?.pronunciations||null, answer)
-            const hashString = md5(newRead)
-            const voiceId = eventData?.voice + "-" + hashString            
-            const data = {
-                answer: answer,
-                read: newRead,
-                voiceId: voiceId
+    const voiceRegistration = async (answers: TranslatedAnswers) => {
+        let count = 0
+        const answerKeys = Object.keys(answers)
+        for (const answer in answers){
+            for (const lang in answers[answer]){
+                const ans = answers[answer][lang]
+                const voiceId = `${md5(answer)}-${lang}`
+                await registerVoice(voiceId, ans, lang)
             }
-            readings.push(data)
-        }
-        return readings
-    }
-
-    const voiceRegistration = async (readings:Read[]) => {
-        setStatus("音声合成を準備しています")
-        const answerCount = readings.length
-        let n = 0
-        for (const item of readings){
-            //const newRead = await convertPronunciation(eventData?.pronunciations||null, answer)
-            await registerVoice(organization, event, item.answer, item.read, eventData?.voice??"", item.voiceId, "")
-            n += 1
-            if (n>0){
-                setStatus("音声合成を行っています")
-            }
-            const ratio = Math.floor(n*100/answerCount)
+            count += 1
+            const ratio = Math.floor(count*100/answerKeys.length)
             setVoiceProgress(ratio)
         }
     }
 
     //EmbeddingをEventのサブコレクションQADBに登録
-    const registerQADB = async (foreinAnswers:ForeignAnswers, readings:Read[]) => {
+    const registerQADB = async (foreinAnswers:TranslatedAnswers) => {
         setStatus("ベクトル化を行っています")
         let count = 0
         for (const item of jsonData){
@@ -193,19 +144,17 @@ export default function RegisterCSV() {
             } else {
             try {
                 const embedding = await createEmbedding(item.question, eventData!.embedding)
-                const ans = readings.filter((read) => read.answer === item.answer)
                 let data2 = {}
                 if (item.modal_file && modalData){
                     const modalList = modalData.filter((m) => m.name == item.modal_file )
                     data2 = {
                         question: item.question,
                         answer: item.answer,
+                        read: item.answer,
                         modalFile:item.modal_file,
                         modalUrl: modalList[0].url,
                         modalPath: modalList[0].path,
                         vector: embedding,
-                        voiceId: ans[0].voiceId,
-                        read: ans[0].read,
                         foreign:foreinAnswers[item.answer],
                         pronunciations:[]
                     }          
@@ -213,12 +162,11 @@ export default function RegisterCSV() {
                     data2 = {
                         question: item.question,
                         answer: item.answer,
+                        read: item.answer,
                         modalFile:"",
                         modalUrl: "",
                         modalPath: "",
                         vector: embedding,
-                        voiceId: ans[0].voiceId,
-                        read: ans[0].read,
                         foreign:foreinAnswers[item.answer],
                         pronunciations:[]
                     }          
@@ -242,25 +190,29 @@ export default function RegisterCSV() {
         const answerList = jsonData.map((item) => item.answer)
         const answerSet = new Set(answerList)
         const languages = eventData?.languages ?? ["日本語"]
-        const translateLang = languages.filter((item) => item != "日本語")
         let count = 0
-        const translated:ForeignAnswers = {}
+        const translated:TranslatedAnswers = {}
         for (const answer of answerSet){
-            translated[answer] = []
-            for (const language of translateLang){
-                const response = await fetch("/api/translate", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    //body: JSON.stringify({ input: userInput, character: character, fewShot: fewShot, previousData: previousData, sca: scaList[character] }),
-                    body: JSON.stringify({ answer: answer, language:language}),
-                  });
-          
-                const lang = await response.json();
-                //const key = answer + "-" + language
-                translated[answer].push({[language]:lang.foreign})
+            const answers: Answer = {}
+            translated[answer] = {}
+            for (const language of languages){
+                if (language === "日本語"){
+                    answers[language] = answer
+                } else {
+                    const response = await fetch("/api/translate", {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                        },
+                        //body: JSON.stringify({ input: userInput, character: character, fewShot: fewShot, previousData: previousData, sca: scaList[character] }),
+                        body: JSON.stringify({ answer: answer, language:language}),
+                      });
+              
+                    const lang = await response.json();
+                    answers[language]=lang.foreign
+                }
             }
+            translated[answer] = answers
             count += 1
             const ratio = Math.floor(count*100/answerSet.size)
             //setStatus(`外国語翻訳：${ratio}%完了`)
@@ -279,16 +231,19 @@ export default function RegisterCSV() {
     }
 
     const registerToFirestore = async () => {
-        if (judgeNewQA()){
+        if (judgeNewQA() && voiceSetting){
             setStatus("Q&Aデータ登録を始めます")
-            const readings = await readRegistration()
             const translated = await registerForeignLang()
-            await registerQADB(translated, readings)
-            await voiceRegistration(readings)
-            setStatus("データを検証しています")
+            await voiceRegistration(translated)
+            await registerQADB(translated)
             await updateEventStatus()
-            const comment = await validateCreatedQA(organization, event, eventData!.voice, eventData!.embedding, eventData!.languages)
-            setStatus(comment)
+            setStatus("Q&Aデータ登録が完了しました。イベントデータ一覧で登録データ内容を確認してください。")
+        } else if (judgeNewQA() && !voiceSetting){
+            setStatus("Q&Aデータ登録を始めます。")
+            const translated = await registerForeignLang()
+            await registerQADB(translated)
+            await updateEventStatus()
+            setStatus("Q&Aデータ登録が完了しました。イベントデータ一覧で登録データ内容を確認してください。音声合成はされていません。")
         }
     }
 
@@ -326,14 +281,20 @@ export default function RegisterCSV() {
                         setEvent("")
                     } else{
                         setIsSecondStep(true)
+                        if (data.voiceSetting === "音声入力／AIボイスあり"){
+                            setVoiceSetting(true)
+                        } else {
+                            setVoiceSetting(false)
+                        }
                         const data3 = {
-                            image: data.image,
-                            languages: data.languages,
-                            voice: data.voice,
-                            embedding: data.embedding,
-                            qaData: data.qaData,
+                            id:docSnap.id,
+                            name:event,
                             code:data.code,
-                            pronunciations:data.pronunciation,
+                            voiceSetting:data.voiceSetting,
+                            qaData:data.qaData,
+                            languages:data.languages,
+                            embedding:data.embedding,
+                            langStr:""
                         }
                         setEventData(data3)
                     }
@@ -418,6 +379,7 @@ export default function RegisterCSV() {
         if (isReady){
             setStatus("以下のステップでデータベース登録します")
         }
+        console.log(eventData)
     }, [isReady])
 
     useEffect(() => {
@@ -449,7 +411,7 @@ export default function RegisterCSV() {
             </div>
 
             <div className="text-xs ml-3">（未設定の場合は「データ新規登録」メニューから「イベント登録」を行なってください）</div>
-            <select className="mt-3 ml-3 w-48 h-8 text-center border-2 border-lime-600" value={event} onChange={selectEvent}>
+            <select className="mt-3 ml-3 w-96 h-8 text-center border-2 border-lime-600" value={event} onChange={selectEvent}>
             {events.map((name) => {
             return <option key={name} value={name}>{name}</option>;
             })}

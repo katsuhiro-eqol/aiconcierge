@@ -5,7 +5,7 @@ import ForeignModal from "./foreignModal"
 import ModalModal from "./modalModal"
 import ListenVoice from "./listenVoice"
 import { Circle, CircleDot, Speech, Paperclip, Languages } from 'lucide-react';
-import { QaData, Foreign } from "@/types"
+import { QaData, Answer } from "@/types"
 
 interface QADataSelection2Props {
     qaData:QaData[];
@@ -14,13 +14,12 @@ interface QADataSelection2Props {
 
 export default function QADataSelection2({qaData, setDeleteIds}: QADataSelection2Props){
     const [isForeign, setIsForeign] = useState<boolean>(false)
-    const [foreignData, setForeignData] = useState<Foreign[]>([])
+    const [foreignData, setForeignData] = useState<Answer>({})
     const [answer, setAnswer] = useState<string>("")
     const [isModal, setIsModal] = useState<boolean>(false)
     const [modalUrl, setModalUrl] = useState<string>("")
     const [modalFile, setModalFile] = useState<string>("")
     const [isAudio, setIsAudio] = useState<boolean>(false)
-    const [voiceUrl, setVoiceUrl] = useState<string>("")
     const [ids, setIds] = useState<string[]>([])
 
     const columns = [
@@ -45,8 +44,6 @@ export default function QADataSelection2({qaData, setDeleteIds}: QADataSelection
         });        
     };
 
-
-
     const showModal = (id:string) => {
         const selectedData = qaData.filter((item) => item.id == id)
         const url = selectedData[0].modalUrl
@@ -65,7 +62,7 @@ export default function QADataSelection2({qaData, setDeleteIds}: QADataSelection
             const foreign = selectedData[0].foreign
             setForeignData(foreign)
         } else {
-            setForeignData([])
+            setForeignData({})
         }
         
         setIsForeign(true)
@@ -75,9 +72,7 @@ export default function QADataSelection2({qaData, setDeleteIds}: QADataSelection
 
     const listenVoice = (id:string) => {
         const selectedData = qaData.filter((item) => item.id == id)
-        const vUrl = selectedData[0].voiceUrl
         setIsAudio(true)
-        setVoiceUrl(vUrl)
         setAnswer(selectedData[0].answer)
     }
 
@@ -194,7 +189,7 @@ export default function QADataSelection2({qaData, setDeleteIds}: QADataSelection
                     <ModalModal setIsModal={setIsModal} modalUrl={modalUrl} modalFile={modalFile} />
                 )}  
                 {isAudio && (
-                    <ListenVoice setIsAudio={setIsAudio} voiceUrl={voiceUrl} answer={answer} />
+                    <ListenVoice setIsAudio={setIsAudio} foreign={foreignData} answer={answer} />
                 )}                       
             </div>
             </div>

@@ -131,7 +131,7 @@ export default function EventInspector(){
             <div className="font-bold text-xl">会話応答分析：{event}</div>
             <div className="text-sm text-red-500">2025/6/20以降に作成したイベントのみ分析対象</div>
             <div className="text-base mt-5">イベントを選択</div>
-            <select className="mb-8 w-48 h-8 text-center border-2 border-lime-600" value={event} onChange={selectEvent}>
+            <select className="mb-8 w-96 h-8 text-center border-2 border-lime-600" value={event} onChange={selectEvent}>
             {events.map((name) => {
             return <option key={name} value={name}>{name}</option>;
             })}

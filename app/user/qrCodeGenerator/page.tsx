@@ -168,7 +168,7 @@ export default function DownloadableQRCode(){
         <div className="flex-1 flex flex-col justify-center gap-2">
         <div className="font-bold text-xl">QRコード生成</div>
         <div className="text-base mt-5">イベントを選択</div>
-            <select className="mb-8 w-48 h-8 text-center border-2 border-lime-600" value={event} onChange={selectEvent}>
+            <select className="mb-8 w-96 h-8 text-center border-2 border-lime-600" value={event} onChange={selectEvent}>
             {events.map((name) => {
             return <option key={name} value={name}>{name}</option>;
             })}
