@@ -335,7 +335,6 @@ export default function Aicon4() {
     useEffect(() => {
         if (eventData){
             getLanguageList()
-            console.log(eventData!.prompt)
         }
     }, [eventData])
     
