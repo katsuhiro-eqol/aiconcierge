@@ -49,8 +49,6 @@ export default function Aicon4() {
     const attribute = searchParams.get("attribute")
     const code = searchParams.get("code")
 
-    const prompt = ""
-
     async function getAnswer() {        
         setCanSend(false)//同じInputで繰り返し送れないようにする
         setModalUrl(null)
@@ -84,10 +82,11 @@ export default function Aicon4() {
             if (response1.status !== 200) {
               throw data1.error || new Error(`Request failed with status ${response1.status}`);
             }
-            const translatedQuestion = data1.input
+            //const translatedQuestion = data1.input
             const similarityList = findMostSimilarQuestion(data1.embedding)
+            const refQA = chooseQA(similarityList, 3)
 
-            const refQA = `Q:${embeddingsData[similarityList.index].question}--A:${embeddingsData[similarityList.index].answer}`
+            //const refQA = `Q:${embeddingsData[similarityList.index].question}--A:${embeddingsData[similarityList.index].answer}`
 
 
             const response = await fetch("/api/concierge", {
@@ -106,8 +105,8 @@ export default function Aicon4() {
                     id: `A${now}`,
                     text: data.answer,
                     sender: 'AIcon',
-                    modalUrl:judgeNull(embeddingsData[similarityList.index].modalUrl),
-                    modalFile:judgeNull(embeddingsData[similarityList.index].modalFile),
+                    modalUrl:judgeNull(embeddingsData[similarityList[0].index].modalUrl),
+                    modalFile:judgeNull(embeddingsData[similarityList[0].index].modalFile),
                     source:data.source,
                     thumbnail: thumbnail
                   };
@@ -161,7 +160,16 @@ export default function Aicon4() {
         similarities.sort((a, b) => b.similarity - a.similarity);
 
         // 最も類似度の高いベクトルの情報を返す
-        return similarities[0];
+        return similarities;
+    }
+
+    const chooseQA = (similarities:{index:number, similarity:number}[], count:number) => {
+        let QAs = ""
+        for (let i = 0; i < count; i++){
+            const QA = `Q:${embeddingsData[similarities[i].index].question} - A:${embeddingsData[similarities[i].index].answer}\n`
+            QAs += QA
+        }
+        return QAs
     }
 
     function binaryToList(binaryStr:string){
