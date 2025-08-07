@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-//import Header from "@/app//components/headerbar"
-import "./globals.css";
+import Header from "@/app//components/headerbar"
+import "@/app/globals.css";
 
 export const metadata: Metadata = {
-  title: "AIcon",
-  description: "created by eQOL",
+  title: "Inbound",
+  description: "created by Target/Global",
   icons: {
     icon: '/icons8-ai-48.png', 
   },
@@ -18,6 +18,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body>
+        <Header />
         {children}
       </body>
     </html>

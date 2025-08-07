@@ -294,7 +294,9 @@ export default function RegisterCSV() {
                             qaData:data.qaData,
                             languages:data.languages,
                             embedding:data.embedding,
-                            langStr:""
+                            langStr:"",
+                            prompt:data.prompt,
+                            gpt:data.gpt
                         }
                         setEventData(data3)
                     }

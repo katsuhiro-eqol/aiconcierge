@@ -106,7 +106,9 @@ export default function UpdaateQA(){
                         embedding: data.embedding,
                         qaData: data.qaData,
                         code:data.code,
-                        langStr:""
+                        langStr:"",
+                        prompt:data.prompt,
+                        gpt:data.gpt
                     }
                     setEventData(data3)
                     if (data.voiceSetting === "音声入力／AIボイスあり"){

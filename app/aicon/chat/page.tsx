@@ -278,7 +278,9 @@ export default function Aicon() {
                     embedding:data.embedding,
                     qaData:data.qaData,
                     code:data.code,
-                    langStr:""
+                    langStr:"",
+                    prompt:data.prompt,
+                    gpt:data.gpt
                 }
                 setEventData(event_data)
                 loadQAData(attribute)

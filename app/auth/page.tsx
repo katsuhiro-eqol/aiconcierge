@@ -1,12 +1,18 @@
 "use client"
 import React from "react";
-import { useState } from "react";
+import { useState, useCallback, KeyboardEvent } from "react";
 import { useRouter } from 'next/navigation';
 
 export default function AUTH() {
     const [organization, setOrganization] = useState<string>("")
     const [password, setPassword] = useState<string>("")
     const router = useRouter()
+
+    const handleKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        login()
+      }
+    }, []);
 
     const login = async() => {
         
@@ -37,8 +43,8 @@ export default function AUTH() {
     <div className="flex justify-center">
         <div className="flex-1 flex flex-col w-full px-8 sm:max-w-md justify-center gap-2">
         <div className="py-14 font-bold text-xl">ログイン画面</div>
-        <label className="text-md">
-        会社名（組織名）
+        <label className="text-sm font-bold">
+        会社名（組織名）　アルファベット表記
         </label>
         <input
         className="rounded-md px-4 py-2 bg-inherit border mb-6"
@@ -47,7 +53,7 @@ export default function AUTH() {
         value={organization}
         onChange={(e) => setOrganization(e.target.value)}
         />
-        <label className="text-md">
+        <label className="text-sm font-bold">
         Password
         </label>
         <input
@@ -56,12 +62,14 @@ export default function AUTH() {
         name="password"
         placeholder="••••••••"
         value={password}
+        onKeyDown={handleKeyDown}
         onChange={(e) => setPassword(e.target.value)}
         />
 
         <br />
-        <button className="border-2" onClick={() => login()}>login</button>
+        <button className="p-2 border-2 rounded-lg bg-blue-600 hover:bg-blue-800 text-white" onClick={() => login()}>login</button>
         <br />
+        <a href="/userRegistration" className="text-center text-blue-500 hover:text-blue-700">ユーザー登録はこちら</a>
         </div>
     </div>
   );

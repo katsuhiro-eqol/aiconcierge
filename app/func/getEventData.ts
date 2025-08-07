@@ -17,7 +17,9 @@ export default async function getEventData(eventId:string):Promise<EventData|nul
                 languages:data.languages,
                 embedding:data.embedding,
                 qaData:data.qaData,
-                langStr:""
+                langStr:"",
+                prompt:data.prompt,
+                gpt:data.gpt
             }
             return eventData
             

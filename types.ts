@@ -48,6 +48,16 @@ export type Message = {
     nearestQ: string | null;
     thumbnail?: string | null;
 }
+
+export type Message2 = {
+    id: string;
+    text: string;
+    sender: 'user' | 'AIcon' | 'system';
+    modalUrl: string | null;
+    modalFile: string | null;
+    source: boolean | null;
+    thumbnail?: string | null;
+}
 //aiconに読み込むデータ
 export interface EmbeddingsData {
     vector: number[];
@@ -76,6 +86,8 @@ export interface EventData {
     languages:string[];
     embedding:string;
     langStr:string;
+    prompt:string;
+    gpt:string;
 }
 
 export interface MenuItem {

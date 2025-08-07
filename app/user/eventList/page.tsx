@@ -57,7 +57,9 @@ export default function EventList(){
                         qaData:data.qaData,
                         embedding:data.embedding,
                         languages:data.languages,
-                        langStr:lang
+                        langStr:lang,
+                        prompt:data.prompt,
+                        gpt:data.gpt
                     }
                     esData.push(eData)
                 }

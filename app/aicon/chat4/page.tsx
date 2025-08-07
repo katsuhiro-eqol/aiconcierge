@@ -8,16 +8,16 @@ import { Mic, Send, Eraser } from 'lucide-react';
 import { db } from "@/firebase";
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import Modal from "../../components/modalModal"
-import {Message, EmbeddingsData, EventData} from "@/types"
+import {Message2, EmbeddingsData, EventData} from "@/types"
 type LanguageCode = 'ja-JP' | 'en-US' | 'zh-CN' | 'zh-TW' | 'ko-KR' | 'fr-FR' | 'pt-BR' | 'es-ES'
 
 const no_sound = "https://firebasestorage.googleapis.com/v0/b/conciergeproject-1dc77.firebasestorage.app/o/voice%2Fno_sound.wav?alt=media&token=72bc4be8-0172-469b-a38c-0e318fe91bee"
 
-export default function Aicon() {
+export default function Aicon4() {
     const [windowHeight, setWindowHeight] = useState<number>(0)
-    const [thumbnail, setThumnail] = useState<string>("/ai-concierge1_1.png")
+    const [thumbnail, setThumnail] = useState<string>("/AICON-w.png")
     const [userInput, setUserInput] = useState<string>("")
-    const [messages, setMessages] = useState<Message[]>([])
+    const [messages, setMessages] = useState<Message2[]>([])
     const [history, setHistory] = useState<{user: string, aicon: string}[]>([])
     const [eventData, setEventData] = useState<EventData|null>(null)
     const [langList, setLangList] = useState<string[]>([])
@@ -49,6 +49,8 @@ export default function Aicon() {
     const attribute = searchParams.get("attribute")
     const code = searchParams.get("code")
 
+    const prompt = ""
+
     async function getAnswer() {        
         setCanSend(false)//同じInputで繰り返し送れないようにする
         setModalUrl(null)
@@ -59,113 +61,72 @@ export default function Aicon() {
         const localDate = new Date(date.getTime() - offset)
         const now = localDate.toISOString()
   
-        const userMessage: Message = {
+        const userMessage: Message2 = {
             id: now,
             text: userInput,
             sender: 'user',
             modalUrl:null,
             modalFile:null,
-            similarity:null,
-            nearestQ:null
+            source:null
         }
         setMessages(prev => [...prev, userMessage]);
-  
-        try {
-          const response = await fetch("/api/embedding2", {
-              method: "POST",
-              headers: {
-              "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ input: userInput, model: eventData?.embedding ?? "text-embedding-3-small", language: language }),
-          });
-          setUserInput("")
-          const data = await response.json();
-          if (response.status !== 200) {
-            throw data.error || new Error(`Request failed with status ${response.status}`);
-          }
-          const translatedQuestion = data.input
-          const similarityList = findMostSimilarQuestion(data.embedding)
-  
-          //類似質問があったかどうかで場合わけ
-          if (similarityList.similarity > 0.5){
-              const aiMessage: Message = {
-                id: `A${now}`,
-                text: embeddingsData[similarityList.index].foreign[language],
-                sender: 'AIcon',
-                modalUrl:judgeNull(embeddingsData[similarityList.index].modalUrl),
-                modalFile:judgeNull(embeddingsData[similarityList.index].modalFile),
-                similarity:similarityList.similarity,
-                nearestQ:embeddingsData[similarityList.index].question,
-                thumbnail: thumbnail
-              };
-            setMessages(prev => [...prev, aiMessage]);
 
-            if (attribute){
-                await saveMessage(userMessage, aiMessage, attribute, translatedQuestion, similarityList.index)
-            }
-          //類似質問不在の場合に会話履歴も考慮して質問意図を把握し、質問文候補を複数生成の上、それとの一致度を比較するアルゴリズムを追加
-          }else{
-            console.log(history)
-            try {
-              const response = await fetch("/api/paraphrase", {
+        try {
+            const response1 = await fetch("/api/embedding2", {
                 method: "POST",
                 headers: {
                 "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ question: translatedQuestion, model: eventData?.embedding ?? "text-embedding-3-small", history:history }),
-              });
-              const data = await response.json();
-              console.log(data.paraphrases)
-              let maxValue = 0
-              let properAnswer = ""
-              let index = 0
-              for (const embedding of data.embeddings){
-                  const similarityList2 = findMostSimilarQuestion(embedding)
-                  if (similarityList2.similarity > maxValue){
-                      maxValue = similarityList2.similarity
-                      properAnswer = embeddingsData[similarityList2.index].answer
-                      index = similarityList2.index
-                  }
-              }
-              if (maxValue > 0.5) {
-                console.log(maxValue)
-                const aiMessage: Message = {
-                  id: `A${now}`,
-                  text: embeddingsData[index].foreign[language],
-                  sender: 'AIcon',
-                  modalUrl:judgeNull(embeddingsData[index].modalUrl),
-                  modalFile:judgeNull(embeddingsData[index].modalFile),
-                  similarity:maxValue,
-                  nearestQ:embeddingsData[index].question,
-                  thumbnail: thumbnail
-                };
-                setMessages(prev => [...prev, aiMessage]);
-                if (attribute){
-                    await saveMessage(userMessage, aiMessage, attribute, translatedQuestion, index)
-                }
-  
-              //類似質問が見つからなかった場合のアルゴリズム。分類できなかった質問の回答文が複数あることを想定
-              } else {
-                const unclassified = embeddingsData.filter(item => item.question ==="分類できなかった質問")
-                const aiMessage: Message = {
-                  id: `A${now}`,
-                  text: unclassified[0].foreign[language],
-                  sender: 'AIcon',
-                  modalUrl:null,
-                  modalFile:null,
-                  similarity:similarityList.similarity,
-                  nearestQ:embeddingsData[similarityList.index].question,
-                  thumbnail: thumbnail
-                };
-                setMessages(prev => [...prev, aiMessage]);
-                if (attribute){
-                    await saveMessage(userMessage, aiMessage, attribute, translatedQuestion,-1)
-                }             
-                }
-            } catch (error) {
-                console.error(error);
+                body: JSON.stringify({ input: userInput, model: eventData?.embedding ?? "text-embedding-3-small", language: language }),
+            });
+            setUserInput("")
+            const data1 = await response1.json();
+            if (response1.status !== 200) {
+              throw data1.error || new Error(`Request failed with status ${response1.status}`);
             }
-          }
+            const translatedQuestion = data1.input
+            const similarityList = findMostSimilarQuestion(data1.embedding)
+
+            const refQA = `Q:${embeddingsData[similarityList.index].question}--A:${embeddingsData[similarityList.index].answer}`
+
+
+            const response = await fetch("/api/concierge", {
+                method: "POST",
+                headers: {
+                "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ question: userInput, model: eventData!.gpt, prompt: eventData!.prompt, refQA: refQA, history: history }),
+            });
+            const data = await response.json();
+            console.log(data.answer)
+            console.log("情報元",data.source)
+
+            if (data.source){
+                const aiMessage: Message2 = {
+                    id: `A${now}`,
+                    text: data.answer,
+                    sender: 'AIcon',
+                    modalUrl:judgeNull(embeddingsData[similarityList.index].modalUrl),
+                    modalFile:judgeNull(embeddingsData[similarityList.index].modalFile),
+                    source:data.source,
+                    thumbnail: thumbnail
+                  };
+                  setMessages(prev => [...prev, aiMessage]);
+                  await saveMessage(userMessage, aiMessage, attribute!)
+            } else {
+                const aiMessage: Message2 = {
+                    id: `A${now}`,
+                    text: data.answer,
+                    sender: 'AIcon',
+                    modalUrl:"",
+                    modalFile:"",
+                    source:data.source,
+                    thumbnail: thumbnail
+                  };
+                setMessages(prev => [...prev, aiMessage]);
+                await saveMessage(userMessage, aiMessage, attribute!)
+            }
+
         } catch(error) {
         console.error(error);
         }
@@ -178,8 +139,7 @@ export default function Aicon() {
           return value
         }
       }
-
-    function cosineSimilarity(vec1:number[], vec2:number[]) {
+      function cosineSimilarity(vec1:number[], vec2:number[]) {
         if (vec1.length !== vec2.length) {
           throw new Error('ベクトルの次元数が一致しません');
         }
@@ -269,42 +229,14 @@ export default function Aicon() {
         }
     }
 
-    const saveMessage = async (userMessage:Message, message:Message, attr:string, translatedQuestion:string, index:number) => {
-        if (index === -1){
-            const hdata = {
-                user:translatedQuestion,
-                aicon:"回答不能です"
-            }
-            setHistory(prev => [...prev, hdata])
-
-            const data = {
-                id:userMessage.id,
-                user:userMessage.text,
-                uJapanese:translatedQuestion,
-                aicon:message.text,
-                aJapanese: "回答不能",
-                nearestQ:message.nearestQ,
-                similarity:message.similarity
-            }
-            await updateDoc(doc(db, "Events",attr, "Conversation", convId), {conversations: arrayUnion(data)})
-        }else {
-            const hdata = {
-                user:translatedQuestion,
-                aicon:embeddingsData[index].answer
-            }
-            setHistory(prev => [...prev, hdata])
-
-            const data = {
-                id:userMessage.id,
-                user:userMessage.text,
-                uJapanese:translatedQuestion,
-                aicon:message.text,
-                aJapanese: embeddingsData[index].answer,
-                nearestQ:message.nearestQ,
-                similarity:message.similarity
-            }
-            await updateDoc(doc(db, "Events",attr, "Conversation", convId), {conversations: arrayUnion(data)})
+    const saveMessage = async (userMessage:Message2, message:Message2, attr:string) => {
+        const data = {
+            id:userMessage.id,
+            user:userMessage.text,
+            aicon:message.text
         }
+        setHistory(prev => [...prev, data])
+        await updateDoc(doc(db, "Events",attr, "Conversation", convId), {conversations: arrayUnion(data)})
     }
 
 
@@ -347,14 +279,13 @@ export default function Aicon() {
         console.log("startText",startText)
         if (startText){
             setTimeout(() => {
-                const aiMessage: Message = {
+                const aiMessage: Message2 = {
                     id: now,
                     text: startText.foreign[language],
                     sender: 'AIcon',
                     modalUrl:null,
                     modalFile:null,
-                    similarity:null,
-                    nearestQ:null,
+                    source:null,
                     thumbnail: thumbnail
                 };
                 setMessages(prev => [...prev, aiMessage])
@@ -404,6 +335,7 @@ export default function Aicon() {
     useEffect(() => {
         if (eventData){
             getLanguageList()
+            console.log(eventData!.prompt)
         }
     }, [eventData])
     

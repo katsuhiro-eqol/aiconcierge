@@ -14,13 +14,14 @@ export default function DownloadableQRCode(){
     const [organization, setOrganization] = useState<string>("")
     const [code, setCode] = useState<string>("")
     const [voiceSetting, setVoiceSetting] = useState<boolean>(false)
+    const [selectedOption, setSelectedOption] = useState<string>("Q&Aデータ")
     const [url, setUrl] = useState<string|null>(null)
     const [rootUrl, setRootUrl] = useState<string>("")
     const [status, setStatus] = useState<string>("")
     const qrCodeRef = useRef(null);
     const size:number = 144
 
-    const options = ["AIcon", "AIcon + HumanStaff"]
+    const options = ["Q&Aデータ", "Q&Aデータ/ネット情報ハイブリッド"]
     const loadEvents = async (org:string) => {
         try {
             const docRef = doc(db, "Users", org)
@@ -121,15 +122,19 @@ export default function DownloadableQRCode(){
       };
 
     useEffect(() => {
-        
-        if (code!=="" && voiceSetting){
-            const eventUrl = `${rootUrl}aicon/chat?attribute=${organization}_${event}&code=${code}`
+        if (selectedOption === "Q&Aデータ/ネット情報ハイブリッド"){
+            const eventUrl = `${rootUrl}aicon/chat4?attribute=${organization}_${event}&code=${code}`
             setUrl(eventUrl)
-        } else if (code!=="" && !voiceSetting) {
-            const eventUrl = `${rootUrl}aicon/chat2?attribute=${organization}_${event}&code=${code}`
-            setUrl(eventUrl)
+        } else {
+            if (code!=="" && voiceSetting){
+                const eventUrl = `${rootUrl}aicon/chat?attribute=${organization}_${event}&code=${code}`
+                setUrl(eventUrl)
+            } else if (code!=="" && !voiceSetting) {
+                const eventUrl = `${rootUrl}aicon/chat2?attribute=${organization}_${event}&code=${code}`
+                setUrl(eventUrl)
+            }
         }
-    }, [code])
+    }, [code,selectedOption])
 
     useEffect(() => {
         const org = sessionStorage.getItem("user")
@@ -151,6 +156,19 @@ export default function DownloadableQRCode(){
             return <option key={name} value={name}>{name}</option>;
             })}
             </select>
+
+        <div className="flex flex-row gap-x-4">
+            {options.map((option) => (
+                <div
+                key={option}
+                className="flex items-center mb-2 cursor-pointer hover:bg-gray-200 p-2 rounded"
+                onClick={() => setSelectedOption(option)}
+                >
+                {(selectedOption === option) ? <CircleDot className="w-4 h-4 text-blue-500" /> : <Circle className="w-4 h-4 text-gray-400" />}
+                <span className="ml-2 text-gray-700 text-sm">{option}</span>
+            </div>
+            ))}
+        </div>    
 
         {url && (
             <div>
