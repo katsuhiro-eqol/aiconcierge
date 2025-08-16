@@ -101,6 +101,7 @@ export default function UpdaateQA(){
                     const data3 = {
                         id: docSnap.id,
                         name: event,
+                        image:data.image,
                         languages: data.languages,
                         voiceSetting: data.voiceSetting,
                         embedding: data.embedding,

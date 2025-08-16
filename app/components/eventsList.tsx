@@ -100,7 +100,7 @@ export default function EventsList({eventsData, setEventId}:EventsListProps){
                             key={`${row.id}-${column.key}`}
                             className="border border-gray-300 px-4 py-2 text-xs"
                         >
-                            {row[column.key as keyof typeof row]}
+                            {String(row[column.key as keyof typeof row])}
                         </td>
                         );
                     })}

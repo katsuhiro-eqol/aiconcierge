@@ -11,7 +11,8 @@ import { db } from "@/firebase";
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import Modal from "../../components/modalModal"
 import getVoiceData from "@/app/func/getVoiceData";
-import {Message, EmbeddingsData, EventData, VoiceData} from "@/types"
+import {Message2, EmbeddingsData, EventData, VoiceData, ForeignAnswer} from "@/types"
+import { realtimeVoice } from "@/app/func/realtimeVoice";
 type LanguageCode = 'ja-JP' | 'en-US' | 'zh-CN' | 'zh-TW' | 'ko-KR' | 'fr-FR' | 'pt-BR' | 'es-ES'
 
 const no_sound = "https://firebasestorage.googleapis.com/v0/b/conciergeproject-1dc77.firebasestorage.app/o/voice%2Fno_sound.wav?alt=media&token=72bc4be8-0172-469b-a38c-0e318fe91bee"
@@ -20,7 +21,7 @@ export default function Aicon() {
     const [windowHeight, setWindowHeight] = useState<number>(0)
     const [thumbnail, setThumnail] = useState<string>("/AICON-w.png")
     const [userInput, setUserInput] = useState<string>("")
-    const [messages, setMessages] = useState<Message[]>([])
+    const [messages, setMessages] = useState<Message2[]>([])
     const [history, setHistory] = useState<{user: string, aicon: string}[]>([])
     const [eventData, setEventData] = useState<EventData|null>(null)
     const [langList, setLangList] = useState<string[]>([])
@@ -36,10 +37,12 @@ export default function Aicon() {
     const [modalFile, setModalFile] = useState<string|null>(null)
     const [convId, setConvId] = useState<string>("")
     const [startText, setStartText] = useState<EmbeddingsData|null>(null)
+    const [undefindQA, setUndefindQA] = useState<EmbeddingsData|null>(null)
 
     const [recognizing, setRecognizing] = useState<boolean>(false)
     const [interim, setInterim] = useState<string>("")
     const [finalTranscript, setFinalTranscript] = useState<string>("")
+    const [undefinedAnswer, setUndefinedAnswer] = useState<ForeignAnswer|null>(null)
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const nativeName = {"日本語":"日本語", "英語":"English","中国語（簡体）":"简体中文","中国語（繁体）":"繁體中文","韓国語":"한국어","フランス語":"Français","スペイン語":"Español","ポルトガル語":"Português"}
@@ -60,10 +63,6 @@ export default function Aicon() {
     const code = searchParams.get("code")
 
     async function getAnswer() {        
-        sttStop()
-        setFinalTranscript("")
-        setInterim("")
-        setWavUrl(no_sound)
         setCanSend(false)//同じInputで繰り返し送れないようにする
         setModalUrl(null)
         setModalFile(null)
@@ -73,135 +72,92 @@ export default function Aicon() {
         const localDate = new Date(date.getTime() - offset)
         const now = localDate.toISOString()
   
-        const userMessage: Message = {
+        const userMessage: Message2 = {
             id: now,
             text: userInput,
             sender: 'user',
-            modalUrl:null,
-            modalFile:null,
-            similarity:null,
-            nearestQ:null
+            modalUrl:"",
+            modalFile:"",
+            source:null
         }
         setMessages(prev => [...prev, userMessage]);
-  
-        try {
-          const response = await fetch("/api/embedding2", {
-              method: "POST",
-              headers: {
-              "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ input: userInput, model: eventData?.embedding ?? "text-embedding-3-small", language: language }),
-          });
-          setUserInput("")
-          const data = await response.json();
-          if (response.status !== 200) {
-            throw data.error || new Error(`Request failed with status ${response.status}`);
-          }
-          const translatedQuestion = data.input
-          const similarityList = findMostSimilarQuestion(data.embedding)
-  
-          //類似質問があったかどうかで場合わけ
-          if (similarityList.similarity > 0.5){
-            const vData = await getVoiceData(embeddingsData[similarityList.index].answer, language)
-            console.log(vData)
-              setWavUrl(vData!.url)
-              const aiMessage: Message = {
-                id: `A${now}`,
-                text: embeddingsData[similarityList.index].foreign[language],
-                sender: 'AIcon',
-                modalUrl:judgeNull(embeddingsData[similarityList.index].modalUrl),
-                modalFile:judgeNull(embeddingsData[similarityList.index].modalFile),
-                similarity:similarityList.similarity,
-                nearestQ:embeddingsData[similarityList.index].question,
-                thumbnail: thumbnail
-              };
-            setMessages(prev => [...prev, aiMessage]);
 
-            if (attribute){
-                await saveMessage(userMessage, aiMessage, attribute, translatedQuestion, similarityList.index)
-            }
-          //類似質問不在の場合に会話履歴も考慮して質問意図を把握し、質問文候補を複数生成の上、それとの一致度を比較するアルゴリズムを追加
-          }else{
-            console.log(history)
-            try {
-              const response = await fetch("/api/paraphrase", {
+        try {
+            const response1 = await fetch("/api/embedding2", {
                 method: "POST",
                 headers: {
                 "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ question: translatedQuestion, model: eventData?.embedding ?? "text-embedding-3-small", history:history }),
-              });
-              const data = await response.json();
-              console.log(data.paraphrases)
-              let maxValue = 0
-              let properAnswer = ""
-              let index = 0
-              for (const embedding of data.embeddings){
-                  const similarityList2 = findMostSimilarQuestion(embedding)
-                  if (similarityList2.similarity > maxValue){
-                      maxValue = similarityList2.similarity
-                      properAnswer = embeddingsData[similarityList2.index].answer
-                      index = similarityList2.index
-                  }
-              }
-              if (maxValue > 0.5) {
-                console.log(maxValue)
-                const vData = await getVoiceData(properAnswer, language)
-                console.log(vData)
-                setWavUrl(vData!.url)
-                const aiMessage: Message = {
-                  id: `A${now}`,
-                  text:  embeddingsData[index].foreign[language],
-                  sender: 'AIcon',
-                  modalUrl:judgeNull(embeddingsData[index].modalUrl),
-                  modalFile:judgeNull(embeddingsData[index].modalFile),
-                  similarity:maxValue,
-                  nearestQ:embeddingsData[index].question,
-                  thumbnail: thumbnail
-                };
-                setMessages(prev => [...prev, aiMessage]);
-                if (attribute){
-                    await saveMessage(userMessage, aiMessage, attribute, translatedQuestion, index)
-                }
-  
-              //類似質問が見つからなかった場合のアルゴリズム。分類できなかった質問の回答文が複数あることを想定
-              } else {
-                const unclassified = embeddingsData.filter(item => item.question ==="分類できなかった質問")
-                const vData = await getVoiceData(unclassified[0].answer, language)
-                setWavUrl(vData!.url)
-                const aiMessage: Message = {
-                  id: `A${now}`,
-                  text: unclassified[0].foreign[language],
-                  sender: 'AIcon',
-                  modalUrl:null,
-                  modalFile:null,
-                  similarity:similarityList.similarity,
-                  nearestQ:embeddingsData[similarityList.index].question,
-                  thumbnail: thumbnail
-                };
-                setMessages(prev => [...prev, aiMessage]);
-                if (attribute){
-                    await saveMessage(userMessage, aiMessage, attribute, translatedQuestion,-1)
-                }             
-                }
-            } catch (error) {
-                console.error(error);
+                body: JSON.stringify({ input: userInput, model: eventData?.embedding ?? "text-embedding-3-small", language: language }),
+            });
+            setUserInput("")
+            const data1 = await response1.json();
+            if (response1.status !== 200) {
+              throw data1.error || new Error(`Request failed with status ${response1.status}`);
             }
-          }
+            //const translatedQuestion = data1.input
+            const similarityList = findMostSimilarQuestion(data1.embedding)
+            const refQA = chooseQA(similarityList, 3)
+            const undefined = undefinedAnswer?.[language] || "申し訳ありません。回答できない質問です。"
+            const response = await fetch("/api/concierge", {
+                method: "POST",
+                headers: {
+                "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ question: userInput, model: eventData!.gpt, prompt: eventData!.prompt, refQA: refQA, history: history, language: language, undefined:undefined }),
+            });
+            const data = await response.json();
+            const answer = data.answer.trim()
+            console.log(answer)
+            const voiceData = await realtimeVoice(answer,language,1)
+            setWavUrl(voiceData.url)
+            if (data.id !== ""){
+                const modal = embeddingsData.filter((item) => item.id === data.id)
+                if (modal.length > 0){
+                    const aiMessage: Message2 = {
+                        id: `A${now}`,
+                        text: `${data.answer} ${data.source} ${data.id}`,
+                        sender: 'AIcon',
+                        modalUrl:modal[0].modalUrl,
+                        modalFile:modal[0].modalFile,
+                        source:data.source,
+                        thumbnail: thumbnail
+                      };
+                      setMessages(prev => [...prev, aiMessage]);
+                      await saveMessage(userMessage, aiMessage, attribute!)                    
+                } else {
+                    const aiMessage: Message2 = {
+                        id: `A${now}`,
+                        text: `${data.answer} ${data.source}`,
+                        sender: 'AIcon',
+                        modalUrl:"",
+                        modalFile:"",
+                        source:data.source,
+                        thumbnail: thumbnail
+                      };
+                      setMessages(prev => [...prev, aiMessage]);
+                      await saveMessage(userMessage, aiMessage, attribute!)
+                }
+            } else {
+                const aiMessage: Message2 = {
+                    id: `A${now}`,
+                    text: `${data.answer} ${data.source}`,
+                    sender: 'AIcon',
+                    modalUrl:"",
+                    modalFile:"",
+                    source:data.source,
+                    thumbnail: thumbnail
+                  };
+                setMessages(prev => [...prev, aiMessage]);
+                await saveMessage(userMessage, aiMessage, attribute!)
+            }
+
         } catch(error) {
         console.error(error);
         }
       }
-  
-      const judgeNull = (value:string) => {
-        if (value === ""){
-          return null
-        } else {
-          return value
-        }
-      }
 
-    function cosineSimilarity(vec1:number[], vec2:number[]) {
+      function cosineSimilarity(vec1:number[], vec2:number[]) {
         if (vec1.length !== vec2.length) {
           throw new Error('ベクトルの次元数が一致しません');
         }
@@ -216,14 +172,25 @@ export default function Aicon() {
     
     function findMostSimilarQuestion(base64Data:string){
         const inputVector = binaryToList(base64Data)
-        const similarities = embeddingsData.map((item, index) => ({
-            index,
+        const similarities = embeddingsData.map((item) => ({
+            id: item.id,
+            question: item.question,
+            answer: item.answer,
             similarity: cosineSimilarity(inputVector, item.vector)
           }));
         similarities.sort((a, b) => b.similarity - a.similarity);
 
         // 最も類似度の高いベクトルの情報を返す
-        return similarities[0];
+        return similarities;
+    }
+
+    const chooseQA = (similarities:{id:string, question:string, answer:string, similarity:number}[], count:number) => {
+        let QAs = ""
+        for (let i = 0; i < count; i++){
+            const QA = `id:${similarities[i].id} - Q:${similarities[i].question} - A:${similarities[i].answer}\n`
+            QAs += QA
+        }
+        return QAs
     }
 
     function binaryToList(binaryStr:string){
@@ -245,7 +212,7 @@ export default function Aicon() {
                 const data = doc.data();
                 const embeddingsArray = binaryToList(data.vector)
                 const embeddingsData = {
-                    id:data.id,
+                    id:doc.id,
                     vector: embeddingsArray,
                     question:data.question,
                     answer:data.answer,
@@ -254,9 +221,13 @@ export default function Aicon() {
                     foreign:data.foreign,
                 }
                 return embeddingsData
-                })
+            })
             console.log(qaData)
             setEmbeddingsData(qaData)
+            const undifined = qaData.filter(item => item.id === "2")
+            if (undifined[0].foreign){
+                setUndefinedAnswer(undifined[0].foreign)
+            }
         } catch {
             return null
         }
@@ -281,7 +252,7 @@ export default function Aicon() {
                     qaData:data.qaData,
                     code:data.code,
                     langStr:"",
-                    prompt:data.prompt,
+                    prompt:data.prompt2,
                     gpt:data.gpt
                 }
                 setEventData(event_data)
@@ -294,42 +265,14 @@ export default function Aicon() {
         }
     }
 
-    const saveMessage = async (userMessage:Message, message:Message, attr:string, translatedQuestion:string, index:number) => {
-        if (index === -1){
-            const hdata = {
-                user:translatedQuestion,
-                aicon:"回答不能です"
-            }
-            setHistory(prev => [...prev, hdata])
-
-            const data = {
-                id:userMessage.id,
-                user:userMessage.text,
-                uJapanese:translatedQuestion,
-                aicon:message.text,
-                aJapanese: "回答不能",
-                nearestQ:message.nearestQ,
-                similarity:message.similarity
-            }
-            await updateDoc(doc(db, "Events",attr, "Conversation", convId), {conversations: arrayUnion(data)})
-        }else {
-            const hdata = {
-                user:translatedQuestion,
-                aicon:embeddingsData[index].answer
-            }
-            setHistory(prev => [...prev, hdata])
-
-            const data = {
-                id:userMessage.id,
-                user:userMessage.text,
-                uJapanese:translatedQuestion,
-                aicon:message.text,
-                aJapanese: embeddingsData[index].answer,
-                nearestQ:message.nearestQ,
-                similarity:message.similarity
-            }
-            await updateDoc(doc(db, "Events",attr, "Conversation", convId), {conversations: arrayUnion(data)})
+    const saveMessage = async (userMessage:Message2, message:Message2, attr:string) => {
+        const data = {
+            id:userMessage.id,
+            user:userMessage.text,
+            aicon:message.text
         }
+        setHistory(prev => [...prev, data])
+        await updateDoc(doc(db, "Events",attr, "Conversation", convId), {conversations: arrayUnion(data)})
     }
 
 
@@ -375,14 +318,13 @@ export default function Aicon() {
             console.log("voiceData", voiceData)
             if (voiceData){
                 setTimeout(() => {
-                    const aiMessage: Message = {
+                    const aiMessage: Message2 = {
                         id: now,
-                        text: voiceData.fText,
+                        text: startText.foreign[language],
                         sender: 'AIcon',
-                        modalUrl:null,
-                        modalFile:null,
-                        similarity:null,
-                        nearestQ:null,
+                        modalUrl:"",
+                        modalFile:"",
+                        source:null,
                         thumbnail: thumbnail
                     };
                     setMessages(prev => [...prev, aiMessage])
@@ -563,9 +505,13 @@ export default function Aicon() {
     }, [eventData])
     
     useEffect(() => {
-        const sText = embeddingsData.filter((item) => item.question === "最初の挨拶")
+        const sText = embeddingsData.filter((item) => item.id === "1")
+        const undefind = embeddingsData.filter((item) => item.id === "2")
         if (sText.length>0){
             setStartText(sText[0])
+        }
+        if (undefind.length>0){
+            setUndefindQA(undefind[0])
         }
     }, [embeddingsData])
 
@@ -675,7 +621,10 @@ export default function Aicon() {
             </div>
         </div>):(
             <div className="flex flex-col h-screen bg-stone-200">
-            <button className="bg-cyan-500 hover:bg-cyan-700 text-white mx-auto mt-24 px-4 py-2 rounded text-base font-bold" onClick={() => {talkStart()}}>ai concierge</button>
+            <button className="w-2/3 bg-cyan-500 hover:bg-cyan-700 text-white mx-auto mt-24 px-4 py-2 rounded" onClick={() => {talkStart()}}>
+                <div className="text-2xl font-bold">ai concierge</div>
+                <div>start</div>
+            </button>
             <div className="mx-auto mt-32 text-sm">使用言語(language)</div>
             <select className="mt-3 mx-auto text-sm w-36 h-8 text-center border-2 border-lime-600" value={dLang} onChange={selectLanguage}>
                 {langList.map((lang, index) => {

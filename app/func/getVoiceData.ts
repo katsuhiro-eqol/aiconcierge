@@ -16,7 +16,8 @@ export default async function getVoiceData(answer:string, lang:string):Promise<V
                 text:answer,
                 fText:data.answer,
                 url:data.url,
-                frame:data.frame
+                frame:data.frame,
+                duration:data.duration
             }
             return voiceData
             

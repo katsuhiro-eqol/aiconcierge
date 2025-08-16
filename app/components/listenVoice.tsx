@@ -28,7 +28,7 @@ export default function ListenVoice({foreign, answer, setIsAudio}:VoiceProps){
             const voiceSnap = await getDoc(voiceRef);
             if (voiceSnap.exists()){
                 const data = voiceSnap.data()
-                const voiceData = {lang: lang, text: answer, fText: data.answer, url:data.url, frame:data.frame}
+                const voiceData = {lang: lang, text: answer, fText: data.answer, url:data.url, duration:data.duration || data.frame, frame:data.frame}
                 setVoiceUrlList(prev => [...prev, voiceData])
             }
         }

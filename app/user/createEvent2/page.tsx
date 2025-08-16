@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 import { db } from "@/firebase"
 import { doc, getDoc, collection, setDoc, updateDoc, arrayUnion } from "firebase/firestore"
 import { Circle, CircleDot } from 'lucide-react'
+import { Image } from "@/types"
+import UIOption from "../../components/uiOption"
 
-export default function CreateEvent(){
+export default function CreateEvent2(){
     const [newEvent, setNewEvent] = useState<string>("")
     const [organization, setOrganization] = useState<string>("")
     const [events, setEvents] = useState<string[]>([])
@@ -16,10 +18,13 @@ export default function CreateEvent(){
     const [address, setAddress] = useState<string>("")
     const [referenceUrl, setReferenceUrl] = useState<string[]>([])
     const [other, setOther] = useState<string>("")//他言語
+    const [uiOption, setUiOption] = useState<Image[]>([])
+    const [image, setImage] = useState<Image>({name:"AI-con_woman_01.png", url:"/AI-con_woman_01.png"})
     const options = ["英語", "中国語（簡体）", "中国語（繁体）", "韓国語"];
     const otherOptions = ["その他","フランス語","ポルトガル語","スペイン語"]
     const voiceSettingOptions = ["音声入力／AIボイスなし", "音声入力／AIボイスあり"]
     const model = "text-embedding-3-small" //embeddingモデル
+    const gpt = "gpt-4o-mini"
 
     const loadEvents = async (org:string) => {
         try {           
@@ -28,6 +33,7 @@ export default function CreateEvent(){
             if (docSnap.exists()) {
                 const data = docSnap.data()
                 setEvents(data.events)
+                setUiOption(data.uiImages)
             } else {
                 alert("ログインから始めてください")
             }
@@ -66,10 +72,15 @@ export default function CreateEvent(){
     const registerEvent = async () => {
         const judge = judgeNewEvent()
         const code = randomStr(4)
-        const prompt = `あなたは${role}で、サービスの拠点は${address}です。会話履歴も含めて質問意図を読み取り、以下の流れで回答してください。
--参照QA情報が回答として適切な場合は、その回答を返してください
--質問意図と一致しない、または回答として不十分な場合は、公知情報を使って100文字以内で簡潔に回答してください
--最後に、使用した情報源を明記してください（例：「情報元：QA情報」「情報元：公開情報」など）
+        const prompt = `あなたは${role}で、サービスの拠点住所は${address}です。顧客の最新質問を会話履歴を含めて把握の上、以下の流れで回答してください。
+
+-参照QA情報が回答として適切な場合は、その回答およびidを取得
+-質問意図と一致しない、または回答として不十分な場合は、idは空文字とし、参照QAと公知情報を使って100文字以内で簡潔に回答する
+-回答に確信がない場合は、回答不能時の回答を採用
+-使用した情報元は、「QA情報」や「公開情報」と記載
+-出力は必ず ["回答","id","情報元"]の**JSON配列**のみ。余計な文字や改行・説明は禁止
+
+
 
 `
         if (judge){
@@ -83,8 +94,8 @@ export default function CreateEvent(){
                 qaData: false,
                 code: code,
                 voiceSetting:voiceSetting,
-                prompt:"",
-                gpt:"gpt-4o",
+                prompt:prompt,
+                gpt:"gpt-4o-mini",
                 role:role,
                 address:address
             }
@@ -198,6 +209,8 @@ export default function CreateEvent(){
                 </div>
                 ))}
             </div>
+            <div className="font-semibold mt-3 text-sm ml-3 underline">キャラクター画像</div>
+            <UIOption uiOption={uiOption} setImage={setImage} organization={organization} setUiOption={setUiOption} />
             <div className="font-semibold text-sm ml-3 mt-8 underline">AIの役割</div>
             <input className="w-2/3 rounded-md px-4 py-2 bg-inherit border mt-2 mb-6 border-lime-600"
                 name="event"
@@ -208,8 +221,8 @@ export default function CreateEvent(){
             <div className="font-semibold text-sm ml-3 mt-8 underline">サービス拠点住所</div>
             <input className="w-2/3 rounded-md px-4 py-2 bg-inherit border mt-2 mb-6 border-lime-600"
                 name="event"
-                placeholder="（例）東京都"
-                value={role}
+                placeholder="（例）東京都豊島区西池袋1-6-1"
+                value={address}
                 onChange={(e) => setAddress(e.target.value)}
             />
             </div>

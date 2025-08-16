@@ -15,7 +15,7 @@ const no_sound = "https://firebasestorage.googleapis.com/v0/b/conciergeproject-1
 
 export default function Aicon() {
     const [windowHeight, setWindowHeight] = useState<number>(0)
-    const [thumbnail, setThumnail] = useState<string>("/ai-concierge1_1.png")
+    const [thumbnail, setThumnail] = useState<string>("/AICON-w.png")
     const [userInput, setUserInput] = useState<string>("")
     const [messages, setMessages] = useState<Message[]>([])
     const [history, setHistory] = useState<{user: string, aicon: string}[]>([])
@@ -222,6 +222,7 @@ export default function Aicon() {
                 const data = doc.data();
                 const embeddingsArray = binaryToList(data.vector)
                 const embeddingsData = {
+                    id:data.id,
                     vector: embeddingsArray,
                     question:data.question,
                     answer:data.answer,
@@ -250,6 +251,7 @@ export default function Aicon() {
                 const event_data:EventData = {
                     id:attribute,
                     name:event,
+                    image:data.image,
                     voiceSetting:data.voiceSetting,
                     languages:data.languages,
                     embedding:data.embedding,

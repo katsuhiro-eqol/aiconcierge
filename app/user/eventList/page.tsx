@@ -52,6 +52,7 @@ export default function EventList(){
                     const eData:EventData = {
                         id: id,
                         name: item,
+                        image:data.image,
                         code: data.code,
                         voiceSetting: data.voiceSetting,
                         qaData:data.qaData,

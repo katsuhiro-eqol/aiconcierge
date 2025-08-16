@@ -12,6 +12,7 @@ export default async function getEventData(eventId:string):Promise<EventData|nul
             const eventData:EventData = {
                 id:eventId,
                 name:event,
+                image:data.image,
                 code:data.code,
                 voiceSetting:data.voiceSetting,
                 languages:data.languages,

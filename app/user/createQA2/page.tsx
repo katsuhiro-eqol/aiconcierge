@@ -289,6 +289,7 @@ export default function RegisterCSV() {
                         const data3 = {
                             id:docSnap.id,
                             name:event,
+                            image:data.image,
                             code:data.code,
                             voiceSetting:data.voiceSetting,
                             qaData:data.qaData,

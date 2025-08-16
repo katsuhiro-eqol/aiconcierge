@@ -53,13 +53,14 @@ export type Message2 = {
     id: string;
     text: string;
     sender: 'user' | 'AIcon' | 'system';
-    modalUrl: string | null;
-    modalFile: string | null;
+    modalUrl: string;
+    modalFile: string;
     source: boolean | null;
     thumbnail?: string | null;
 }
 //aiconに読み込むデータ
 export interface EmbeddingsData {
+    id: string;
     vector: number[];
     question: string;
     answer: string;
@@ -74,11 +75,13 @@ export interface VoiceData {
     fText:string;
     url:string;
     frame:number;
+    duration:number;
 }
 
 
 export interface EventData {
     id:string;
+    image:Image;
     name:string;
     code: string;
     voiceSetting:string;

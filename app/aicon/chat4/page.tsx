@@ -8,7 +8,7 @@ import { Mic, Send, Eraser } from 'lucide-react';
 import { db } from "@/firebase";
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import Modal from "../../components/modalModal"
-import {Message2, EmbeddingsData, EventData} from "@/types"
+import {Message2, EmbeddingsData, EventData, ForeignAnswer} from "@/types"
 type LanguageCode = 'ja-JP' | 'en-US' | 'zh-CN' | 'zh-TW' | 'ko-KR' | 'fr-FR' | 'pt-BR' | 'es-ES'
 
 const no_sound = "https://firebasestorage.googleapis.com/v0/b/conciergeproject-1dc77.firebasestorage.app/o/voice%2Fno_sound.wav?alt=media&token=72bc4be8-0172-469b-a38c-0e318fe91bee"
@@ -33,6 +33,7 @@ export default function Aicon4() {
     const [modalFile, setModalFile] = useState<string|null>(null)
     const [convId, setConvId] = useState<string>("")
     const [startText, setStartText] = useState<EmbeddingsData|null>(null)
+    const [undefinedAnswer, setUndefinedAnswer] = useState<ForeignAnswer|null>(null)
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const nativeName = {"日本語":"日本語", "英語":"English","中国語（簡体）":"简体中文","中国語（繁体）":"繁體中文","韓国語":"한국어","フランス語":"Français","スペイン語":"Español","ポルトガル語":"Português"}
@@ -63,8 +64,8 @@ export default function Aicon4() {
             id: now,
             text: userInput,
             sender: 'user',
-            modalUrl:null,
-            modalFile:null,
+            modalUrl:"",
+            modalFile:"",
             source:null
         }
         setMessages(prev => [...prev, userMessage]);
@@ -85,6 +86,7 @@ export default function Aicon4() {
             //const translatedQuestion = data1.input
             const similarityList = findMostSimilarQuestion(data1.embedding)
             const refQA = chooseQA(similarityList, 3)
+            const undefined = undefinedAnswer?.[language] || "申し訳ありません。回答できない質問です。"   
 
             //const refQA = `Q:${embeddingsData[similarityList.index].question}--A:${embeddingsData[similarityList.index].answer}`
 
@@ -94,28 +96,42 @@ export default function Aicon4() {
                 headers: {
                 "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ question: userInput, model: eventData!.gpt, prompt: eventData!.prompt, refQA: refQA, history: history }),
+                body: JSON.stringify({ question: userInput, model: eventData!.gpt, prompt: eventData!.prompt, refQA: refQA, history: history, language: language, undefined: undefined }),
             });
             const data = await response.json();
             console.log(data.answer)
-            console.log("情報元",data.source)
 
-            if (data.source){
-                const aiMessage: Message2 = {
-                    id: `A${now}`,
-                    text: data.answer,
-                    sender: 'AIcon',
-                    modalUrl:judgeNull(embeddingsData[similarityList[0].index].modalUrl),
-                    modalFile:judgeNull(embeddingsData[similarityList[0].index].modalFile),
-                    source:data.source,
-                    thumbnail: thumbnail
-                  };
-                  setMessages(prev => [...prev, aiMessage]);
-                  await saveMessage(userMessage, aiMessage, attribute!)
+            if (data.id !== ""){
+                const modal = embeddingsData.filter((item) => item.id === data.id)
+                if (modal.length > 0){
+                    const aiMessage: Message2 = {
+                        id: `A${now}`,
+                        text: `${data.answer} ${data.source} ${data.id}`,
+                        sender: 'AIcon',
+                        modalUrl:modal[0].modalUrl,
+                        modalFile:modal[0].modalFile,
+                        source:data.source,
+                        thumbnail: thumbnail
+                      };
+                      setMessages(prev => [...prev, aiMessage]);
+                      await saveMessage(userMessage, aiMessage, attribute!)                    
+                } else {
+                    const aiMessage: Message2 = {
+                        id: `A${now}`,
+                        text: `${data.answer} ${data.source}`,
+                        sender: 'AIcon',
+                        modalUrl:"",
+                        modalFile:"",
+                        source:data.source,
+                        thumbnail: thumbnail
+                      };
+                      setMessages(prev => [...prev, aiMessage]);
+                      await saveMessage(userMessage, aiMessage, attribute!)
+                }
             } else {
                 const aiMessage: Message2 = {
                     id: `A${now}`,
-                    text: data.answer,
+                    text: `${data.answer} ${data.source}`,
                     sender: 'AIcon',
                     modalUrl:"",
                     modalFile:"",
@@ -153,8 +169,10 @@ export default function Aicon4() {
     
     function findMostSimilarQuestion(base64Data:string){
         const inputVector = binaryToList(base64Data)
-        const similarities = embeddingsData.map((item, index) => ({
-            index,
+        const similarities = embeddingsData.map((item) => ({
+            id: item.id,
+            question: item.question,
+            answer: item.answer,
             similarity: cosineSimilarity(inputVector, item.vector)
           }));
         similarities.sort((a, b) => b.similarity - a.similarity);
@@ -163,10 +181,10 @@ export default function Aicon4() {
         return similarities;
     }
 
-    const chooseQA = (similarities:{index:number, similarity:number}[], count:number) => {
+    const chooseQA = (similarities:{id:string, question:string, answer:string, similarity:number}[], count:number) => {
         let QAs = ""
         for (let i = 0; i < count; i++){
-            const QA = `Q:${embeddingsData[similarities[i].index].question} - A:${embeddingsData[similarities[i].index].answer}\n`
+            const QA = `id:${similarities[i].id} - Q:${similarities[i].question} - A:${similarities[i].answer}\n`
             QAs += QA
         }
         return QAs
@@ -190,6 +208,7 @@ export default function Aicon4() {
                 const data = doc.data();
                 const embeddingsArray = binaryToList(data.vector)
                 const embeddingsData = {
+                    id:doc.id,
                     vector: embeddingsArray,
                     question:data.question,
                     answer:data.answer,
@@ -201,6 +220,10 @@ export default function Aicon4() {
                 })
             console.log(qaData)
             setEmbeddingsData(qaData)
+            const undifined = qaData.filter(item => item.id === "2")
+            if (undifined[0].foreign){
+                setUndefinedAnswer(undifined[0].foreign)
+            }
         } catch {
             return null
         }
@@ -218,13 +241,14 @@ export default function Aicon4() {
                 const event_data:EventData = {
                     id:attribute,
                     name:event,
+                    image:data.image,
                     voiceSetting:data.voiceSetting,
                     languages:data.languages,
                     embedding:data.embedding,
                     qaData:data.qaData,
                     code:data.code,
                     langStr:"",
-                    prompt:data.prompt,
+                    prompt:data.prompt2,
                     gpt:data.gpt
                 }
                 setEventData(event_data)
@@ -263,6 +287,7 @@ export default function Aicon4() {
 
     const getLanguageList = () => {
         if (eventData?.languages){
+            console.log("languages",eventData?.languages)
             const langs = eventData.languages.map((item) => {return nativeName[item as keyof typeof nativeName]})
             setLangList(langs)
         }
@@ -291,8 +316,8 @@ export default function Aicon4() {
                     id: now,
                     text: startText.foreign[language],
                     sender: 'AIcon',
-                    modalUrl:null,
-                    modalFile:null,
+                    modalUrl:"",
+                    modalFile:"",
                     source:null,
                     thumbnail: thumbnail
                 };

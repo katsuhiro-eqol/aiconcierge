@@ -1,51 +1,115 @@
 import { OpenAI } from 'openai'
 import { NextRequest, NextResponse } from 'next/server'
-import { create } from 'domain'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 })
 
 export async function POST(req: NextRequest) {
-  const { question, model, prompt, refQA, history } = await req.json()
-
+  const { question, model, prompt, refQA, history, language, undefined } = await req.json()
+  console.log(`入力トークン数：${calculateTokens(createPrompt(question, refQA, history, prompt, language, undefined))}`)
+  console.log(model)
+  
   try {
-    const chatRes = await openai.chat.completions.create({
-        model: model,
-        messages: [{ role: 'user', content: createPrompt(question, refQA, history, prompt)}],
-        temperature: 0.8
-      })
+    let answer: string | null = null;
     
-      console.log(createPrompt(question, refQA, history, prompt))
-      const answer = chatRes.choices[0].message.content
-      return NextResponse.json({answer: answer, source:answer?.includes("QA情報")}, {status: 200})
-  } catch {
-    return NextResponse.json({answer:'Failed to parse paraphrases' }, { status: 500 })
+    if (model === "gpt-5"){
+      try {
+          const chatRes = await openai.responses.create({
+              model: model,
+              input: [{ role: 'user', content: createPrompt(question, refQA, history, prompt, language, undefined)}]
+          })
+      
+          console.log(createPrompt(question, refQA, history, prompt, language, undefined))
+          answer = chatRes.output_text
+          console.log(`出力トークン数：${calculateTokens(answer!)}`)
+      } catch (error) {
+          console.error('GPT-5 API error:', error);
+          throw error;
+      }    
+    } else {
+      try {
+          const chatRes = await openai.chat.completions.create({
+              model: model,
+              messages: [{ role: 'user', content: createPrompt(question, refQA, history, prompt, language, undefined)}],
+              temperature: 0.8
+          })
+      
+          console.log(createPrompt(question, refQA, history, prompt, language, undefined))
+          answer = chatRes.choices[0].message.content
+          console.log(`出力トークン数：${calculateTokens(answer!)}`)
+      } catch (error) {
+          console.error('Chat completions API error:', error);
+          throw error;
+      }
+    }
+    
+    // JSONパースを安全に行う
+    console.log(answer)
+    if (answer) {
+      try {
+          const answer1 = JSON.parse(answer);
+          if (Array.isArray(answer1) && answer1.length >= 3) {
+              return NextResponse.json({
+                  answer: answer1[0], 
+                  id: answer1[1], 
+                  source: answer1[2]
+              }, {status: 200});
+          } else {
+              // JSONパース成功だが配列形式でない場合
+              return NextResponse.json({
+                  answer: answer, 
+                  id: "", 
+                  source: answer?.includes("QA情報") ? "QA情報" : ""
+              }, {status: 200});
+          }
+      } catch (parseError) {
+          // JSONパース失敗の場合
+          console.log("JSON parse failed, using raw answer");
+          return NextResponse.json({
+              answer: answer, 
+              id: "", 
+              source: answer?.includes("QA情報") ? "QA情報" : ""
+          }, {status: 200});
+      }
+    } else {
+      return NextResponse.json({answer:'No response from API', id: "", source: ""}, { status: 500 })
+    }
+    
+  } catch (error) {
+    console.error('API error:', error);
+    return NextResponse.json({answer:'Failed to get response from API', id: "", source: ""}, { status: 500 })
   }
 }
 
-const createPrompt = (question:string, refQA:string, history:{user:string, aicon:string}[], prompt:string) => {
+const createPrompt = (question:string, refQA:string, history:{user:string, aicon:string}[], prompt:string, language:string, undefined:string) => {
     const userQuestion = `最新の質問: ${question}`
+    const userLanguage = `回答の言語：${language}`
     const referenceQA = `参照QA: ${refQA}`
+    const undefinedAnswer = `回答不能時の回答:${undefined}`
 
     if (Array.isArray(history) && history.length>0){
         const history1 = `会話履歴 Q1:${history[history.length-1].user} A1:${history[history.length-1].aicon}`
 
-        const finalPrompt = prompt + userQuestion + "\n" + history1 + "\n" + referenceQA
+        const finalPrompt = prompt + undefinedAnswer + "\n" + history1 + "\n" + referenceQA +  "\n" + userLanguage + "\n" + userQuestion
         return finalPrompt
     } else {
-        const history1 = "会話履歴なし"
-        const finalPrompt = prompt + history1 + "\n" + referenceQA +  "\n" +userQuestion
+        const history1 = "会話履歴 なし"
+        const finalPrompt = prompt + undefinedAnswer + "\n" + history1 + "\n" + referenceQA +  "\n" + userLanguage + "\n" + userQuestion
         return finalPrompt
 
     }
 }
 
-/*
-    const prompt1 = "あなたはホテルメトロポリタン池袋のコンシェルジュです。会話履歴も含めて顧客意図を読み取り、以下の流れで回答してください。\n"
-    const prompt2 = "参照QA情報が回答として適切な場合は、その回答を返してください\n"
-    const prompt3 = "質問意図と一致しない、または回答として不十分な場合は、公開情報を使って100文字以内で簡潔に回答してください\n"
-    const prompt4 = "回答が難しい場合は、次の質問を誘導してください。\n"
-    const prompt5 = "最後に、使用した情報源を明記してください（例：「情報元：QA情報」「情報元：公開情報」など）\n\n"
-*/
+const calculateTokens = (text: string) => {
+    const japaneseChars = (text.match(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/gu) || []).length;
+    const otherChars = text.length - japaneseChars;
+    const spacesAndBreaks = (text.match(/\s/g) || []).length;
 
+    // 日本語: 約1.1文字/トークン, 英語: 約3.8文字/トークン
+    const jpTokens = japaneseChars / 1.1;
+    const enTokens = (otherChars - spacesAndBreaks) / 3.8;
+    const spaceTokens = spacesAndBreaks / 1.0;
+
+    return Math.ceil(jpTokens + enTokens + spaceTokens);
+}
