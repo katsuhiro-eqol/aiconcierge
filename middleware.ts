@@ -35,6 +35,7 @@ export async function middleware(request: NextRequest) {
     } 
   } else if (path.startsWith("/aicon")){
     // KVセッション管理を追加
+
     if (!kv) {
       console.warn('KV client not available, skipping session check');
       return NextResponse.next();
@@ -54,6 +55,7 @@ export async function middleware(request: NextRequest) {
       console.error('KV error:', error);
       return redirectExpired(request);
     }
+
   }
   
   return NextResponse.next();

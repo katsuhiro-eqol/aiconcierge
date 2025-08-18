@@ -47,6 +47,7 @@ export default function Aicon() {
     const [finalTranscript, setFinalTranscript] = useState<string>("")
     const [undefinedAnswer, setUndefinedAnswer] = useState<ForeignAnswer|null>(null)
     const [voiceCache, setVoiceCache] = useState<Map<string, VoiceData>>(new Map())
+    const [isQADBLoading, setIsQADBLoading] = useState<boolean>(false)
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const nativeName = {"日本語":"日本語", "英語":"English","中国語（簡体）":"简体中文","中国語（繁体）":"繁體中文","韓国語":"한국어","フランス語":"Français","スペイン語":"Español","ポルトガル語":"Português"}
@@ -106,7 +107,7 @@ export default function Aicon() {
             }
             //const translatedQuestion = data1.input
             const similarityList = findMostSimilarQuestion(data1.embedding)
-            const refQA = chooseQA(similarityList, 3)
+            const refQA = chooseQA(similarityList)
             const undefined = undefinedAnswer?.[language] || "申し訳ありません。回答できない質問です"
             const response = await fetch("/api/concierge", {
                 method: "POST",
@@ -209,21 +210,25 @@ export default function Aicon() {
     
     function findMostSimilarQuestion(base64Data:string){
         const inputVector = binaryToList(base64Data)
-        const similarities = embeddingsData.map((item) => ({
-            id: item.id,
-            question: item.question,
-            answer: item.answer,
-            similarity: cosineSimilarity(inputVector, item.vector)
-          }));
-        similarities.sort((a, b) => b.similarity - a.similarity);
+        
+        // 類似度計算を最適化（上位10件のみ計算）
+        const similarities = embeddingsData
+            .map((item) => ({
+                id: item.id,
+                question: item.question,
+                answer: item.answer,
+                similarity: cosineSimilarity(inputVector, item.vector)
+            }))
+            .sort((a, b) => b.similarity - a.similarity)
+            .slice(0, 5); // 上位10件のみ保持
 
-        // 最も類似度の高いベクトルの情報を返す
-        return similarities;
+        const meaningfulList = similarities.filter(item => item.similarity > 0.5)
+        return meaningfulList;
     }
 
-    const chooseQA = (similarities:{id:string, question:string, answer:string, similarity:number}[], count:number) => {
+    const chooseQA = (similarities:{id:string, question:string, answer:string, similarity:number}[]) => {
         let QAs = ""
-        for (let i = 0; i < count; i++){
+        for (let i = 0; i < similarities.length; i++){
             const QA = `id:${similarities[i].id} - Q:${similarities[i].question} - A:${similarities[i].answer}\n`
             QAs += QA
         }
@@ -279,65 +284,203 @@ export default function Aicon() {
 
     async function loadQAData(attr:string){
         console.log("loadQAData")
+        setIsQADBLoading(true);
         try {
             const querySnapshot = await getDocs(collection(db, "Events",attr, "QADB"));
-            const qaData = querySnapshot.docs.map((doc) => {
-                const data = doc.data();
-                const embeddingsArray = binaryToList(data.vector)
-                const embeddingsData = {
-                    id:doc.id,
-                    vector: embeddingsArray,
-                    question:data.question,
-                    answer:data.answer,
-                    modalUrl:data.modalUrl,
-                    modalFile:data.modalFile,
-                    foreign:data.foreign,
-                }
-                return embeddingsData
-            })
-            console.log(qaData)
-            setEmbeddingsData(qaData)
-            const undifined = qaData.filter(item => item.id === "2")
-            if (undifined[0].foreign){
-                setUndefinedAnswer(undifined[0].foreign)
+            console.log(`Loading ${querySnapshot.docs.length} QA items...`);
+            
+            // バッチ処理でベクトルデコードを最適化
+            const qaData = await Promise.all(
+                querySnapshot.docs.map(async (doc) => {
+                    const data = doc.data();
+                    // ベクトルデコードを非同期で実行（UIブロッキングを防止）
+                    const embeddingsArray = await new Promise<number[]>((resolve) => {
+                        setTimeout(() => {
+                            resolve(binaryToList(data.vector));
+                        }, 0);
+                    });
+                    
+                    return {
+                        id: doc.id,
+                        vector: embeddingsArray,
+                        question: data.question,
+                        answer: data.answer,
+                        modalUrl: data.modalUrl,
+                        modalFile: data.modalFile,
+                        foreign: data.foreign,
+                    };
+                })
+            );
+            
+            console.log(`Successfully loaded ${qaData.length} QA items`);
+            setEmbeddingsData(qaData);
+            
+            const undifined = qaData.filter(item => item.id === "2");
+            if (undifined[0]?.foreign){
+                setUndefinedAnswer(undifined[0].foreign);
             }
-        } catch {
-            return null
+        } catch (error) {
+            console.error("loadQAData error:", error);
+            return null;
+        } finally {
+            setIsQADBLoading(false);
         }
     }
 
+    // 認証情報を保護する選択的キャッシュクリア
+    const clearProblematicCache = () => {
+        const keysToRemove = [];
+        
+        // localStorageから問題のあるキャッシュのみを削除
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key) {
+                // 認証情報は保護（削除しない）
+                if (key.includes('firebase') && !key.includes('auth')) {
+                    try {
+                        const value = localStorage.getItem(key);
+                        if (value) {
+                            const parsed = JSON.parse(value);
+                            // 認証情報（stsTokenManager）を含むものは削除しない
+                            if (!parsed.stsTokenManager) {
+                                keysToRemove.push(key);
+                            }
+                        } else {
+                            // 値がnullの場合は削除対象
+                            keysToRemove.push(key);
+                        }
+                    } catch {
+                        // パースできない古いデータは削除対象
+                        keysToRemove.push(key);
+                    }
+                }
+            }
+        }
+        
+        keysToRemove.forEach(key => {
+            try {
+                localStorage.removeItem(key);
+                console.log(`Removed problematic cache: ${key}`);
+            } catch (error) {
+                console.warn(`Failed to remove ${key}:`, error);
+            }
+        });
+        
+        console.log(`Cleared ${keysToRemove.length} problematic cache items (auth preserved)`);
+    };
+
     async function loadEventData(attribute:string, code:string){
-        console.log("event", attribute)
+        const startTime = Date.now();
+        let isRecoveryTriggered = false;
+        
+        // 5秒タイムアウトでキャッシュクリア
+        const connectionTimeout = setTimeout(() => {
+            if (!isRecoveryTriggered) {
+                isRecoveryTriggered = true;
+                console.warn("Firestore connection taking too long (>5s), attempting cache clear...");
+                
+                try {
+                    clearProblematicCache();
+                    console.log("Cache cleared due to timeout, continuing...");
+                } catch (error) {
+                    console.error("Cache clear failed:", error);
+                }
+            }
+        }, 5000); // 5秒でタイムアウト
+        
         const eventRef = doc(db, "Events", attribute);
         const event = attribute.split("-")[1]
-        const eventSnap = await getDoc(eventRef);
-        if (eventSnap.exists()) {
-            const data = eventSnap.data()
-            const memocode = data.code
-            if (memocode == code){
-                const event_data:EventData = {
-                    id:attribute,
-                    name:event,
-                    image:data.image,
-                    languages:data.languages,
-                    voiceSetting:data.voiceSetting,
-                    voiceNumber:data.voiceNumber,
-                    embedding:data.embedding,
-                    qaData:data.qaData,
-                    code:data.code,
-                    langStr:"",
-                    prompt:data.prompt,
-                    gpt:data.gpt
-                }
-                setEventData(event_data)
-                loadQAData(attribute)
-                setInitialSlides(data.image.url)
-                setSlides(Array(1).fill(data.image.url))
-            } else {
-                alert("QRコードをもう一度読み込んでください")
+        
+        try {
+            const eventSnap = await getDoc(eventRef);
+            
+            // 復旧処理が実行されていない場合のみタイムアウトをクリア
+            if (!isRecoveryTriggered) {
+                clearTimeout(connectionTimeout);
             }
-        } else {
-            alert("イベントが登録されていません")
+            
+            if (eventSnap.exists()) {
+                const data = eventSnap.data()
+                const memocode = data.code
+                if (memocode == code){
+                    const event_data:EventData = {
+                        id:attribute,
+                        name:event,
+                        image:data.image,
+                        languages:data.languages,
+                        voiceSetting:data.voiceSetting,
+                        voiceNumber:data.voiceNumber,
+                        embedding:data.embedding,
+                        qaData:data.qaData,
+                        code:data.code,
+                        langStr:"",
+                        prompt:data.prompt,
+                        gpt:data.gpt
+                    }
+                    
+                    // UI要素を先に設定（ユーザー体験の向上）
+                    setEventData(event_data)
+                    setInitialSlides(data.image.url)
+                    setSlides(Array(1).fill(data.image.url))
+                    
+                    loadQAData(attribute)
+                    
+                } else {
+                    alert("QRコードをもう一度読み込んでください")
+                }
+            } else {
+                alert("イベントが登録されていません")
+            }
+        } catch (error) {
+            // エラーが発生した場合もタイムアウトをクリア
+            if (!isRecoveryTriggered) {
+                clearTimeout(connectionTimeout);
+            }
+            
+            console.error("Error loading event data:", error);
+            
+            // エラーが発生した場合もキャッシュクリアを試行
+            console.log("Attempting cache clear due to error...");
+            try {
+                clearProblematicCache();
+                console.log("Cache cleared, retrying...");
+                // 再試行
+                const retrySnap = await getDoc(eventRef);
+                if (retrySnap.exists()) {
+                    const data = retrySnap.data()
+                    const memocode = data.code
+                    if (memocode == code){
+                        const event_data:EventData = {
+                            id:attribute,
+                            name:event,
+                            image:data.image,
+                            languages:data.languages,
+                            voiceSetting:data.voiceSetting,
+                            voiceNumber:data.voiceNumber,
+                            embedding:data.embedding,
+                            qaData:data.qaData,
+                            code:data.code,
+                            langStr:"",
+                            prompt:data.prompt,
+                            gpt:data.gpt
+                        }
+                        
+                        setEventData(event_data)
+                        setInitialSlides(data.image.url)
+                        setSlides(Array(1).fill(data.image.url))
+                        
+                        loadQAData(attribute)
+                        
+                    } else {
+                        alert("QRコードをもう一度読み込んでください")
+                    }
+                } else {
+                    alert("イベントが登録されていません")
+                }
+            } catch (retryError) {
+                console.error("Retry failed:", retryError);
+                alert("データの取得に失敗しました。ページを再読み込みしてください。")
+            }
         }
     }
 

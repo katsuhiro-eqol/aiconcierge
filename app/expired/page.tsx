@@ -5,9 +5,10 @@ export default function ExpiredPage(){
  
 
     return (
-        <div>
-            <div>
-               <div className="font-bold text-xl">アクセス期間が終了しました</div>
+        <div className="flex flex-col w-full overflow-hidden" style={{ height: "100dvh" }}>
+        <div className="fixed inset-0 flex flex-col items-center h-full bg-stone-200">
+               <div className="mt-32 text-center font-bold text-xl">アクセス期間が終了しました</div>
+               <div className="mt-12 text-center ext-lg">再度QRコードを読み込んでください</div>
             </div>
         </div>
     )
