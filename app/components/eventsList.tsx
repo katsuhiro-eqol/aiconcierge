@@ -18,7 +18,7 @@ export default function EventsList({eventsData, setEventId}:EventsListProps){
         { key: 'name', label: 'イベント名' },
         { key: 'code', label: 'コード' },
         { key: 'voiceSetting', label: '音声入力／AIボイス' },
-        { key: 'langString', label: '対応外国語' }
+        { key: 'langStr', label: '対応外国語' }
     ]
 
     const toggleRowSelection = (rowId: string) => {

@@ -1,18 +1,18 @@
 
 const foreignLanguages: Record<string, string[]> = {
-    "日本語": ["ja-JP","ja-JP-Standard-B"],
-    "英語": ["en-US", "en-US-Standard-F"],
-    "中国語（簡体）": ["zh-CN", "cmn-CN-Standard-D"],
-    "中国語（繁体）": ["zh-TW", "cmn-TW-Standard-A"],
-    "韓国語": ["ko-KR", "ko-KR-Standard-A"],
-    "フランス語": ["fr-FR", "fr-FR-Standard-C"],
-    "ポルトガル語": ["pt-BR", "pt-BR-Standard-A"],
-    "スペイン語": ["es-ES", "es-ES-Standard-H"]
+    "日本語": ["ja-JP","ja-JP-Standard-B", "ja-JP-Standard-C"],
+    "英語": ["en-US", "en-US-Standard-F", "en-US-Standard-B"],
+    "中国語（簡体）": ["zh-CN", "cmn-CN-Standard-D", "cmn-CN-Standard-B"],
+    "中国語（繁体）": ["zh-TW", "cmn-TW-Standard-A", "cmn-TW-Standard-B"],
+    "韓国語": ["ko-KR", "ko-KR-Standard-A", "ko-KR-Standard-C"],
+    "フランス語": ["fr-FR", "fr-FR-Standard-C", "fr-FR-Standard-G"],
+    "ポルトガル語": ["pt-BR", "pt-BR-Standard-A", "pt-BR-Standard-B"],
+    "スペイン語": ["es-ES", "es-ES-Standard-H", "es-ES-Standard-G"]
 }
 
 export const realtimeVoice = async (text:string, language:string, voiceNumber:number) => {
     const langCode = foreignLanguages[language][0]
-    const voice = foreignLanguages[language][1]
+    const voice = foreignLanguages[language][voiceNumber]
     const ttsApiKey = process.env.NEXT_PUBLIC_GOOGLE_TTS_API_KEY
 
     const audio = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key='+ ttsApiKey, {

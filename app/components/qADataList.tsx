@@ -9,9 +9,10 @@ import { Speech, Paperclip, Languages } from 'lucide-react';
 
 interface QADataProps {
     qaData:QaData[];
+    voiceNumber:number;
 }
 
-export default function QADataList({qaData}: QADataProps){
+export default function QADataList({qaData, voiceNumber}: QADataProps){
     const [isForeign, setIsForeign] = useState<boolean>(false)
     const [foreignData, setForeignData] = useState<Answer>({})
     const [answer, setAnswer] = useState<string>("")
@@ -20,6 +21,8 @@ export default function QADataList({qaData}: QADataProps){
     const [modalFile, setModalFile] = useState<string>("")
     const [isAudio, setIsAudio] = useState<boolean>(false)
     const [voiceUrl, setVoiceUrl] = useState<string>("")
+
+    console.log("voiceNumber", voiceNumber)
 
     const columns = [
         { key: 'id', label: 'id' },
@@ -169,7 +172,7 @@ export default function QADataList({qaData}: QADataProps){
                     <ModalModal setIsModal={setIsModal} modalUrl={modalUrl} modalFile={modalFile} />
                 )}  
                 {isAudio && (
-                    <ListenVoice setIsAudio={setIsAudio} foreign={foreignData} answer={answer} />
+                    <ListenVoice setIsAudio={setIsAudio} foreign={foreignData} answer={answer} voiceNumber={voiceNumber} />
                 )}                       
             </div>
             </div>

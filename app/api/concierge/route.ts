@@ -43,19 +43,25 @@ export async function POST(req: NextRequest) {
           throw error;
       }
     }
-    
-    // JSONパースを安全に行う
+
     console.log(answer)
     if (answer) {
       try {
           const answer1 = JSON.parse(answer);
-          if (Array.isArray(answer1) && answer1.length >= 3) {
+          console.log(answer1)
+          if (Array.isArray(answer1) && answer1[1] !== "") {
               return NextResponse.json({
                   answer: answer1[0], 
                   id: answer1[1], 
-                  source: answer1[2]
+                  source: "QA情報"
               }, {status: 200});
-          } else {
+          } else if (Array.isArray(answer1) && answer1[1] === ""){
+            return NextResponse.json({
+                answer: answer1[0], 
+                id: "", 
+                source: "公開情報"
+            }, {status: 200});            
+          }else {
               // JSONパース成功だが配列形式でない場合
               return NextResponse.json({
                   answer: answer, 

@@ -8,14 +8,14 @@ import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk"
 //import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { Mic, Send, Eraser, Paperclip, X } from 'lucide-react';
 import { db } from "@/firebase";
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion, increment } from "firebase/firestore";
 import Modal from "../../components/modalModal"
 import getVoiceData from "@/app/func/getVoiceData";
 import {Message2, EmbeddingsData, EventData, VoiceData, ForeignAnswer} from "@/types"
 import { realtimeVoice } from "@/app/func/realtimeVoice";
 type LanguageCode = 'ja-JP' | 'en-US' | 'zh-CN' | 'zh-TW' | 'ko-KR' | 'fr-FR' | 'pt-BR' | 'es-ES'
 
-const no_sound = "https://firebasestorage.googleapis.com/v0/b/conciergeproject-1dc77.firebasestorage.app/o/voice%2Fno_sound.wav?alt=media&token=72bc4be8-0172-469b-a38c-0e318fe91bee"
+const no_sound = "https://firebasestorage.googleapis.com/v0/b/conciergeproject-1dc77.firebasestorage.app/o/voice%2Fno_sound.wav?alt=media&token=80abe4c5-a52d-40eb-9e6f-23b265fd9d72"
 
 export default function Aicon() {
     const [windowHeight, setWindowHeight] = useState<number>(0)
@@ -46,6 +46,7 @@ export default function Aicon() {
     const [interim, setInterim] = useState<string>("")
     const [finalTranscript, setFinalTranscript] = useState<string>("")
     const [undefinedAnswer, setUndefinedAnswer] = useState<ForeignAnswer|null>(null)
+    const [voiceCache, setVoiceCache] = useState<Map<string, VoiceData>>(new Map())
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const nativeName = {"日本語":"日本語", "英語":"English","中国語（簡体）":"简体中文","中国語（繁体）":"繁體中文","韓国語":"한국어","フランス語":"Français","スペイン語":"Español","ポルトガル語":"Português"}
@@ -106,7 +107,7 @@ export default function Aicon() {
             //const translatedQuestion = data1.input
             const similarityList = findMostSimilarQuestion(data1.embedding)
             const refQA = chooseQA(similarityList, 3)
-            const undefined = undefinedAnswer?.[language] || "申し訳ありません。回答できない質問です。"
+            const undefined = undefinedAnswer?.[language] || "申し訳ありません。回答できない質問です"
             const response = await fetch("/api/concierge", {
                 method: "POST",
                 headers: {
@@ -115,12 +116,37 @@ export default function Aicon() {
                 body: JSON.stringify({ question: userInput, model: eventData!.gpt, prompt: eventData!.prompt, refQA: refQA, history: history, language: language, undefined:undefined }),
             });
             const data = await response.json();
-            const answer = data.answer.trim()
-            console.log(answer)
-            const voiceData = await realtimeVoice(answer,language,1)
-            const sl = createSlides(voiceData.duration)
-            setSlides(sl)
-            setWavUrl(voiceData.url)
+            const answer = data.answer
+            
+            // キャッシュキーを生成
+            const cacheKey = `${eventData!.voiceNumber}-${answer.trim()}-${language}`;
+            
+            // キャッシュから音声データを確認
+            let existingVoice: VoiceData | null = voiceCache.get(cacheKey) || null;
+            
+            if (!existingVoice) {
+                // キャッシュにない場合はFirestoreから取得
+                existingVoice = await getVoiceData(answer, language, eventData!.voiceNumber);
+                if (existingVoice) {
+                    // キャッシュに保存
+                    setVoiceCache(prev => new Map(prev).set(cacheKey, existingVoice!));
+                }
+            } else {
+                console.log("Using cached voice data");
+            }
+            
+            if (existingVoice){
+                console.log("not newly created voice")
+                const sl = createSlides(existingVoice.duration)
+                setSlides(sl)
+                setWavUrl(existingVoice.url)                
+            } else {
+                const voiceData = await realtimeVoice(answer.trim(),language,1)
+                const sl = createSlides(voiceData.duration)
+                setSlides(sl)
+                setWavUrl(voiceData.url)
+            }
+
 
             if (data.id !== ""){
                 const modal = embeddingsData.filter((item) => item.id === data.id)
@@ -162,7 +188,7 @@ export default function Aicon() {
                 setMessages(prev => [...prev, aiMessage]);
                 await saveMessage(userMessage, aiMessage, attribute!)
             }
-
+            await incrementCounter(attribute!)
         } catch(error) {
         console.error(error);
         }
@@ -213,6 +239,12 @@ export default function Aicon() {
           )
           const embeddingsList = Array.from(embeddingsArray)
           return embeddingsList
+    }
+
+    const incrementCounter = async (attribute:string) => {
+        const counterRef = doc(db, "Events", attribute)
+        console.log("incriment")
+        await updateDoc(counterRef, { counter: increment(1) })
     }
 
     const createSlides = (duration:number) => {
@@ -289,11 +321,12 @@ export default function Aicon() {
                     image:data.image,
                     languages:data.languages,
                     voiceSetting:data.voiceSetting,
+                    voiceNumber:data.voiceNumber,
                     embedding:data.embedding,
                     qaData:data.qaData,
                     code:data.code,
                     langStr:"",
-                    prompt:data.prompt2,
+                    prompt:data.prompt,
                     gpt:data.gpt
                 }
                 setEventData(event_data)
@@ -357,7 +390,21 @@ export default function Aicon() {
         const now = localDate.toISOString()
         console.log("startText",startText)
         if (startText){
-            const voiceData: VoiceData | null = await getVoiceData(startText.answer, language)
+            // キャッシュキーを生成
+            const cacheKey = `${eventData!.voiceNumber}-${startText.answer.trim()}-${language}`;
+            
+            // キャッシュから音声データを確認
+            let voiceData: VoiceData | null = voiceCache.get(cacheKey) || null;
+            
+            if (!voiceData) {
+                // キャッシュにない場合はFirestoreから取得
+                voiceData = await getVoiceData(startText.answer, language, eventData!.voiceNumber);
+                if (voiceData) {
+                    // キャッシュに保存
+                    setVoiceCache(prev => new Map(prev).set(cacheKey, voiceData!));
+                }
+            }
+            
             console.log("voiceData", voiceData)
             if (voiceData){
                 setTimeout(() => {
@@ -545,6 +592,7 @@ export default function Aicon() {
     useEffect(() => {
         if (eventData){
             getLanguageList()
+            console.log(eventData)
             //setInitialSlides(eventData?.image.url)
             
         }

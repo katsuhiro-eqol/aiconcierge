@@ -127,7 +127,7 @@ export default function AddCSV({eventData, organization, event, voiceSetting}: A
             for (const lang in answers[answer]){
                 const ans = answers[answer][lang]
                 const voiceId = `${md5(answer)}-${lang}`
-                await registerVoice(voiceId, ans, lang)
+                await registerVoice(voiceId, ans, lang, answer, eventData.voiceNumber, false)
             }
             count += 1
             const ratio = Math.floor(count*100/answerKeys.length)

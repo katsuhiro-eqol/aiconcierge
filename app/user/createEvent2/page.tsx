@@ -16,7 +16,7 @@ export default function CreateEvent2(){
     const [selectedOptions, setSelectedOptions] = useState<string[]>(["日本語"]);
     const [role, setRole] = useState<string>("")
     const [address, setAddress] = useState<string>("")
-    const [referenceUrl, setReferenceUrl] = useState<string[]>([])
+    //const [referenceUrl, setReferenceUrl] = useState<string[]>([])
     const [other, setOther] = useState<string>("")//他言語
     const [uiOption, setUiOption] = useState<Image[]>([])
     const [image, setImage] = useState<Image>({name:"AI-con_woman_01.png", url:"/AI-con_woman_01.png"})
@@ -72,32 +72,38 @@ export default function CreateEvent2(){
     const registerEvent = async () => {
         const judge = judgeNewEvent()
         const code = randomStr(4)
-        const prompt = `あなたは${role}で、サービスの拠点住所は${address}です。顧客の最新質問を会話履歴を含めて把握の上、以下の流れで回答してください。
-
--参照QA情報が回答として適切な場合は、その回答およびidを取得
--質問意図と一致しない、または回答として不十分な場合は、idは空文字とし、参照QAと公知情報を使って100文字以内で簡潔に回答する
--回答に確信がない場合は、回答不能時の回答を採用
--使用した情報元は、「QA情報」や「公開情報」と記載
--出力は必ず ["回答","id","情報元"]の**JSON配列**のみ。余計な文字や改行・説明は禁止
-
-
-
+        const prompt = 
+        `あなたは${role}です。会話履歴も含めて質問意図を読み取り、以下の流れで回答してください。
+-参照QA情報が回答として適切な場合は、その回答を採用し、参照したidを取得。
+-質問意図と一致しない、または回答として不十分な場合は、参照QAと公知情報を使って100文字以内で簡潔に回答してください。idは空文字。
+- ["回答","id"]の**JSON配列**のみ、をアウトプットしてください。余計な文字や改行・説明は禁止。
 `
+
         if (judge){
             try {
             const id = organization + "_" + newEvent
+            let voiceNumber = 1
+            // woman:1, man:2
+            if (image.name.includes("woman")){
+                voiceNumber = 1
+            } else {
+                voiceNumber = 2
+            }
             const data = {
                 organization: organization,
                 event: newEvent,
+                image: image,
                 languages: selectedOptions,
                 embedding: model,
                 qaData: false,
                 code: code,
                 voiceSetting:voiceSetting,
+                voiceNumber: voiceNumber,
                 prompt:prompt,
-                gpt:"gpt-4o-mini",
+                gpt:gpt,
                 role:role,
-                address:address
+                address:address,
+                counter:0
             }
             
                 const eventRef = collection(db, "Events")

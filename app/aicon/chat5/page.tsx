@@ -248,6 +248,7 @@ export default function Aicon() {
                     image:data.image,
                     languages:data.languages,
                     voiceSetting:data.voiceSetting,
+                    voiceNumber:data.voiceNumber,
                     embedding:data.embedding,
                     qaData:data.qaData,
                     code:data.code,
@@ -314,7 +315,7 @@ export default function Aicon() {
         const now = localDate.toISOString()
         console.log("startText",startText)
         if (startText){
-            const voiceData: VoiceData | null = await getVoiceData(startText.answer, language)
+            const voiceData: VoiceData | null = await getVoiceData(startText.answer, language, eventData!.voiceNumber)
             console.log("voiceData", voiceData)
             if (voiceData){
                 setTimeout(() => {

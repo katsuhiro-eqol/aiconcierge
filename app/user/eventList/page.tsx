@@ -16,6 +16,7 @@ export default function EventList(){
     const [organization, setOrganization] = useState<string>("")
     const [qaData, setQaData] = useState<QaData[]>([])
     const [isQAData, setIsQAData] = useState<boolean>(false)
+    const [vN, setVN] = useState<number>(1)
  
 
 
@@ -49,12 +50,14 @@ export default function EventList(){
                 if (docSnap.exists()) {
                     const data = docSnap.data()
                     const lang = data.languages.toString()
+                    console.log(lang)
                     const eData:EventData = {
                         id: id,
                         name: item,
                         image:data.image,
                         code: data.code,
                         voiceSetting: data.voiceSetting,
+                        voiceNumber:data.voiceNumber,
                         qaData:data.qaData,
                         embedding:data.embedding,
                         languages:data.languages,
@@ -75,9 +78,10 @@ export default function EventList(){
         if (eventId){
             const qa = await getQAData(eventId)
             setQaData(qa)
+            const selectedEventData = eventsData.filter((item) => item.id === eventId)
+            setVN(selectedEventData[0]!.voiceNumber)
         }
     }
-
     useEffect(() => {
         if (qaData.length > 0){
             setIsQAData(true)
@@ -111,7 +115,7 @@ export default function EventList(){
                <EventsList eventsData={eventsData} setEventId={setEventId} />
             </div>
             <div>
-            {isQAData && (<QADataList qaData={qaData} />)}
+            {isQAData && (<QADataList qaData={qaData} voiceNumber={vN}/>)}
             </div>
         </div>
     )

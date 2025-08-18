@@ -85,6 +85,7 @@ export interface EventData {
     name:string;
     code: string;
     voiceSetting:string;
+    voiceNumber:number;
     qaData: boolean;
     languages:string[];
     embedding:string;

@@ -1,39 +1,27 @@
 import { NextResponse } from 'next/server';
+import { createClient } from "@vercel/kv"
 import type { NextRequest } from 'next/server';
-import { kv } from "@vercel/kv";
-import { jwtVerify } from 'jose'
-import { verify } from 'jsonwebtoken';
 
-//aiconページに対するアクセス制限
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-type Session = {
-  firstSeen: number;
-  expiresAt: number;
-  lastRenewedAt?: number;
-};
+// 環境変数が設定されている場合のみKVクライアントを作成
+const kv = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN 
+  ? createClient({
+      url: process.env.KV_REST_API_URL,
+      token: process.env.KV_REST_API_TOKEN,
+    })
+  : null;
+
+const COOKIE = "session_id";
 
 // ミドルウェア関数
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
-  //aiconサイトへのアクセス制限
-  /*
-  if (
-    path.startsWith("/api/renew") || path === "/expired" ||
-    path.startsWith("/user") || path.startsWith("/staff") || path === "/auth" || path === "staffAuth"
-  ) {
-    return NextResponse.next()
+  
+  // 基本的なパスチェック
+  if (path.startsWith("/_next") || path.startsWith("/favicon.ico")) {
+    return NextResponse.next();
   }
-  const sid = request.cookies.get("session_id")?.value;
-  if (!sid) return redirectExpired(request);
-  const sessionKey = `session:${sid}`;
-  const session = await kv.get<Session>(sessionKey);
 
-  if (!session) return redirectExpired(request);
-
-  const now = Date.now();
-  if (now > session.expiresAt) return redirectExpired(request);
-*/
-  // トークンの取得
+  // ログインが必要なページのトークンの取得
   const token = request.cookies.get('authToken')?.value
   const staffToken = request.cookies.get('authStaffToken')?.value
 
@@ -44,11 +32,33 @@ export async function middleware(request: NextRequest) {
   } else if (path.startsWith("/staff")){
     if (!staffToken) {
       return NextResponse.redirect(new URL('/staffAuth', request.url));
+    } 
+  } else if (path.startsWith("/aicon")){
+    // KVセッション管理を追加
+    if (!kv) {
+      console.warn('KV client not available, skipping session check');
+      return NextResponse.next();
+    }
+    
+    const sid = request.cookies.get(COOKIE)?.value;
+    if (!sid) {
+      return redirectExpired(request);
+    }
+    
+    try {
+      const data = await kv.get<{ expiresAt: number }>(`session:${sid}`);
+      if (!data || Date.now() > Number(data.expiresAt)) {
+        return redirectExpired(request);
+      }
+    } catch (error) {
+      console.error('KV error:', error);
+      return redirectExpired(request);
     }
   }
-
+  
   return NextResponse.next();
 }
+
 
 const redirectExpired = (request: NextRequest) => {
   return NextResponse.redirect(new URL("/expired", request.url));
@@ -57,6 +67,7 @@ const redirectExpired = (request: NextRequest) => {
 // ミドルウェアを適用するパスを指定
 export const config = {
   matcher: [
-    '/user/:path*', '/staff/:path*'
+    '/user/:path*', '/staff/:path*', '/aicon/:path*'
   ]
 };
+

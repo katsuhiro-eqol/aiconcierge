@@ -243,6 +243,7 @@ export default function Aicon4() {
                     name:event,
                     image:data.image,
                     voiceSetting:data.voiceSetting,
+                    voiceNumber:data.voiceNumber,
                     languages:data.languages,
                     embedding:data.embedding,
                     qaData:data.qaData,

@@ -6,7 +6,6 @@ import { db } from "@/firebase"
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore"
 import {registerVoice} from "../../func/createWav"
 import createEmbedding from "../../func/createEmbedding"
-import validateCreatedQA from '@/app/func/verificationQA';
 import {ProgressBar} from "../../components/progressBar"
 import { ModalData, EventData, TranslatedAnswers,  Answer, CsvData, Pronunciation } from "@/types"
 import md5 from 'md5';
@@ -125,8 +124,9 @@ export default function RegisterCSV() {
         for (const answer in answers){
             for (const lang in answers[answer]){
                 const ans = answers[answer][lang]
-                const voiceId = `${md5(answer)}-${lang}`
-                await registerVoice(voiceId, ans, lang)
+                const idWord = `${String(eventData!.voiceNumber)}-${ans.trim()}`
+                const voiceId = `${md5(idWord)}`//voiceIdはtrimした値
+                await registerVoice(voiceId, ans, lang, answer, eventData!.voiceNumber,false)
             }
             count += 1
             const ratio = Math.floor(count*100/answerKeys.length)
@@ -292,6 +292,7 @@ export default function RegisterCSV() {
                             image:data.image,
                             code:data.code,
                             voiceSetting:data.voiceSetting,
+                            voiceNumber:data.voiceNumber,
                             qaData:data.qaData,
                             languages:data.languages,
                             embedding:data.embedding,

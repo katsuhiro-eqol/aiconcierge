@@ -10,10 +10,11 @@ import { QaData, Answer } from "@/types"
 interface QADataSelectionProps {
     qaData:QaData[];
     selectedRowId:string|null;
+    voiceNumber:number;
     setSelectedRowId:(selectedRowId:string|null) => void;
 }
 
-export default function QADataSelection({qaData, selectedRowId, setSelectedRowId}: QADataSelectionProps){
+export default function QADataSelection({qaData, selectedRowId, voiceNumber, setSelectedRowId}: QADataSelectionProps){
     const [isForeign, setIsForeign] = useState<boolean>(false)
     const [foreignData, setForeignData] = useState<Answer>({})
     const [answer, setAnswer] = useState<string>("")
@@ -72,6 +73,8 @@ export default function QADataSelection({qaData, selectedRowId, setSelectedRowId
     const listenVoice = (id:string) => {
         const selectedData = qaData.filter((item) => item.id == id)
         setIsAudio(true)
+        const foreign = selectedData[0].foreign
+        setForeignData(foreign)
         setAnswer(selectedData[0].answer)
     }
 
@@ -183,7 +186,7 @@ export default function QADataSelection({qaData, selectedRowId, setSelectedRowId
                     <ModalModal setIsModal={setIsModal} modalUrl={modalUrl} modalFile={modalFile} />
                 )}  
                 {isAudio && (
-                    <ListenVoice setIsAudio={setIsAudio} foreign={foreignData} answer={answer} />
+                    <ListenVoice setIsAudio={setIsAudio} foreign={foreignData} answer={answer} voiceNumber={voiceNumber}/>
                 )}                       
             </div>
             </div>

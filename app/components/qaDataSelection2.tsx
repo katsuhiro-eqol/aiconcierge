@@ -9,10 +9,11 @@ import { QaData, Answer } from "@/types"
 
 interface QADataSelection2Props {
     qaData:QaData[];
+    voiceNumber:number;
     setDeleteIds:(deleteIds:string[]) => void;
 }
 
-export default function QADataSelection2({qaData, setDeleteIds}: QADataSelection2Props){
+export default function QADataSelection2({qaData, voiceNumber, setDeleteIds}: QADataSelection2Props){
     const [isForeign, setIsForeign] = useState<boolean>(false)
     const [foreignData, setForeignData] = useState<Answer>({})
     const [answer, setAnswer] = useState<string>("")
@@ -189,7 +190,7 @@ export default function QADataSelection2({qaData, setDeleteIds}: QADataSelection
                     <ModalModal setIsModal={setIsModal} modalUrl={modalUrl} modalFile={modalFile} />
                 )}  
                 {isAudio && (
-                    <ListenVoice setIsAudio={setIsAudio} foreign={foreignData} answer={answer} />
+                    <ListenVoice setIsAudio={setIsAudio} foreign={foreignData} answer={answer} voiceNumber={voiceNumber}/>
                 )}                       
             </div>
             </div>

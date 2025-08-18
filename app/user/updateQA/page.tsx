@@ -2,7 +2,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { db } from "@/firebase"
-import { doc, getDoc, collection, getDocs, setDoc, deleteDoc } from "firebase/firestore"
+import { doc, getDoc, collection, getDocs, setDoc, deleteDoc, updateDoc } from "firebase/firestore"
 import UploadFiles2 from "../../components/uploadFiles2"
 import QADataSelection from "../../components/qaDataSelection"
 import QADataSelection2 from "../../components/qaDataSelection2"
@@ -11,7 +11,6 @@ import { PronunciationRegistration } from "../../components/pronunciation"
 import createForeign from "../../func/createForeign"
 import createEmbedding from "../../func/createEmbedding"
 import {registerVoice} from "../../func/createWav"
-import validateCreatedQA from '@/app/func/verificationQA';
 import { Circle, CircleDot, ArrowBigRight } from 'lucide-react'
 import { EventData, QaData, ModalData, Pronunciation, TranslatedAnswers } from "@/types"
 import md5 from 'md5';
@@ -104,6 +103,7 @@ export default function UpdaateQA(){
                         image:data.image,
                         languages: data.languages,
                         voiceSetting: data.voiceSetting,
+                        voiceNumber:data.voiceNumber,
                         embedding: data.embedding,
                         qaData: data.qaData,
                         code:data.code,
@@ -215,20 +215,6 @@ export default function UpdaateQA(){
         }
     }
 
-    /*
-    const voiceRegistration = async (answers: TranslatedAnswers) => {
-        let count = 0
-        const answerKeys = Object.keys(answers)
-        for (const answer in answers){
-            for (const lang in answers[answer]){
-                const ans = answers[answer][lang]
-                const voiceId = `${md5(answer)}-${lang}`
-                await registerVoice(voiceId, ans, lang)
-            }
-        }
-    }
-        */
-
     const updateQA = async () => {
         if ((newAnswer !== ""&& newQuestion !== "") && selectedQA){
             setStatus2("更新を開始しました")
@@ -237,8 +223,9 @@ export default function UpdaateQA(){
                 for (const answer of translatedAnswers){
                     const lang = Object.keys(answer)[0]
                     const ans = answer[lang]
-                    const voiceId = `${md5(ans)}-$${lang}`
-                    await registerVoice(voiceId, ans, lang)
+                    const idWord = `${String(eventData!.voiceNumber)}-${ans.trim()}`
+                    const voiceId = `${md5(idWord)}`//voiceIdはtrimした値
+                    await registerVoice(voiceId, ans, lang, answer["日本語"], eventData!.voiceNumber, false)
                 }
             }
             const embedding = await createEmbedding(newQuestion,eventData!.embedding)
@@ -262,8 +249,9 @@ export default function UpdaateQA(){
                 for (const answer of translatedAnswers){
                     const lang = Object.keys(answer)[0]
                     const ans = answer[lang]
-                    const voiceId = `${md5(ans)}-$${lang}`
-                    await registerVoice(voiceId, ans, lang)
+                    const idWord = `${String(eventData!.voiceNumber)}-${ans.trim()}`
+                    const voiceId = `${md5(idWord)}`//voiceIdはtrimした値                    const voiceId = `${md5(ans.trim())}`
+                    await registerVoice(voiceId, ans, lang, answer["日本語"], eventData!.voiceNumber, false)
                 }
             }
             const eventId = organization + "_" + event
@@ -340,14 +328,35 @@ export default function UpdaateQA(){
         }        
     }
 
+    const resetRead = async() => {
+        setStatus2("音声合成の準備をしています")
+        setPronunciations([])
+        if (eventData && selectedQA){
+            const data = {
+                read: selectedQA.answer,
+                pronunciations:[]
+            }
+            const eventId = organization + "_" + event
+            const readRef = doc(db, "Events", eventId, "QADB", selectedQA?.id)
+            await updateDoc(readRef,data)
+            const idWord = `${String(eventData!.voiceNumber)}-${selectedQA.answer.trim()}`//元のvioceIdを上書きする
+            const voiceId = `${md5(idWord)}`//voiceIdはtrimした値
+            await registerVoice(voiceId, selectedQA.answer, "日本語", selectedQA.answer, eventData!.voiceNumber, true)
+            setStatus2("AIボイスの更新が完了しました")
+            setIsUpdateFinished(true)
+        }
+        
+    }
+
     const updateVoice = async() => {
         if (voiceSetting){
             const readText = convertPronunciation(pronunciations, selectedQA!.read)
             console.log(readText)
             setStatus2("音声合成の準備をしています")
             if (eventData && selectedQA){
-                const voiceId = `${md5(selectedQA.answer)}-日本語`
-                await registerVoice(voiceId, readText, "日本語")
+                const idWord = `${String(eventData!.voiceNumber)}-${selectedQA.answer.trim()}`//元のvioceIdを上書きする
+                const voiceId = `${md5(idWord)}`//voiceIdはtrimした値
+                await registerVoice(voiceId, readText, "日本語", selectedQA.answer, eventData!.voiceNumber, true)
                 const data = {
                     read:readText,
                     pronunciations:pronunciations
@@ -369,8 +378,9 @@ export default function UpdaateQA(){
                 for (const answer of translatedAnswers){
                     const lang = Object.keys(answer)[0]
                     const ans = answer[lang]
-                    const voiceId = `${md5(ans)}-$${lang}`
-                    await registerVoice(voiceId, ans, lang)
+                    const idWord = `${String(eventData!.voiceNumber)}-${ans.trim()}`
+                    const voiceId = `${md5(idWord)}`//voiceIdはtrimした値
+                    await registerVoice(voiceId, ans, lang, answer["日本語"], eventData!.voiceNumber, false)
                 }
             }
             const embedding = await createEmbedding(newQuestion,eventData!.embedding)
@@ -629,7 +639,7 @@ export default function UpdaateQA(){
             {(searchedData && selectedButton !== "delete") && (
             <div>
                 <div className="text-sm mt-2">検索結果（修正するQ&Aを選択してください）</div>
-                <QADataSelection qaData={searchedData} selectedRowId={selectedRowId} setSelectedRowId={setSelectedRowId}/>
+                <QADataSelection qaData={searchedData} selectedRowId={selectedRowId} setSelectedRowId={setSelectedRowId} voiceNumber={eventData!.voiceNumber}/>
                 {(selectedQA && selectedButton === "modify") && (
                     <div>
                     <div className="flex flex-row gap-x-4">
@@ -699,6 +709,7 @@ export default function UpdaateQA(){
                     <div className="flex flex-row gap-x-4">
                     <div className="font-semibold mt-2 text-sm ml-3">読み登録</div>
                     <button className="px-2 ml-3 mt-1 text-xs border-2 bg-gray-200 hover:bg-gray-300" onClick={() => setIsNewPronunciation(true)}>+追加</button>
+                    <button className="px-2 ml-3 mt-1 text-xs border-2 bg-red-200 hover:bg-red-300" onClick={() => resetRead()}>読み補正を初期化</button>
                     </div>
                     <PronunciationRegistration pronunciations={pronunciations} setPronunciations={setPronunciations} isNewPronunciation={isNewPronunciation} setIsNewPronunciation={setIsNewPronunciation} />
                     {pronunciations && (
@@ -715,7 +726,7 @@ export default function UpdaateQA(){
                 </div>)}
                 {(searchedData && selectedButton === "delete") && (
                 <div>
-                    <QADataSelection2 qaData={searchedData} setDeleteIds={setDeleteIds}/>
+                    <QADataSelection2 qaData={searchedData} voiceNumber={eventData!.voiceNumber} setDeleteIds={setDeleteIds}/>
                     <div className="text-sm">選択したデータを一括削除します</div>
                     <button className="h-10 my-5 px-2 border-2 rounded" onClick={cancelButton}>別の変更をする</button>
                     <button className="h-10 my-5 ml-3 px-2 border-2 bg-amber-200 rounded hover:bg-amber-300" disabled={isUpdateFinished} onClick={() => deleteQA()}>データ削除</button>
@@ -781,7 +792,7 @@ export default function UpdaateQA(){
         
         {updatedQA && (
             <div>
-            <QADataList qaData={updatedQA} />
+            <QADataList qaData={updatedQA} voiceNumber={eventData!.voiceNumber} />
             </div>
         )}
         </div>

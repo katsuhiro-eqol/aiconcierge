@@ -9,10 +9,11 @@ import md5 from 'md5';
 interface VoiceProps {
     foreign:Answer;
     answer:string;
+    voiceNumber:number;
     setIsAudio: (isAudio: boolean ) => void;
 }
 
-export default function ListenVoice({foreign, answer, setIsAudio}:VoiceProps){
+export default function ListenVoice({foreign, answer, voiceNumber, setIsAudio}:VoiceProps){
     const [language, setLanguage] = useState<string[]>([])
     const [voiceUrlList, setVoiceUrlList] = useState<VoiceData[]>([])
     const audioRef = useRef(null)
@@ -23,10 +24,14 @@ export default function ListenVoice({foreign, answer, setIsAudio}:VoiceProps){
 
     const loadVoiceUrl = async () => {
         for (const lang of language){
-            const voiceId = `${md5(answer)}-${lang}`
+            const ans = foreign[lang]
+            console.log(ans)
+            const idWord = `${String(voiceNumber)}-${ans.trim()}`
+            const voiceId = `${md5(idWord)}`//voiceIdはtrimした値
             const voiceRef = doc(db, "Voice", voiceId)
             const voiceSnap = await getDoc(voiceRef);
             if (voiceSnap.exists()){
+                console.log("existing")
                 const data = voiceSnap.data()
                 const voiceData = {lang: lang, text: answer, fText: data.answer, url:data.url, duration:data.duration || data.frame, frame:data.frame}
                 setVoiceUrlList(prev => [...prev, voiceData])
