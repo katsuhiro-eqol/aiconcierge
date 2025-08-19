@@ -1,3 +1,13 @@
+
+export default function Home() {
+  return (
+    <div>
+      ai concierge
+    </div>
+  )
+}
+
+/*
 "use client"
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -16,7 +26,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white overflow-hidden">
-      {/* Animated Background */}
+
       <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 animate-pulse"></div>
         <div 
@@ -106,3 +116,4 @@ export default function Home() {
     </div>
   );
 }
+*/

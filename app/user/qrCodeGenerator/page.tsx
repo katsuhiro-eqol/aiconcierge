@@ -14,7 +14,7 @@ export default function DownloadableQRCode(){
     const [organization, setOrganization] = useState<string>("")
     const [code, setCode] = useState<string>("")
     const [voiceSetting, setVoiceSetting] = useState<boolean>(false)
-    const [selectedOption, setSelectedOption] = useState<string>("Q&Aデータ")
+    const [selectedOption, setSelectedOption] = useState<string>("Q&Aデータ/ネット情報ハイブリッド")
     const [url, setUrl] = useState<string|null>(null)
     const [rootUrl, setRootUrl] = useState<string>("")
     const [status, setStatus] = useState<string>("")
@@ -163,19 +163,6 @@ export default function DownloadableQRCode(){
             })}
             </select>
 
-        <div className="flex flex-row gap-x-4">
-            {options.map((option) => (
-                <div
-                key={option}
-                className="flex items-center mb-2 cursor-pointer hover:bg-gray-200 p-2 rounded"
-                onClick={() => setSelectedOption(option)}
-                >
-                {(selectedOption === option) ? <CircleDot className="w-4 h-4 text-blue-500" /> : <Circle className="w-4 h-4 text-gray-400" />}
-                <span className="ml-2 text-gray-700 text-sm">{option}</span>
-            </div>
-            ))}
-        </div>    
-
         {url && (
             <div>
             <div className="mb-10 w-1/2"><a className="text-indigo-700" href={url}  target="_blank" rel="noreferrer">{url}</a></div>
@@ -200,3 +187,18 @@ export default function DownloadableQRCode(){
         </div>
     );
 };
+
+/*
+        <div className="flex flex-row gap-x-4">
+            {options.map((option) => (
+                <div
+                key={option}
+                className="flex items-center mb-2 cursor-pointer hover:bg-gray-200 p-2 rounded"
+                onClick={() => setSelectedOption(option)}
+                >
+                {(selectedOption === option) ? <CircleDot className="w-4 h-4 text-blue-500" /> : <Circle className="w-4 h-4 text-gray-400" />}
+                <span className="ml-2 text-gray-700 text-sm">{option}</span>
+            </div>
+            ))}
+        </div>    
+*/
