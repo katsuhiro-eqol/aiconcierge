@@ -166,7 +166,6 @@ export default function DownloadableQRCode(){
         {url && (
             <div>
             <div className="mb-10 w-1/2"><a className="text-indigo-700" href={url}  target="_blank" rel="noreferrer">{url}</a></div>
-            <button onClick={() => fetchAICONpage()}>ai concierge アプリへ移動</button>
             <div 
             ref={qrCodeRef} 
             className="w-60 py-5 px-12 bg-white"
