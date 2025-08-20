@@ -15,7 +15,18 @@ const COOKIE = "session_id";
 // ミドルウェア関数
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
-  
+  const sid = request.cookies.get(COOKIE)?.value;
+  if (kv === null || kv === undefined){
+    console.log("kv:false")
+  } else {
+    console.log("kv:OK")
+  }
+  if (sid === null || sid === undefined){
+    console.log("sid:false")
+  } else {
+    console.log("sid:OK")
+  }
+
   // 基本的なパスチェック
   if (path.startsWith("/_next") || path.startsWith("/favicon.ico")) {
     return NextResponse.next();
