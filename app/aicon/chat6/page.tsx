@@ -273,7 +273,6 @@ export default function Aicon() {
         }
         let imageList:string[] = []
         const n = Math.floor(duration*2)+1
-        console.log("n:", n)
         for (let i = 0; i<n; i++){
             imageList = imageList.concat(imageArray)
         }
@@ -283,12 +282,9 @@ export default function Aicon() {
     }
 
     async function loadQAData(attr:string){
-        console.log("loadQAData")
         setIsQADBLoading(true);
         try {
             const querySnapshot = await getDocs(collection(db, "Events",attr, "QADB"));
-            console.log(`Loading ${querySnapshot.docs.length} QA items...`);
-            
             // バッチ処理でベクトルデコードを最適化
             const qaData = await Promise.all(
                 querySnapshot.docs.map(async (doc) => {

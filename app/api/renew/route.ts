@@ -23,9 +23,7 @@ export async function GET(request: NextRequest) {
 
   const now = Date.now();
   const session = { firstSeen: now, expiresAt: now + TTL_MS, lastRenewedAt: now };
-  console.log(session)
   const expired = new Date(session.expiresAt)
-  console.log("expiredAt", expired.toISOString())
 
   // セッション保存（キー自体にもTTLを付与：念のため1h長くする）
   await kv.set(`session:${sid}`, session, { ex: Math.ceil(TTL_MS / 1000) + 3600 });

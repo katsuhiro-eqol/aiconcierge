@@ -85,7 +85,7 @@ export default function Aicon4() {
             }
             //const translatedQuestion = data1.input
             const similarityList = findMostSimilarQuestion(data1.embedding)
-            const refQA = chooseQA(similarityList, 3)
+            const refQA = chooseQA(similarityList)
             const undefined = undefinedAnswer?.[language] || "申し訳ありません。回答できない質問です。"   
 
             //const refQA = `Q:${embeddingsData[similarityList.index].question}--A:${embeddingsData[similarityList.index].answer}`
@@ -146,14 +146,7 @@ export default function Aicon4() {
         console.error(error);
         }
       }
-  
-      const judgeNull = (value:string) => {
-        if (value === ""){
-          return null
-        } else {
-          return value
-        }
-      }
+
       function cosineSimilarity(vec1:number[], vec2:number[]) {
         if (vec1.length !== vec2.length) {
           throw new Error('ベクトルの次元数が一致しません');
@@ -167,23 +160,27 @@ export default function Aicon4() {
         return dotProduct / (magnitude1 * magnitude2);
       }
     
-    function findMostSimilarQuestion(base64Data:string){
+      function findMostSimilarQuestion(base64Data:string){
         const inputVector = binaryToList(base64Data)
-        const similarities = embeddingsData.map((item) => ({
-            id: item.id,
-            question: item.question,
-            answer: item.answer,
-            similarity: cosineSimilarity(inputVector, item.vector)
-          }));
-        similarities.sort((a, b) => b.similarity - a.similarity);
+        
+        // 類似度計算を最適化（上位10件のみ計算）
+        const similarities = embeddingsData
+            .map((item) => ({
+                id: item.id,
+                question: item.question,
+                answer: item.answer,
+                similarity: cosineSimilarity(inputVector, item.vector)
+            }))
+            .sort((a, b) => b.similarity - a.similarity)
+            .slice(0, 5); // 上位10件のみ保持
 
-        // 最も類似度の高いベクトルの情報を返す
-        return similarities;
+        const meaningfulList = similarities.filter(item => item.similarity > 0.5)
+        return meaningfulList;
     }
 
-    const chooseQA = (similarities:{id:string, question:string, answer:string, similarity:number}[], count:number) => {
+    const chooseQA = (similarities:{id:string, question:string, answer:string, similarity:number}[]) => {
         let QAs = ""
-        for (let i = 0; i < count; i++){
+        for (let i = 0; i < similarities.length; i++){
             const QA = `id:${similarities[i].id} - Q:${similarities[i].question} - A:${similarities[i].answer}\n`
             QAs += QA
         }

@@ -33,11 +33,28 @@ export async function middleware(request: NextRequest) {
     if (!staffToken) {
       return NextResponse.redirect(new URL('/staffAuth', request.url));
     } 
-  } else if (path.startsWith("/aicon")){
+  }
+  
+  return NextResponse.next();
+}
+
+
+const redirectExpired = (request: NextRequest) => {
+  return NextResponse.redirect(new URL("/expired", request.url));
+}
+
+// ミドルウェアを適用するパスを指定
+export const config = {
+  matcher: [
+    '/user/:path*', '/staff/:path*', '/aicon/:path*'
+  ]
+};
+
+/*
+ else if (path.startsWith("/aicon")){
     // KVセッション管理を追加
 
     if (!kv) {
-      console.warn('KV client not available, skipping session check');
       return NextResponse.next();
     }
     
@@ -57,19 +74,4 @@ export async function middleware(request: NextRequest) {
     }
 
   }
-  
-  return NextResponse.next();
-}
-
-
-const redirectExpired = (request: NextRequest) => {
-  return NextResponse.redirect(new URL("/expired", request.url));
-}
-
-// ミドルウェアを適用するパスを指定
-export const config = {
-  matcher: [
-    '/user/:path*', '/staff/:path*', '/aicon/:path*'
-  ]
-};
-
+    */

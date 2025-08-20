@@ -4,22 +4,23 @@ import "regenerator-runtime";
 import React from "react";
 import { useSearchParams as useSearchParamsOriginal } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk"
-//import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-import { Mic, Send, Eraser, Paperclip, X } from 'lucide-react';
+//import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk"
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
+import { Mic, Send, Eraser } from 'lucide-react';
 import { db } from "@/firebase";
-import { collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion, increment } from "firebase/firestore";
 import Modal from "../../components/modalModal"
 import getVoiceData from "@/app/func/getVoiceData";
 import {Message2, EmbeddingsData, EventData, VoiceData, ForeignAnswer} from "@/types"
 import { realtimeVoice } from "@/app/func/realtimeVoice";
 type LanguageCode = 'ja-JP' | 'en-US' | 'zh-CN' | 'zh-TW' | 'ko-KR' | 'fr-FR' | 'pt-BR' | 'es-ES'
 
-const no_sound = "https://firebasestorage.googleapis.com/v0/b/conciergeproject-1dc77.firebasestorage.app/o/voice%2Fno_sound.wav?alt=media&token=72bc4be8-0172-469b-a38c-0e318fe91bee"
+const no_sound = "https://firebasestorage.googleapis.com/v0/b/conciergeproject-1dc77.firebasestorage.app/o/voice%2Fno_sound.wav?alt=media&token=80abe4c5-a52d-40eb-9e6f-23b265fd9d72"
 
 export default function Aicon() {
     const [windowHeight, setWindowHeight] = useState<number>(0)
-    const [thumbnail, setThumnail] = useState<string>("/AICON-w.png")
+    const [initialSlides, setInitialSlides] = useState<string|null>(null)
+    const [thumbnail, setThumnail] = useState<string|null>("/AICON-w.png")
     const [userInput, setUserInput] = useState<string>("")
     const [messages, setMessages] = useState<Message2[]>([])
     const [history, setHistory] = useState<{user: string, aicon: string}[]>([])
@@ -28,7 +29,9 @@ export default function Aicon() {
     const [dLang, setDLang] = useState<string>("日本語")//表示用言語
     const [language, setLanguage] = useState<string>("日本語")
     const [embeddingsData, setEmbeddingsData] = useState<EmbeddingsData[]>([])
-    const [wavUrl, setWavUrl] = useState<string>(no_sound);
+    const [wavUrl, setWavUrl] = useState<string>(no_sound)
+    const [slides, setSlides] = useState<string[]|null>(null)
+    const [currentIndex, setCurrentIndex] = useState<number>(0)
     const [wavReady, setWavReady] = useState<boolean>(false)
     const [record,setRecord] = useState<boolean>(false)
     const [canSend, setCanSend] = useState<boolean>(false)
@@ -39,10 +42,20 @@ export default function Aicon() {
     const [startText, setStartText] = useState<EmbeddingsData|null>(null)
     const [undefindQA, setUndefindQA] = useState<EmbeddingsData|null>(null)
 
+    const [isListening, setIsListening] = useState<boolean>(false)
     const [recognizing, setRecognizing] = useState<boolean>(false)
     const [interim, setInterim] = useState<string>("")
     const [finalTranscript, setFinalTranscript] = useState<string>("")
     const [undefinedAnswer, setUndefinedAnswer] = useState<ForeignAnswer|null>(null)
+    const [voiceCache, setVoiceCache] = useState<Map<string, VoiceData>>(new Map())
+    const [isQADBLoading, setIsQADBLoading] = useState<boolean>(false)
+
+    const {
+        transcript,
+        resetTranscript,
+        listening,
+        browserSupportsSpeechRecognition
+    } = useSpeechRecognition();
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const nativeName = {"日本語":"日本語", "英語":"English","中国語（簡体）":"简体中文","中国語（繁体）":"繁體中文","韓国語":"한국어","フランス語":"Français","スペイン語":"Español","ポルトガル語":"Português"}
@@ -51,7 +64,7 @@ export default function Aicon() {
     const foreignLanguages: Record<string, LanguageCode> = {"日本語": "ja-JP","英語": "en-US","中国語（簡体）": "zh-CN","中国語（繁体）": "zh-TW","韓国語": "ko-KR","フランス語": "fr-FR","ポルトガル語": "pt-BR","スペイン語": "es-ES"}
     const audioRef = useRef<HTMLAudioElement>(null)
     const intervalRef = useRef<NodeJS.Timeout | null>(null)
-    const recognizerRef = useRef<SpeechSDK.SpeechRecognizer | null>(null)
+    //const recognizerRef = useRef<SpeechRecognition | null>(null)
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
     const useSearchParams = ()  => {
@@ -63,7 +76,12 @@ export default function Aicon() {
     const code = searchParams.get("code")
 
     async function getAnswer() {        
+        sttStop()
+        setFinalTranscript("")
+        setInterim("")
+        setWavUrl(no_sound)
         setCanSend(false)//同じInputで繰り返し送れないようにする
+        setSlides(Array(1).fill(initialSlides))
         setModalUrl(null)
         setModalFile(null)
   
@@ -97,8 +115,8 @@ export default function Aicon() {
             }
             //const translatedQuestion = data1.input
             const similarityList = findMostSimilarQuestion(data1.embedding)
-            const refQA = chooseQA(similarityList, 3)
-            const undefined = undefinedAnswer?.[language] || "申し訳ありません。回答できない質問です。"
+            const refQA = chooseQA(similarityList)
+            const undefined = undefinedAnswer?.[language] || "申し訳ありません。回答できない質問です"
             const response = await fetch("/api/concierge", {
                 method: "POST",
                 headers: {
@@ -107,10 +125,38 @@ export default function Aicon() {
                 body: JSON.stringify({ question: userInput, model: eventData!.gpt, prompt: eventData!.prompt, refQA: refQA, history: history, language: language, undefined:undefined }),
             });
             const data = await response.json();
-            const answer = data.answer.trim()
-            console.log(answer)
-            const voiceData = await realtimeVoice(answer,language,1)
-            setWavUrl(voiceData.url)
+            const answer = data.answer
+            
+            // キャッシュキーを生成
+            const cacheKey = `${eventData!.voiceNumber}-${answer.trim()}-${language}`;
+            
+            // キャッシュから音声データを確認
+            let existingVoice: VoiceData | null = voiceCache.get(cacheKey) || null;
+            
+            if (!existingVoice) {
+                // キャッシュにない場合はFirestoreから取得
+                existingVoice = await getVoiceData(answer, language, eventData!.voiceNumber);
+                if (existingVoice) {
+                    // キャッシュに保存
+                    setVoiceCache(prev => new Map(prev).set(cacheKey, existingVoice!));
+                }
+            } else {
+                console.log("Using cached voice data");
+            }
+            
+            if (existingVoice){
+                console.log("not newly created voice")
+                const sl = createSlides(existingVoice.duration)
+                setSlides(sl)
+                setWavUrl(existingVoice.url)                
+            } else {
+                const voiceData = await realtimeVoice(answer.trim(),language,1)
+                const sl = createSlides(voiceData.duration)
+                setSlides(sl)
+                setWavUrl(voiceData.url)
+            }
+
+
             if (data.id !== ""){
                 const modal = embeddingsData.filter((item) => item.id === data.id)
                 if (modal.length > 0){
@@ -151,7 +197,7 @@ export default function Aicon() {
                 setMessages(prev => [...prev, aiMessage]);
                 await saveMessage(userMessage, aiMessage, attribute!)
             }
-
+            await incrementCounter(attribute!)
         } catch(error) {
         console.error(error);
         }
@@ -172,21 +218,25 @@ export default function Aicon() {
     
     function findMostSimilarQuestion(base64Data:string){
         const inputVector = binaryToList(base64Data)
-        const similarities = embeddingsData.map((item) => ({
-            id: item.id,
-            question: item.question,
-            answer: item.answer,
-            similarity: cosineSimilarity(inputVector, item.vector)
-          }));
-        similarities.sort((a, b) => b.similarity - a.similarity);
+        
+        // 類似度計算を最適化（上位10件のみ計算）
+        const similarities = embeddingsData
+            .map((item) => ({
+                id: item.id,
+                question: item.question,
+                answer: item.answer,
+                similarity: cosineSimilarity(inputVector, item.vector)
+            }))
+            .sort((a, b) => b.similarity - a.similarity)
+            .slice(0, 5); // 上位10件のみ保持
 
-        // 最も類似度の高いベクトルの情報を返す
-        return similarities;
+        const meaningfulList = similarities.filter(item => item.similarity > 0.5)
+        return meaningfulList;
     }
 
-    const chooseQA = (similarities:{id:string, question:string, answer:string, similarity:number}[], count:number) => {
+    const chooseQA = (similarities:{id:string, question:string, answer:string, similarity:number}[]) => {
         let QAs = ""
-        for (let i = 0; i < count; i++){
+        for (let i = 0; i < similarities.length; i++){
             const QA = `id:${similarities[i].id} - Q:${similarities[i].question} - A:${similarities[i].answer}\n`
             QAs += QA
         }
@@ -204,65 +254,237 @@ export default function Aicon() {
           return embeddingsList
     }
 
+    const incrementCounter = async (attribute:string) => {
+        const counterRef = doc(db, "Events", attribute)
+        console.log("incriment")
+        await updateDoc(counterRef, { counter: increment(1) })
+    }
+
+    const createSlides = (duration:number) => {
+        let imageArray = []
+        switch (initialSlides) {
+            case "/AI-con_man_01.png":
+                imageArray = ["/AI-con_man_02.png","/AI-con_man_01.png"]
+                break;
+            case "/AI-con_man2_01.png":
+                imageArray = ["/AI-con_man2_02.png","/AI-con_man2_01.png"]
+                break;
+            case "/AI-con_woman_01.png":
+                imageArray = ["/AI-con_woman_02.png","/AI-con_woman_01.png"]
+                break;
+            case "/AI-con_woman2_01.png":
+                imageArray = ["/AI-con_woman2_02.png","/AI-con_woman2_01.png"]
+                break;
+            default:
+                imageArray = Array(2).fill(initialSlides)
+                break;
+        }
+        let imageList:string[] = []
+        const n = Math.floor(duration*2)+1
+        for (let i = 0; i<n; i++){
+            imageList = imageList.concat(imageArray)
+        }
+        imageList = imageList.concat(Array(4).fill(initialSlides))
+        //imageList = imageList.concat(initialSlides)
+        return imageList
+    }
+
     async function loadQAData(attr:string){
-        console.log("loadQAData")
+        setIsQADBLoading(true);
         try {
             const querySnapshot = await getDocs(collection(db, "Events",attr, "QADB"));
-            const qaData = querySnapshot.docs.map((doc) => {
-                const data = doc.data();
-                const embeddingsArray = binaryToList(data.vector)
-                const embeddingsData = {
-                    id:doc.id,
-                    vector: embeddingsArray,
-                    question:data.question,
-                    answer:data.answer,
-                    modalUrl:data.modalUrl,
-                    modalFile:data.modalFile,
-                    foreign:data.foreign,
-                }
-                return embeddingsData
-            })
-            console.log(qaData)
-            setEmbeddingsData(qaData)
-            const undifined = qaData.filter(item => item.id === "2")
-            if (undifined[0].foreign){
-                setUndefinedAnswer(undifined[0].foreign)
+            // バッチ処理でベクトルデコードを最適化
+            const qaData = await Promise.all(
+                querySnapshot.docs.map(async (doc) => {
+                    const data = doc.data();
+                    // ベクトルデコードを非同期で実行（UIブロッキングを防止）
+                    const embeddingsArray = await new Promise<number[]>((resolve) => {
+                        setTimeout(() => {
+                            resolve(binaryToList(data.vector));
+                        }, 0);
+                    });
+                    
+                    return {
+                        id: doc.id,
+                        vector: embeddingsArray,
+                        question: data.question,
+                        answer: data.answer,
+                        modalUrl: data.modalUrl,
+                        modalFile: data.modalFile,
+                        foreign: data.foreign,
+                    };
+                })
+            );
+            
+            console.log(`Successfully loaded ${qaData.length} QA items`);
+            setEmbeddingsData(qaData);
+            
+            const undifined = qaData.filter(item => item.id === "2");
+            if (undifined[0]?.foreign){
+                setUndefinedAnswer(undifined[0].foreign);
             }
-        } catch {
-            return null
+        } catch (error) {
+            console.error("loadQAData error:", error);
+            return null;
+        } finally {
+            setIsQADBLoading(false);
         }
     }
 
+    // 認証情報を保護する選択的キャッシュクリア
+    const clearProblematicCache = () => {
+        const keysToRemove = [];
+        
+        // localStorageから問題のあるキャッシュのみを削除
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key) {
+                // 認証情報は保護（削除しない）
+                if (key.includes('firebase') && !key.includes('auth')) {
+                    try {
+                        const value = localStorage.getItem(key);
+                        if (value) {
+                            const parsed = JSON.parse(value);
+                            // 認証情報（stsTokenManager）を含むものは削除しない
+                            if (!parsed.stsTokenManager) {
+                                keysToRemove.push(key);
+                            }
+                        } else {
+                            // 値がnullの場合は削除対象
+                            keysToRemove.push(key);
+                        }
+                    } catch {
+                        // パースできない古いデータは削除対象
+                        keysToRemove.push(key);
+                    }
+                }
+            }
+        }
+        
+        keysToRemove.forEach(key => {
+            try {
+                localStorage.removeItem(key);
+                console.log(`Removed problematic cache: ${key}`);
+            } catch (error) {
+                console.warn(`Failed to remove ${key}:`, error);
+            }
+        });
+        
+        console.log(`Cleared ${keysToRemove.length} problematic cache items (auth preserved)`);
+    };
+
     async function loadEventData(attribute:string, code:string){
-        console.log("event", attribute)
+        const startTime = Date.now();
+        let isRecoveryTriggered = false;
+        
+        // 5秒タイムアウトでキャッシュクリア
+        const connectionTimeout = setTimeout(() => {
+            if (!isRecoveryTriggered) {
+                isRecoveryTriggered = true;
+                console.warn("Firestore connection taking too long (>5s), attempting cache clear...");
+                
+                try {
+                    clearProblematicCache();
+                    console.log("Cache cleared due to timeout, continuing...");
+                } catch (error) {
+                    console.error("Cache clear failed:", error);
+                }
+            }
+        }, 5000); // 5秒でタイムアウト
+        
         const eventRef = doc(db, "Events", attribute);
         const event = attribute.split("-")[1]
-        const eventSnap = await getDoc(eventRef);
-        if (eventSnap.exists()) {
-            const data = eventSnap.data()
-            const memocode = data.code
-            if (memocode == code){
-                const event_data:EventData = {
-                    id:attribute,
-                    name:event,
-                    image:data.image,
-                    languages:data.languages,
-                    voiceSetting:data.voiceSetting,
-                    voiceNumber:data.voiceNumber,
-                    embedding:data.embedding,
-                    qaData:data.qaData,
-                    code:data.code,
-                    langStr:"",
-                    prompt:data.prompt2,
-                    gpt:data.gpt
-                }
-                setEventData(event_data)
-                loadQAData(attribute)
-            } else {
-                alert("QRコードをもう一度読み込んでください")
+        
+        try {
+            const eventSnap = await getDoc(eventRef);
+            
+            // 復旧処理が実行されていない場合のみタイムアウトをクリア
+            if (!isRecoveryTriggered) {
+                clearTimeout(connectionTimeout);
             }
-        } else {
-            alert("イベントが登録されていません")
+            
+            if (eventSnap.exists()) {
+                const data = eventSnap.data()
+                const memocode = data.code
+                if (memocode == code){
+                    const event_data:EventData = {
+                        id:attribute,
+                        name:event,
+                        image:data.image,
+                        languages:data.languages,
+                        voiceSetting:data.voiceSetting,
+                        voiceNumber:data.voiceNumber,
+                        embedding:data.embedding,
+                        qaData:data.qaData,
+                        code:data.code,
+                        langStr:"",
+                        prompt:data.prompt,
+                        gpt:data.gpt
+                    }
+                    
+                    // UI要素を先に設定（ユーザー体験の向上）
+                    setEventData(event_data)
+                    setInitialSlides(data.image.url)
+                    setSlides(Array(1).fill(data.image.url))
+                    
+                    loadQAData(attribute)
+                    
+                } else {
+                    alert("QRコードをもう一度読み込んでください")
+                }
+            } else {
+                alert("イベントが登録されていません")
+            }
+        } catch (error) {
+            // エラーが発生した場合もタイムアウトをクリア
+            if (!isRecoveryTriggered) {
+                clearTimeout(connectionTimeout);
+            }
+            
+            console.error("Error loading event data:", error);
+            
+            // エラーが発生した場合もキャッシュクリアを試行
+            console.log("Attempting cache clear due to error...");
+            try {
+                clearProblematicCache();
+                console.log("Cache cleared, retrying...");
+                // 再試行
+                const retrySnap = await getDoc(eventRef);
+                if (retrySnap.exists()) {
+                    const data = retrySnap.data()
+                    const memocode = data.code
+                    if (memocode == code){
+                        const event_data:EventData = {
+                            id:attribute,
+                            name:event,
+                            image:data.image,
+                            languages:data.languages,
+                            voiceSetting:data.voiceSetting,
+                            voiceNumber:data.voiceNumber,
+                            embedding:data.embedding,
+                            qaData:data.qaData,
+                            code:data.code,
+                            langStr:"",
+                            prompt:data.prompt,
+                            gpt:data.gpt
+                        }
+                        
+                        setEventData(event_data)
+                        setInitialSlides(data.image.url)
+                        setSlides(Array(1).fill(data.image.url))
+                        
+                        loadQAData(attribute)
+                        
+                    } else {
+                        alert("QRコードをもう一度読み込んでください")
+                    }
+                } else {
+                    alert("イベントが登録されていません")
+                }
+            } catch (retryError) {
+                console.error("Retry failed:", retryError);
+                alert("データの取得に失敗しました。ページを再読み込みしてください。")
+            }
         }
     }
 
@@ -315,8 +537,16 @@ export default function Aicon() {
         const now = localDate.toISOString()
         console.log("startText",startText)
         if (startText){
-            const voiceData: VoiceData | null = await getVoiceData(startText.answer, language, eventData!.voiceNumber)
-            console.log("voiceData", voiceData)
+            const cacheKey = `${eventData!.voiceNumber}-${startText.answer.trim()}-${language}`;
+            let voiceData: VoiceData | null = voiceCache.get(cacheKey) || null;
+            if (!voiceData) {
+                // キャッシュにない場合はFirestoreから取得
+                voiceData = await getVoiceData(startText.answer, language, eventData!.voiceNumber);
+                if (voiceData) {
+                    // キャッシュに保存
+                    setVoiceCache(prev => new Map(prev).set(cacheKey, voiceData!));
+                }
+            }
             if (voiceData){
                 setTimeout(() => {
                     const aiMessage: Message2 = {
@@ -329,7 +559,10 @@ export default function Aicon() {
                         thumbnail: thumbnail
                     };
                     setMessages(prev => [...prev, aiMessage])
+                    const sl = createSlides(voiceData.duration)
+                    setSlides(sl)
                     setWavUrl(voiceData.url)
+                    
                 }, 1500);
             }
         }
@@ -343,11 +576,18 @@ export default function Aicon() {
         }
     }
 
-    const inputClear = () => {
-        sttStop()
+    const inputClear = async () => {
+        setRecord(false)
+        try {
+            if (listening){
+            await SpeechRecognition.stopListening()
+            resetTranscript()
+            }
+        } catch(error){
+            console.error('音声認識の停止に失敗:', error)
+            alert(`音声認識停止不良:${error}`)
+        }
         setUserInput("")
-        setFinalTranscript("")
-        setInterim("")
     }
 
     const clearSilenceTimer = () => {
@@ -359,9 +599,10 @@ export default function Aicon() {
 
     const scheduleSilenceStop = () => {
         clearSilenceTimer();
-        silenceTimerRef.current = setTimeout(() => stopRecognition(), 4000);
+        silenceTimerRef.current = setTimeout(() => sttStop(), 4000);
     };
 
+    /*
     const startRecognition = (langCode:string) => {
         if (recognizerRef.current) return;
 
@@ -417,24 +658,56 @@ export default function Aicon() {
             }
         );
     };
+    */
 
-    const sttStart = () => {
-        clearSilenceTimer()
-        setUserInput("")
-        setFinalTranscript("")
-        setInterim("")       
-        setRecord(true)
-        if (audioRef.current) {
-            audioRef.current.pause();
+    const sttStart = async() => {
+        if (!browserSupportsSpeechRecognition) {
+            alert('このブラウザは音声認識をサポートしていません')
+            return
         }
-        const langCode = foreignLanguages[language] || "ja-JP"
-        startRecognition(langCode)
-        scheduleSilenceStop()
+
+        try {
+            if (listening) {
+                await SpeechRecognition.stopListening()
+                resetTranscript()
+            }
+            
+            setUserInput("")
+            setRecord(true)
+            
+            // 音声の停止を確実に待つ
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            }
+            
+            const langCode = foreignLanguages[language] || "ja-JP";
+            await SpeechRecognition.startListening({ 
+                language: langCode, 
+                continuous: false
+            });
+            setIsListening(true)
+            
+        } catch(error) {
+            console.error('音声認識の開始に失敗:', error)
+            setRecord(false)
+            setIsListening(false)
+        }
     }
 
-    const sttStop = () => {
+    const sttStop = async () => {
         setRecord(false)
-        stopRecognition()
+        try {
+            if (listening) {
+                await SpeechRecognition.stopListening()
+                resetTranscript()
+                setIsListening(false)
+            }
+        } catch(error) {
+            console.error('音声認識の停止に失敗:', error)
+            setRecord(false)
+            setIsListening(false)
+        }
     }
 
     const selectLanguage = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -454,9 +727,6 @@ export default function Aicon() {
     useEffect(() => {
         return () => {
             clearSilenceTimer();
-            if (recognizerRef.current) {
-            recognizerRef.current.close();
-            }
         };
     }, []);
 
@@ -482,7 +752,7 @@ export default function Aicon() {
                 clearInterval(intervalRef.current);
                 intervalRef.current = null// コンポーネントがアンマウントされたらタイマーをクリア
             }
-            stopRecognition()
+            sttStop()
         };
     },[])
 
@@ -500,6 +770,7 @@ export default function Aicon() {
     useEffect(() => {
         if (eventData){
             getLanguageList()
+            console.log(eventData)
             //setInitialSlides(eventData?.image.url)
             
         }
@@ -515,6 +786,35 @@ export default function Aicon() {
             setUndefindQA(undefind[0])
         }
     }, [embeddingsData])
+
+    useEffect(() => {
+        if (Array.isArray(slides) && slides.length>1 && wavUrl!= no_sound){
+            audioPlay()
+            setCurrentIndex(0)
+            if (intervalRef.current !== null) {//タイマーが進んでいる時はstart押せないように//2
+                return;
+            }
+            intervalRef.current = setInterval(() => {
+                setCurrentIndex((prevIndex) => (prevIndex + 1) % (slides.length))
+            }, 250)
+        }
+    }, [slides])
+
+    useEffect(() => {
+        if (Array.isArray(slides)){
+            if (currentIndex === slides.length-2 && currentIndex != 0){
+                const s = initialSlides
+                setCurrentIndex(0)
+                setWavUrl(no_sound)
+                setSlides(Array(1).fill(initialSlides))
+                if (intervalRef.current !== null){
+                    clearInterval(intervalRef.current);
+                    intervalRef.current = null
+                }
+            }
+        }
+    }, [currentIndex]);
+
 
     useEffect(() => {
         setUserInput(finalTranscript + interim)
@@ -557,8 +857,10 @@ export default function Aicon() {
         <div className="flex flex-col w-full overflow-hidden" style={{ height: windowHeight || "100dvh" }}>
         {wavReady ? (
         <div className="fixed inset-0 flex flex-col items-center h-full bg-stone-200">
-            <div className="my-2 text-lg font-bold text-center">ai concierge</div>
-            <div className="flex-none h-[64vh] w-11/12 max-w-96 overflow-auto">
+            <div className="flex-none h-[35vh] w-full mb-5">
+                {Array.isArray(slides) && (<img className="mx-auto h-[35vh] " src={slides[currentIndex]} alt="Image" />)}
+            </div>
+            <div className="flex-none h-[32vh] w-11/12 max-w-96 overflow-auto">
             {messages.map((message) => (
                 <div 
                     key={message.id} 
@@ -624,7 +926,7 @@ export default function Aicon() {
             <div className="flex flex-col h-screen bg-stone-200">
             <button className="w-2/3 bg-cyan-500 hover:bg-cyan-700 text-white mx-auto mt-24 px-4 py-2 rounded" onClick={() => {talkStart()}}>
                 <div className="text-2xl font-bold">ai concierge</div>
-                <div>start</div>
+                <div>click to start</div>
             </button>
             <div className="mx-auto mt-32 text-sm">使用言語(language)</div>
             <select className="mt-3 mx-auto text-sm w-36 h-8 text-center border-2 border-lime-600" value={dLang} onChange={selectLanguage}>
