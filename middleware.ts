@@ -44,6 +44,27 @@ export async function middleware(request: NextRequest) {
     if (!staffToken) {
       return NextResponse.redirect(new URL('/staffAuth', request.url));
     } 
+  } else if (path.startsWith("/aicon")){
+    // KVセッション管理を追加
+
+    if (!kv) {
+      return NextResponse.next();
+    }
+    
+    const sid = request.cookies.get(COOKIE)?.value;
+    if (!sid) {
+      return redirectExpired(request);
+    }
+    
+    try {
+      const data = await kv.get<{ expiresAt: number }>(`session:${sid}`);
+      if (!data || Date.now() > Number(data.expiresAt)) {
+        return redirectExpired(request);
+      }
+    } catch (error) {
+      console.error('KV error:', error);
+      return redirectExpired(request);
+    }
   }
   
   return NextResponse.next();

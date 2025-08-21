@@ -666,6 +666,7 @@ export default function Aicon() {
         console.log("record", record)
     }, [record])
 
+    /*
     useEffect(() => {
         console.log('音声認識の状態:', {
             listening,
@@ -673,7 +674,7 @@ export default function Aicon() {
             record
         });
     }, [listening, isListening, record, transcript, userInput]);
-
+*/
     // 音声認識が停止した時の処理
     useEffect(() => {
         if (listening === false && userInput === "") {
