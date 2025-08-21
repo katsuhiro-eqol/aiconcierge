@@ -493,63 +493,6 @@ export default function Aicon() {
         silenceTimerRef.current = setTimeout(() => sttStop(), 4000);
     };
 
-    /*
-    const startRecognition = (langCode:string) => {
-        if (recognizerRef.current) return;
-
-        const speechKey = process.env.NEXT_PUBLIC_AZURE_SPEECH_KEY!;
-        const serviceRegion = process.env.NEXT_PUBLIC_AZURE_SPEECH_REGION!;
-        const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(speechKey, serviceRegion);
-        speechConfig.speechRecognitionLanguage = langCode
-        speechConfig.setProperty(SpeechSDK.PropertyId.SpeechServiceConnection_InitialSilenceTimeoutMs, "3000")
-        speechConfig.setProperty(SpeechSDK.PropertyId.SpeechServiceConnection_EndSilenceTimeoutMs,"2000")
-
-        const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
-        const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
-
-        recognizer.recognizing = (_s, e) => {
-            setInterim(e.result.text);
-            //clearSilenceTimer()
-        };
-
-        recognizer.recognized = (_s, e) => {
-            if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech && e.result.text) {
-            setFinalTranscript((prev) => prev + e.result.text + " ");
-            }
-            setInterim("");
-        };
-
-        recognizer.canceled = (_s, e) => {
-            console.error("Recognition canceled:", e);
-            stopRecognition();
-        };
-
-        recognizer.sessionStopped = () => {
-            stopRecognition();
-        };
-
-        recognizer.startContinuousRecognitionAsync(
-            () => {
-            recognizerRef.current = recognizer;
-            setRecognizing(true);
-            }
-        );
-    };
-    
-    const stopRecognition = () => {
-        const recognizer = recognizerRef.current;
-        clearSilenceTimer();
-        if (!recognizer) return;
-
-        recognizer.stopContinuousRecognitionAsync(
-            () => {
-            recognizer.close();
-            recognizerRef.current = null;
-            setRecognizing(false);
-            }
-        );
-    };
-    */
 
     const sttStart = async() => {
         if (!browserSupportsSpeechRecognition) {
@@ -708,20 +651,39 @@ export default function Aicon() {
 
 
     useEffect(() => {
-        setUserInput(finalTranscript + interim)
-    }, [finalTranscript, interim])
+        setUserInput(transcript)
+    }, [transcript])
 
     useEffect(() => {
-        clearSilenceTimer()
         if (userInput.length !== 0){
             setCanSend(true)
         } else {
             setCanSend(false)
         }
-        if (recognizing){
-            scheduleSilenceStop()
-        }
     }, [userInput])
+
+    useEffect(() => {
+        console.log("record", record)
+    }, [record])
+
+    useEffect(() => {
+        console.log('音声認識の状態:', {
+            listening,
+            isListening,
+            record
+        });
+    }, [listening, isListening, record, transcript, userInput]);
+
+    // 音声認識が停止した時の処理
+    useEffect(() => {
+        if (listening === false && userInput === "") {
+            setRecord(false);
+            if (audioRef.current) {
+                // デバイスのボリュームに追随
+                audioRef.current.volume = 1.0;
+            }
+        }
+    }, [listening]);
 
     // 音声ファイルの読み込み完了時の処理
     useEffect(() => {
