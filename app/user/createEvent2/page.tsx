@@ -53,8 +53,6 @@ export default function CreateEvent2(){
             return false
         } else if (role === "") {
             alert("AIの役割が入力されていません")
-        } else if (address === "") {
-            alert("拠点住所が入力されていまえん")
         } else {
             return true
         }
@@ -224,7 +222,7 @@ export default function CreateEvent2(){
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
             />
-            <div className="font-semibold text-sm ml-3 mt-8 underline">サービス拠点住所</div>
+            <div className="font-semibold text-sm ml-3 mt-8 underline">サービス拠点住所（任意）</div>
             <input className="w-2/3 rounded-md px-4 py-2 bg-inherit border mt-2 mb-6 border-lime-600"
                 name="event"
                 placeholder="（例）東京都豊島区西池袋1-6-1"

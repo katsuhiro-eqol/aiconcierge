@@ -331,78 +331,12 @@ export default function Aicon() {
         }
     }
 
-    // 認証情報を保護する選択的キャッシュクリア
-    const clearProblematicCache = () => {
-        const keysToRemove = [];
-        
-        // localStorageから問題のあるキャッシュのみを削除
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key) {
-                // 認証情報は保護（削除しない）
-                if (key.includes('firebase') && !key.includes('auth')) {
-                    try {
-                        const value = localStorage.getItem(key);
-                        if (value) {
-                            const parsed = JSON.parse(value);
-                            // 認証情報（stsTokenManager）を含むものは削除しない
-                            if (!parsed.stsTokenManager) {
-                                keysToRemove.push(key);
-                            }
-                        } else {
-                            // 値がnullの場合は削除対象
-                            keysToRemove.push(key);
-                        }
-                    } catch {
-                        // パースできない古いデータは削除対象
-                        keysToRemove.push(key);
-                    }
-                }
-            }
-        }
-        
-        keysToRemove.forEach(key => {
-            try {
-                localStorage.removeItem(key);
-                console.log(`Removed problematic cache: ${key}`);
-            } catch (error) {
-                console.warn(`Failed to remove ${key}:`, error);
-            }
-        });
-        
-        console.log(`Cleared ${keysToRemove.length} problematic cache items (auth preserved)`);
-    };
-
-    async function loadEventData(attribute:string, code:string){
-        const startTime = Date.now();
-        let isRecoveryTriggered = false;
-        
-        // 5秒タイムアウトでキャッシュクリア
-        const connectionTimeout = setTimeout(() => {
-            if (!isRecoveryTriggered) {
-                isRecoveryTriggered = true;
-                console.warn("Firestore connection taking too long (>5s), attempting cache clear...");
-                
-                try {
-                    clearProblematicCache();
-                    console.log("Cache cleared due to timeout, continuing...");
-                } catch (error) {
-                    console.error("Cache clear failed:", error);
-                }
-            }
-        }, 5000); // 5秒でタイムアウト
-        
+    async function loadEventData(attribute:string, code:string){        
         const eventRef = doc(db, "Events", attribute);
         const event = attribute.split("-")[1]
         
         try {
             const eventSnap = await getDoc(eventRef);
-            
-            // 復旧処理が実行されていない場合のみタイムアウトをクリア
-            if (!isRecoveryTriggered) {
-                clearTimeout(connectionTimeout);
-            }
-            
             if (eventSnap.exists()) {
                 const data = eventSnap.data()
                 const memocode = data.code
@@ -436,55 +370,7 @@ export default function Aicon() {
                 alert("イベントが登録されていません")
             }
         } catch (error) {
-            // エラーが発生した場合もタイムアウトをクリア
-            if (!isRecoveryTriggered) {
-                clearTimeout(connectionTimeout);
-            }
-            
-            console.error("Error loading event data:", error);
-            
-            // エラーが発生した場合もキャッシュクリアを試行
-            console.log("Attempting cache clear due to error...");
-            try {
-                clearProblematicCache();
-                console.log("Cache cleared, retrying...");
-                // 再試行
-                const retrySnap = await getDoc(eventRef);
-                if (retrySnap.exists()) {
-                    const data = retrySnap.data()
-                    const memocode = data.code
-                    if (memocode == code){
-                        const event_data:EventData = {
-                            id:attribute,
-                            name:event,
-                            image:data.image,
-                            languages:data.languages,
-                            voiceSetting:data.voiceSetting,
-                            voiceNumber:data.voiceNumber,
-                            embedding:data.embedding,
-                            qaData:data.qaData,
-                            code:data.code,
-                            langStr:"",
-                            prompt:data.prompt,
-                            gpt:data.gpt
-                        }
-                        
-                        setEventData(event_data)
-                        setInitialSlides(data.image.url)
-                        setSlides(Array(1).fill(data.image.url))
-                        
-                        loadQAData(attribute)
-                        
-                    } else {
-                        alert("QRコードをもう一度読み込んでください")
-                    }
-                } else {
-                    alert("イベントが登録されていません")
-                }
-            } catch (retryError) {
-                console.error("Retry failed:", retryError);
-                alert("データの取得に失敗しました。ページを再読み込みしてください。")
-            }
+            console.log(error)
         }
     }
 
@@ -529,6 +415,11 @@ export default function Aicon() {
     }
     
     const talkStart = async () => {
+        if (!eventData){
+            alert("データ読み込みに時間がかかっています。少し時間をおいてスタートしてください")
+            return
+        }
+        
         audioPlay()
         setWavReady(true)
         const date = new Date()
