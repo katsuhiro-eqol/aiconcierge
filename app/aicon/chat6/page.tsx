@@ -579,6 +579,11 @@ export default function Aicon() {
         setLanguage(jLang);
     }
 
+    const closeApp = async () => {
+        await sttStop()
+        window.location.reload()
+    }
+    
     useEffect(() => {
         console.log("wavUrl", wavUrl)
         if (wavUrl !== no_sound){
@@ -801,6 +806,12 @@ export default function Aicon() {
             </select>
             <button className="mt-auto mb-32 text-blue-500 hover:text-blue-700 text-sm">はじめにお読みください</button>
             </div>            
+            )}
+                        {wavReady && (
+            <div className="flex flex-row w-20 h-6 bg-white hover:bg-gray-200 p-1 rounded-lg shadow-lg relative ml-auto mr-3 mt-5 mb-auto" onClick={() => closeApp()}>
+            <X size={16} />
+            <div className="text-xs">終了する</div>
+            </div>
             )}
             <audio key={wavUrl} src={wavUrl} ref={audioRef} preload="auto"/>
         </div>

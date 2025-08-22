@@ -6,7 +6,7 @@ import { useSearchParams as useSearchParamsOriginal } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 //import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk"
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-import { Mic, Send, Eraser } from 'lucide-react';
+import { Mic, Send, Eraser, X } from 'lucide-react';
 import { db } from "@/firebase";
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion, increment } from "firebase/firestore";
 import Modal from "../../components/modalModal"
@@ -551,6 +551,11 @@ export default function Aicon() {
         setLanguage(jLang);
     }
 
+    const closeApp = async () => {
+        await sttStop()
+        window.location.reload()
+    }
+
     useEffect(() => {
         console.log("wavUrl", wavUrl)
         if (wavUrl !== no_sound){
@@ -666,16 +671,6 @@ export default function Aicon() {
         console.log("record", record)
     }, [record])
 
-    /*
-    useEffect(() => {
-        console.log('音声認識の状態:', {
-            listening,
-            isListening,
-            record
-        });
-    }, [listening, isListening, record, transcript, userInput]);
-*/
-    // 音声認識が停止した時の処理
     useEffect(() => {
         if (listening === false && userInput === "") {
             setRecord(false);
@@ -790,6 +785,12 @@ export default function Aicon() {
             </select>
             <button className="mt-auto mb-32 text-blue-500 hover:text-blue-700 text-sm">はじめにお読みください</button>
             </div>            
+            )}
+                        {wavReady && (
+            <div className="flex flex-row w-20 h-6 bg-white hover:bg-gray-200 p-1 rounded-lg shadow-lg relative ml-auto mr-3 mt-5 mb-auto" onClick={() => closeApp()}>
+            <X size={16} />
+            <div className="text-xs">終了する</div>
+            </div>
             )}
             <audio key={wavUrl} src={wavUrl} ref={audioRef} preload="auto"/>
         </div>
