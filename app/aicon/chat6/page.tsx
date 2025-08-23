@@ -86,7 +86,7 @@ export default function Aicon() {
         } else {
         console.log("残回数", data2.remaining);
         }
-        
+
         const date = new Date()
         const offset = date.getTimezoneOffset() * 60000
         const localDate = new Date(date.getTime() - offset)
@@ -475,7 +475,7 @@ export default function Aicon() {
                     setSlides(sl)
                     setWavUrl(voiceData.url)
                     
-                }, 1500);
+                }, 2000);
             }
         }
     }

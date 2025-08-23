@@ -73,7 +73,8 @@ export default function Aicon() {
     const attribute = searchParams.get("attribute")
     const code = searchParams.get("code")
 
-    async function getAnswer() {        
+    async function getAnswer() {      
+        await sttStop()  
         setWavUrl(no_sound)
         setCanSend(false)//同じInputで繰り返し送れないようにする
         setSlides(Array(1).fill(initialSlides))
@@ -367,6 +368,17 @@ export default function Aicon() {
                     setSlides(Array(1).fill(data.image.url))
                     
                     loadQAData(attribute)
+                    if (data.image.name === "AI-con_man_01.png"){
+                        setThumnail("/AICON-m.png")
+                    } else if (data.image.name === "AI-con_man2_01.png"){
+                        setThumnail("/AICON-m2.png")
+                    } else if (data.image.name === "AI-con_woman_01.png"){
+                        setThumnail("/AICON-w.png")
+                    } else if (data.image.name === "AI-con_woman2_01.png"){
+                        setThumnail("/AICON-w2.png")
+                    } else {
+                        setThumnail("")
+                    }
                     
                 } else {
                     alert("QRコードをもう一度読み込んでください")
@@ -459,7 +471,7 @@ export default function Aicon() {
                     setSlides(sl)
                     setWavUrl(voiceData.url)
                     
-                }, 1500);
+                }, 2000);
             }
         }
     }
@@ -534,12 +546,15 @@ export default function Aicon() {
     }
 
     const sttStop = async () => {
+        console.log("sttStop proccess")
         setRecord(false)
         try {
             if (listening) {
+                console.log("listening stop and sttStop")
                 await SpeechRecognition.stopListening()
                 resetTranscript()
                 setIsListening(false)
+                setRecord(false)
             }
         } catch(error) {
             console.error('音声認識の停止に失敗:', error)
@@ -575,6 +590,7 @@ export default function Aicon() {
         };
     }, []);
 
+    /*
     useEffect(() => {
         if (recognizing){
             setRecord(true)
@@ -582,6 +598,7 @@ export default function Aicon() {
             setRecord(false)
         }
     }, [recognizing])
+    */
 
     useEffect(() => {
         const updateHeight = () => {
@@ -673,9 +690,11 @@ export default function Aicon() {
         }
     }, [userInput])
 
+    /*
     useEffect(() => {
         console.log("record", record)
     }, [record])
+    */
 
     useEffect(() => {
         if (listening === false && userInput === "") {
