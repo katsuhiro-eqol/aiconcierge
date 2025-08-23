@@ -14,14 +14,14 @@ export default function DownloadableQRCode(){
     const [organization, setOrganization] = useState<string>("")
     const [code, setCode] = useState<string>("")
     const [voiceSetting, setVoiceSetting] = useState<boolean>(false)
-    const [selectedOption, setSelectedOption] = useState<string>("Q&Aデータ/ネット情報ハイブリッド")
+    const [selectedOption, setSelectedOption] = useState<string>("AZURE STT")
     const [url, setUrl] = useState<string|null>(null)
     const [rootUrl, setRootUrl] = useState<string>("")
     const [status, setStatus] = useState<string>("")
     const qrCodeRef = useRef(null);
     const size:number = 144
 
-    const options = ["Q&Aデータ", "Q&Aデータ/ネット情報ハイブリッド"]
+    const options = ["AZURE STT", "react-speech-recognition"]
     const loadEvents = async (org:string) => {
         try {
             const docRef = doc(db, "Users", org)
@@ -125,20 +125,14 @@ export default function DownloadableQRCode(){
         await fetch(`/api/renew?url=${url}`)
     }
     useEffect(() => {
-        if (selectedOption === "Q&Aデータ/ネット情報ハイブリッド"){
+        if (selectedOption === "AZURE STT"){
             const aiconUrl = `/aicon/chat6?attribute=${organization}_${event}&code=${code}`
             const renewUrl = `${rootUrl}api/renew?to=${encodeURIComponent(aiconUrl)}`
             setUrl(renewUrl)
         } else {
-            if (code!=="" && voiceSetting){
-                const aiconUrl = `/aicon/chat?attribute=${organization}_${event}&code=${code}`
-                const renewUrl = `${rootUrl}api/renew?to=${encodeURIComponent(aiconUrl)}`
-                setUrl(renewUrl)
-            } else if (code!=="" && !voiceSetting) {
-                const aiconUrl = `/aicon/chat2?attribute=${organization}_${event}&code=${code}`
-                const renewUrl = `${rootUrl}api/renew?to=${encodeURIComponent(aiconUrl)}`
-                setUrl(renewUrl)
-            }
+            const aiconUrl = `/aicon/chat5?attribute=${organization}_${event}&code=${code}`
+            const renewUrl = `${rootUrl}api/renew?to=${encodeURIComponent(aiconUrl)}`
+            setUrl(renewUrl)
         }
     }, [code,selectedOption])
 
@@ -157,12 +151,24 @@ export default function DownloadableQRCode(){
         <div className="flex-1 flex flex-col justify-center gap-2">
         <div className="font-bold text-xl">QRコード生成</div>
         <div className="text-base mt-5">イベントを選択</div>
-            <select className="mb-8 w-96 h-8 text-center border-2 border-lime-600" value={event} onChange={selectEvent}>
-            {events.map((name) => {
-            return <option key={name} value={name}>{name}</option>;
-            })}
-            </select>
-
+        <select className="mb-8 w-96 h-8 text-center border-2 border-lime-600" value={event} onChange={selectEvent}>
+        {events.map((name) => {
+        return <option key={name} value={name}>{name}</option>;
+        })}
+        </select>
+        <div className="mt-5">音声認識方法の選択<span className="ml-3 text-xs">（デフォルトはAZURE STTだが、react-speech-recognitionの開発テストを実施中）</span></div>
+            <div className="flex flex-row gap-x-4">
+            {options.map((option) => (
+                <div
+                key={option}
+                className="flex items-center mb-2 cursor-pointer hover:bg-gray-200 p-2 rounded"
+                onClick={() => setSelectedOption(option)}
+                >
+                {(selectedOption === option) ? <CircleDot className="w-4 h-4 text-blue-500" /> : <Circle className="w-4 h-4 text-gray-400" />}
+                <span className="ml-2 text-gray-700 text-sm">{option}</span>
+            </div>
+            ))}
+        </div>    
         {url && (
             <div>
             <div className="mb-10 w-1/2"><a className="text-indigo-700" href={url}  target="_blank" rel="noreferrer">{url}</a></div>

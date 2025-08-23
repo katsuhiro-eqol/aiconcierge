@@ -471,7 +471,7 @@ export default function Aicon() {
                     setSlides(sl)
                     setWavUrl(voiceData.url)
                     
-                }, 2000);
+                }, 3000);
             }
         }
     }
@@ -512,6 +512,10 @@ export default function Aicon() {
 
 
     const sttStart = async() => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+        }
         if (!browserSupportsSpeechRecognition) {
             alert('このブラウザは音声認識をサポートしていません')
             return
@@ -526,15 +530,11 @@ export default function Aicon() {
             setRecord(true)
             
             // 音声の停止を確実に待つ
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current.currentTime = 0;
-            }
             
             const langCode = foreignLanguages[language] || "ja-JP";
             await SpeechRecognition.startListening({ 
                 language: langCode, 
-                continuous: false
+                continuous: true
             });
             setIsListening(true)
             
