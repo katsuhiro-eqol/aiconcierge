@@ -20,7 +20,7 @@ const no_sound = "https://firebasestorage.googleapis.com/v0/b/conciergeproject-1
 export default function Aicon() {
     const [windowHeight, setWindowHeight] = useState<number>(0)
     const [initialSlides, setInitialSlides] = useState<string|null>(null)
-    const [thumbnail, setThumnail] = useState<string|null>("/AICON-w.png")
+    const [thumbnail, setThumnail] = useState<string|null>("")
     const [userInput, setUserInput] = useState<string>("")
     const [messages, setMessages] = useState<Message2[]>([])
     const [history, setHistory] = useState<{user: string, aicon: string}[]>([])
@@ -44,8 +44,6 @@ export default function Aicon() {
 
     const [isListening, setIsListening] = useState<boolean>(false)
     const [recognizing, setRecognizing] = useState<boolean>(false)
-    const [interim, setInterim] = useState<string>("")
-    const [finalTranscript, setFinalTranscript] = useState<string>("")
     const [undefinedAnswer, setUndefinedAnswer] = useState<ForeignAnswer|null>(null)
     const [voiceCache, setVoiceCache] = useState<Map<string, VoiceData>>(new Map())
     const [isQADBLoading, setIsQADBLoading] = useState<boolean>(false)
@@ -76,14 +74,20 @@ export default function Aicon() {
     const code = searchParams.get("code")
 
     async function getAnswer() {        
-        sttStop()
-        setFinalTranscript("")
-        setInterim("")
         setWavUrl(no_sound)
         setCanSend(false)//同じInputで繰り返し送れないようにする
         setSlides(Array(1).fill(initialSlides))
         setModalUrl(null)
         setModalFile(null)
+        //一日50以上のリクエストを制限する
+        const res = await fetch("/api/checkHugeRequest", { method: "POST" });
+        const data2 = await res.json();
+        if (res.status === 429) {
+            alert(`１日のアクセス上限に達しました。リセットまで約 ${Math.ceil((data2.resetSec ?? 0)/3600)} 時間`);
+            return
+        } else {
+        console.log("残回数", data2.remaining);
+        }
   
         const date = new Date()
         const offset = date.getTimezoneOffset() * 60000
@@ -197,6 +201,7 @@ export default function Aicon() {
                 setMessages(prev => [...prev, aiMessage]);
                 await saveMessage(userMessage, aiMessage, attribute!)
             }
+            //全ユーザーの質問総数
             await incrementCounter(attribute!)
         } catch(error) {
         console.error(error);
@@ -499,13 +504,12 @@ export default function Aicon() {
             alert('このブラウザは音声認識をサポートしていません')
             return
         }
-
+        console.log("listening", listening)
         try {
             if (listening) {
                 await SpeechRecognition.stopListening()
                 resetTranscript()
             }
-            
             setUserInput("")
             setRecord(true)
             
@@ -556,13 +560,15 @@ export default function Aicon() {
         window.location.reload()
     }
 
+    /*
     useEffect(() => {
         console.log("wavUrl", wavUrl)
         if (wavUrl !== no_sound){
             audioPlay()
         }
     }, [wavUrl])
-        
+    */
+
     useEffect(() => {
         return () => {
             clearSilenceTimer();
@@ -792,7 +798,7 @@ export default function Aicon() {
             <div className="text-xs">終了する</div>
             </div>
             )}
-            <audio key={wavUrl} src={wavUrl} ref={audioRef} preload="auto"/>
+            <audio key={wavUrl} src={wavUrl} ref={audioRef} playsInline preload="auto"/>
         </div>
     );
 }

@@ -126,7 +126,7 @@ export default function DownloadableQRCode(){
     }
     useEffect(() => {
         if (selectedOption === "Q&Aデータ/ネット情報ハイブリッド"){
-            const aiconUrl = `/aicon/chat6?attribute=${organization}_${event}&code=${code}`
+            const aiconUrl = `/aicon/chat5?attribute=${organization}_${event}&code=${code}`
             const renewUrl = `${rootUrl}api/renew?to=${encodeURIComponent(aiconUrl)}`
             setUrl(renewUrl)
         } else {

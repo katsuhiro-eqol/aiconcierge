@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-//import LongTaskObserver from './LongTaskObserver';
-//import Header from "@/app//components/headerbar"
 import "./globals.css";
 
 export const metadata: Metadata = {

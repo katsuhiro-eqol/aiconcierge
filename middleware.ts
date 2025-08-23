@@ -28,7 +28,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // 基本的なパスチェック
-  if (path.startsWith("/_next") || path.startsWith("/favicon.ico")) {
+  if (path.startsWith("/_next") || path.startsWith("/favicon.ico") || path === "/sttTest") {
     return NextResponse.next();
   }
 

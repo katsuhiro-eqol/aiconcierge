@@ -77,6 +77,16 @@ export default function Aicon() {
         setModalUrl(null)
         setModalFile(null)
   
+        //一日50以上のリクエストを制限する
+        const res = await fetch("/api/checkHugeRequest", { method: "POST" });
+        const data2 = await res.json();
+        if (res.status === 429) {
+            alert(`１日のアクセス上限に達しました。リセットまで約 ${Math.ceil((data2.resetSec ?? 0)/3600)} 時間`);
+            return
+        } else {
+        console.log("残回数", data2.remaining);
+        }
+        
         const date = new Date()
         const offset = date.getTimezoneOffset() * 60000
         const localDate = new Date(date.getTime() - offset)
@@ -368,7 +378,7 @@ export default function Aicon() {
                     }
                     
                 } else {
-                    alert("QRコードをもう一度読み込んでください")
+                    alert("URLが正しくありません。QRコードをもう一度読み込んでください")
                 }
             } else {
                 alert("イベントが登録されていません")
@@ -583,7 +593,7 @@ export default function Aicon() {
         await sttStop()
         window.location.reload()
     }
-    
+
     useEffect(() => {
         console.log("wavUrl", wavUrl)
         if (wavUrl !== no_sound){
