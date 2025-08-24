@@ -42,11 +42,11 @@ export default function Aicon() {
     const [startText, setStartText] = useState<EmbeddingsData|null>(null)
     const [undefindQA, setUndefindQA] = useState<EmbeddingsData|null>(null)
 
-    const [isListening, setIsListening] = useState<boolean>(false)
-    const [recognizing, setRecognizing] = useState<boolean>(false)
+    //const [isListening, setIsListening] = useState<boolean>(false)
+    //const [recognizing, setRecognizing] = useState<boolean>(false)
     const [undefinedAnswer, setUndefinedAnswer] = useState<ForeignAnswer|null>(null)
     const [voiceCache, setVoiceCache] = useState<Map<string, VoiceData>>(new Map())
-    const [isQADBLoading, setIsQADBLoading] = useState<boolean>(false)
+    //const [isQADBLoading, setIsQADBLoading] = useState<boolean>(false)
 
     const {
         transcript,
@@ -62,7 +62,6 @@ export default function Aicon() {
     const foreignLanguages: Record<string, LanguageCode> = {"日本語": "ja-JP","英語": "en-US","中国語（簡体）": "zh-CN","中国語（繁体）": "zh-TW","韓国語": "ko-KR","フランス語": "fr-FR","ポルトガル語": "pt-BR","スペイン語": "es-ES"}
     const audioRef = useRef<HTMLAudioElement>(null)
     const intervalRef = useRef<NodeJS.Timeout | null>(null)
-    //const recognizerRef = useRef<SpeechRecognition | null>(null)
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
     const useSearchParams = ()  => {
@@ -160,7 +159,6 @@ export default function Aicon() {
                 setSlides(sl)
                 setWavUrl(voiceData.url)
             }
-
 
             if (data.id !== ""){
                 const modal = embeddingsData.filter((item) => item.id === data.id)
@@ -296,7 +294,6 @@ export default function Aicon() {
     }
 
     async function loadQAData(attr:string){
-        setIsQADBLoading(true);
         try {
             const querySnapshot = await getDocs(collection(db, "Events",attr, "QADB"));
             // バッチ処理でベクトルデコードを最適化
@@ -332,9 +329,7 @@ export default function Aicon() {
         } catch (error) {
             console.error("loadQAData error:", error);
             return null;
-        } finally {
-            setIsQADBLoading(false);
-        }
+        } 
     }
 
     async function loadEventData(attribute:string, code:string){        
@@ -443,7 +438,6 @@ export default function Aicon() {
         const offset = date.getTimezoneOffset() * 60000
         const localDate = new Date(date.getTime() - offset)
         const now = localDate.toISOString()
-        console.log("startText",startText)
         if (startText){
             const cacheKey = `${eventData!.voiceNumber}-${startText.answer.trim()}-${language}`;
             let voiceData: VoiceData | null = voiceCache.get(cacheKey) || null;
@@ -456,6 +450,7 @@ export default function Aicon() {
                 }
             }
             if (voiceData){
+                setWavUrl(voiceData.url)
                 setTimeout(() => {
                     const aiMessage: Message2 = {
                         id: now,
@@ -469,9 +464,7 @@ export default function Aicon() {
                     setMessages(prev => [...prev, aiMessage])
                     const sl = createSlides(voiceData.duration)
                     setSlides(sl)
-                    setWavUrl(voiceData.url)
-                    
-                }, 3000);
+                }, 2500);
             }
         }
     }
@@ -485,6 +478,7 @@ export default function Aicon() {
     }
 
     const inputClear = async () => {
+        /*
         setRecord(false)
         try {
             if (listening){
@@ -495,6 +489,8 @@ export default function Aicon() {
             console.error('音声認識の停止に失敗:', error)
             alert(`音声認識停止不良:${error}`)
         }
+            */
+        await sttStop()
         setUserInput("")
     }
 
@@ -510,8 +506,14 @@ export default function Aicon() {
         silenceTimerRef.current = setTimeout(() => sttStop(), 4000);
     };
 
+    const sttStatus = {
+        listening: listening,
+        audioRef: audioRef.current,
+        currentTime:audioRef.current?.currentTime
+    }
 
     const sttStart = async() => {
+        console.log("sttStatus1",sttStatus)
         if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current.currentTime = 0;
@@ -520,7 +522,6 @@ export default function Aicon() {
             alert('このブラウザは音声認識をサポートしていません')
             return
         }
-        console.log("listening", listening)
         try {
             if (listening) {
                 await SpeechRecognition.stopListening()
@@ -528,38 +529,34 @@ export default function Aicon() {
             }
             setUserInput("")
             setRecord(true)
-            
-            // 音声の停止を確実に待つ
-            
+
             const langCode = foreignLanguages[language] || "ja-JP";
             await SpeechRecognition.startListening({ 
                 language: langCode, 
-                continuous: true
+                continuous: false,
+                interimResults: true
             });
-            setIsListening(true)
-            
         } catch(error) {
             console.error('音声認識の開始に失敗:', error)
             setRecord(false)
-            setIsListening(false)
+            //setIsListening(false)
         }
     }
 
     const sttStop = async () => {
-        console.log("sttStop proccess")
+        console.log("sttStatus2",sttStatus)
         setRecord(false)
         try {
             if (listening) {
-                console.log("listening stop and sttStop")
                 await SpeechRecognition.stopListening()
                 resetTranscript()
-                setIsListening(false)
+                //setIsListening(false)
                 setRecord(false)
             }
         } catch(error) {
             console.error('音声認識の停止に失敗:', error)
             setRecord(false)
-            setIsListening(false)
+            //setIsListening(false)
         }
     }
 
@@ -710,7 +707,6 @@ export default function Aicon() {
     useEffect(() => {
         const handleCanPlay = () => {
             if (audioRef.current) {
-                // デバイスのボリュームに追随
                 audioRef.current.volume = 1.0;
             }
         };
@@ -762,7 +758,7 @@ export default function Aicon() {
             </div>
             <div className="flex-none h-[18%] w-full max-w-96 overflow-auto">
             <div className="mt-2">
-            <textarea className="block w-5/6 max-w-96 mx-auto mb-2 px-2 py-2 text-xs"
+            <textarea className="block w-5/6 max-w-96 mx-auto mb-2 px-2 py-2 text-base"
                 name="message"
                 placeholder="質問内容(question)"
                 rows={2}
