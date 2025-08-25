@@ -6,8 +6,6 @@ import { doc, getDoc, setDoc } from "firebase/firestore"
 import { toJpeg } from 'html-to-image';
 import { Circle, CircleDot } from 'lucide-react'
 
-const hostUrl = process.env.NEXT_PUBLIC_FEATURE_URL;//feature branch用
-
 export default function DownloadableQRCode(){
     const [events, setEvents] = useState<string[]>([""]) //firestoreから読み込む
     const [event, setEvent] = useState<string>("")
@@ -21,7 +19,7 @@ export default function DownloadableQRCode(){
     const qrCodeRef = useRef(null);
     const size:number = 144
 
-    const options = ["AZURE STT", "react-speech-recognition"]
+    const options = ["AZURE STT", "react-speech-recognition", "音声入力/AIボイスなし"]
     const loadEvents = async (org:string) => {
         try {
             const docRef = doc(db, "Users", org)
@@ -129,8 +127,12 @@ export default function DownloadableQRCode(){
             const aiconUrl = `/aicon/chat6?attribute=${organization}_${event}&code=${code}`
             const renewUrl = `${rootUrl}api/renew?to=${encodeURIComponent(aiconUrl)}`
             setUrl(renewUrl)
-        } else {
+        } else if (selectedOption === "react-speech-recognition") {
             const aiconUrl = `/aicon/chat5?attribute=${organization}_${event}&code=${code}`
+            const renewUrl = `${rootUrl}api/renew?to=${encodeURIComponent(aiconUrl)}`
+            setUrl(renewUrl)
+        } else {
+            const aiconUrl = `/aicon/chat4?attribute=${organization}_${event}&code=${code}`
             const renewUrl = `${rootUrl}api/renew?to=${encodeURIComponent(aiconUrl)}`
             setUrl(renewUrl)
         }

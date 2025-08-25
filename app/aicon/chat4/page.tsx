@@ -15,7 +15,7 @@ const no_sound = "https://firebasestorage.googleapis.com/v0/b/conciergeproject-1
 
 export default function Aicon4() {
     const [windowHeight, setWindowHeight] = useState<number>(0)
-    const [thumbnail, setThumnail] = useState<string>("/AICON-w.png")
+    const [thumbnail, setThumnail] = useState<string>("")
     const [userInput, setUserInput] = useState<string>("")
     const [messages, setMessages] = useState<Message2[]>([])
     const [history, setHistory] = useState<{user: string, aicon: string}[]>([])
@@ -24,9 +24,8 @@ export default function Aicon4() {
     const [dLang, setDLang] = useState<string>("日本語")//表示用言語
     const [language, setLanguage] = useState<string>("日本語")
     const [embeddingsData, setEmbeddingsData] = useState<EmbeddingsData[]>([])
-    const [wavUrl, setWavUrl] = useState<string>(no_sound);
+
     const [wavReady, setWavReady] = useState<boolean>(false)
-    const [record,setRecord] = useState<boolean>(false)
     const [canSend, setCanSend] = useState<boolean>(false)
     const [isModal, setIsModal] = useState<boolean>(false)
     const [modalUrl, setModalUrl] = useState<string|null>(null)
@@ -215,7 +214,6 @@ export default function Aicon4() {
                 }
                 return embeddingsData
                 })
-            console.log(qaData)
             setEmbeddingsData(qaData)
             const undifined = qaData.filter(item => item.id === "2")
             if (undifined[0].foreign){
@@ -251,6 +249,17 @@ export default function Aicon4() {
                 }
                 setEventData(event_data)
                 loadQAData(attribute)
+                if (data.image.name === "AI-con_man_01.png"){
+                    setThumnail("/AICON-m.png")
+                } else if (data.image.name === "AI-con_man2_01.png"){
+                    setThumnail("/AICON-m2.png")
+                } else if (data.image.name === "AI-con_woman_01.png"){
+                    setThumnail("/AICON-w.png")
+                } else if (data.image.name === "AI-con_woman2_01.png"){
+                    setThumnail("/AICON-w2.png")
+                } else {
+                    setThumnail("")
+                }
             } else {
                 alert("QRコードをもう一度読み込んでください")
             }
@@ -307,7 +316,6 @@ export default function Aicon4() {
         const offset = date.getTimezoneOffset() * 60000
         const localDate = new Date(date.getTime() - offset)
         const now = localDate.toISOString()
-        console.log("startText",startText)
         if (startText){
             setTimeout(() => {
                 const aiMessage: Message2 = {
@@ -322,10 +330,6 @@ export default function Aicon4() {
                 setMessages(prev => [...prev, aiMessage])
             }, 1500);
         }
-    }
-
-    const inputClear = () => {
-        setUserInput("")
     }
 
     const selectLanguage = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -377,6 +381,11 @@ export default function Aicon4() {
     }, [embeddingsData])
 
     useEffect(() => {
+        if (userInput !== ""){
+            setCanSend(true)
+        } else {
+            setCanSend(false)
+        }
     }, [userInput])
 
     return (
@@ -421,9 +430,16 @@ export default function Aicon4() {
                     placeholder="質問を入力・・・"
                     className="flex-1 p-2 border rounde text-sm"
                 />
-                <button type="submit" className="px-2 py-1 text-sm bg-green-500 hover:bg-green-700 text-white rounded disabled:bg-gray-300" onClick={() => getAnswer()}>
-                    <Send className="mx-aute" size={16} />
-                </button>
+                {canSend ? (
+                    <button type="submit" className="px-2 py-1 text-sm bg-green-500 hover:bg-green-700 text-white rounded disabled:bg-gray-300" onClick={() => getAnswer()}>
+                        <Send className="mx-aute" size={16} />
+                    </button>
+                ):(
+                    <button type="submit" className="px-2 py-1 text-sm bg-green-200 hover:bg-green-300 text-white rounded">
+                        <Send className="mx-aute" size={16} />
+                    </button>
+                )}
+
                 </div>
                 {isModal && (
                     <Modal setIsModal={setIsModal} modalUrl={modalUrl} modalFile={modalFile}/>

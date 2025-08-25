@@ -27,8 +27,8 @@ export default function Header() {
             
             <div className="hidden md:flex items-center space-x-8">
             <div className="hidden md:flex items-center space-x-8">
-                <a href="/inboundSite/demoTop" className="px-4 text-lg font--bold border-2 rounded-lg border-blue-500 bg-purple-600  text-slate-100 hover:bg-purple-700 transition-colors">無料デモ体験</a>
-                <a href="#" className="text-slate-700 hover:text-slate-900">特徴</a>
+                <a href="/inboundSite/demoTop" className="px-4 text-lg font--bold border-2 rounded-lg border-blue-500 bg-purple-600  text-slate-100 hover:bg-purple-700 transition-colors">無料デモ</a>
+                <a href="/inboundSite/features" className="text-slate-700 hover:text-slate-900">特徴</a>
                 <a href="#pricing" className="text-slate-700 hover:text-slate-900">料金</a>
                 <a href="/user" className="text-slate-700 hover:text-slate-900">サインイン</a>
               </div>
@@ -48,10 +48,10 @@ export default function Header() {
       {isMenuOpen && (
             <div className="md:hidden fixed inset-0 z-40 bg-slate-900/95 backdrop-blur-lg">
             <div className="flex flex-col items-center justify-center h-full space-y-8 text-2xl">
-              <a href="/features" className="text-white" onClick={() => setIsMenuOpen(false)}>機能</a>
-              <a href="#" className="text-white">採用実績</a>
-              <a href="#pricing" className="text-white" onClick={() => setIsMenuOpen(false)}>料金</a>
-              <a href="#about" className="text-white" onClick={() => setIsMenuOpen(false)}>会社概要</a>
+            <a href="/inboundSite/demoTop" className="px-4 text-lg font--bold border-2 rounded-lg border-blue-500 bg-purple-600  text-slate-100 hover:bg-purple-700 transition-colors">無料デモ</a>
+                <a href="/inboundSite/features" className="text-slate-700 hover:text-slate-900">特徴</a>
+                <a href="#pricing" className="text-slate-700 hover:text-slate-900">料金</a>
+                <a href="/user" className="text-slate-700 hover:text-slate-900">サインイン</a>
             </div>
           </div>
       )}

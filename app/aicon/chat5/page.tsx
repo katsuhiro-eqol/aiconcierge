@@ -74,7 +74,7 @@ export default function Aicon() {
 
     async function getAnswer() {      
         await sttStop()  
-        setWavUrl(no_sound)
+        //setWavUrl(no_sound)
         setCanSend(false)//同じInputで繰り返し送れないようにする
         setSlides(Array(1).fill(initialSlides))
         setModalUrl(null)
@@ -550,7 +550,6 @@ export default function Aicon() {
             if (listening) {
                 await SpeechRecognition.stopListening()
                 resetTranscript()
-                //setIsListening(false)
                 setRecord(false)
             }
         } catch(error) {
