@@ -3,7 +3,7 @@
 import "regenerator-runtime";
 import React from "react";
 import { useSearchParams as useSearchParamsOriginal } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 //import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk"
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { Mic, Send, Eraser, X } from 'lucide-react';
@@ -63,6 +63,7 @@ export default function Aicon() {
     const audioRef = useRef<HTMLAudioElement>(null)
     const intervalRef = useRef<NodeJS.Timeout | null>(null)
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null)
+    const playChainRef = useRef<Promise<void>>(Promise.resolve());
 
     const useSearchParams = ()  => {
         const searchParams = useSearchParamsOriginal();
@@ -72,13 +73,77 @@ export default function Aicon() {
     const attribute = searchParams.get("attribute")
     const code = searchParams.get("code")
 
+    //stt → audioの最適化検討
+    const waitCanPlay = useCallback(() =>
+        new Promise<void>((resolve, reject) => {
+            const el = audioRef.current
+            if (!el){
+                return
+            }
+            const ok = () => { cleanup(); resolve(); };
+            const ng = () => { cleanup(); reject(new Error('media error')); };
+            const cleanup = () => {
+                el.removeEventListener('canplay', ok);
+                el.removeEventListener('loadeddata', ok);
+                el.removeEventListener('error', ng);
+            };
+            el.addEventListener('canplay', ok, { once: true });
+            el.addEventListener('loadeddata', ok, { once: true });
+            el.addEventListener('error', ng, { once: true });
+            if (el.readyState >= 2) { cleanup(); resolve(); }
+    }), []);
+
+    /*
+    const speakAfterSTT = useCallback((opts: {
+        getUrl: UrlSupplier;                  // ← ここで5つの処理を全部やってURLを返す
+        minGapMs?: number;                    // 既定 1500ms
+      }) => {
+        const { getUrl, minGapMs = 1500 } = opts;
+        const el = audioRef.current;
+        if (!el) return Promise.resolve();
+    
+        playChainRef.current = playChainRef.current
+          .catch(() => {}) // 直前の失敗でチェーンが詰まらないように
+          .then(async () => {
+            // 1) STT完全停止
+            try { await SpeechRecognition.stopListening(); } catch {}
+    
+            // 2) “停止から minGapMs 経過するまで再生しない”
+            const endAt = Date.now() + minGapMs;
+    
+            // 完全停止・無再生・空srcで待機（無音再生は禁止）
+            try { el.pause(); el.currentTime = 0; } catch {}
+            el.src = ''; // 明示リセット（任意）
+            el.load();
+    
+            // 3) URL生成（5つの前処理はここで実行）
+            const url = await getUrl();
+    
+            // 4) 残りの待ち
+            const remain = endAt - Date.now();
+            if (remain > 0) await sleep(remain);
+    
+            // 5) 再生準備 → canplay → play
+            el.setAttribute('playsinline', '');
+            el.setAttribute('x-webkit-airplay', 'deny');
+            el.preload = 'auto';
+            el.src = url;
+    
+            await waitCanPlay(el);
+            try { await el.play(); } catch (e) { console.warn('play failed:', e); }
+          });
+    
+        return playChainRef.current;
+    }, [waitCanPlay]);
+    */
+
     async function getAnswer() {      
         await sttStop()  
         //setWavUrl(no_sound)
         setCanSend(false)//同じInputで繰り返し送れないようにする
-        setSlides(Array(1).fill(initialSlides))
-        setModalUrl(null)
-        setModalFile(null)
+        //setSlides(Array(1).fill(initialSlides))
+        //setModalUrl(null)
+        //setModalFile(null)
         //一日50以上のリクエストを制限する
         const res = await fetch("/api/checkHugeRequest", { method: "POST" });
         const data2 = await res.json();
@@ -144,20 +209,20 @@ export default function Aicon() {
                     // キャッシュに保存
                     setVoiceCache(prev => new Map(prev).set(cacheKey, existingVoice!));
                 }
-            } else {
-                console.log("Using cached voice data");
             }
+
+            await waitCanPlay()
             
             if (existingVoice){
                 console.log("not newly created voice")
+                setWavUrl(existingVoice.url)   
                 const sl = createSlides(existingVoice.duration)
                 setSlides(sl)
-                setWavUrl(existingVoice.url)                
             } else {
                 const voiceData = await realtimeVoice(answer.trim(),language,1)
+                setWavUrl(voiceData.url)
                 const sl = createSlides(voiceData.duration)
                 setSlides(sl)
-                setWavUrl(voiceData.url)
             }
 
             if (data.id !== ""){
@@ -544,7 +609,6 @@ export default function Aicon() {
     }
 
     const sttStop = async () => {
-        console.log("sttStatus2",sttStatus)
         setRecord(false)
         try {
             if (listening) {
@@ -660,7 +724,7 @@ export default function Aicon() {
 
     useEffect(() => {
         if (Array.isArray(slides)){
-            if (currentIndex === slides.length-2 && currentIndex != 0){
+            if (currentIndex === slides.length-2 && currentIndex !== 0){
                 const s = initialSlides
                 setCurrentIndex(0)
                 setWavUrl(no_sound)
@@ -703,6 +767,7 @@ export default function Aicon() {
     }, [listening]);
 
     // 音声ファイルの読み込み完了時の処理
+    /*
     useEffect(() => {
         const handleCanPlay = () => {
             if (audioRef.current) {
@@ -721,7 +786,7 @@ export default function Aicon() {
             }
         };
     }, []);
-
+*/
     return (
         <div className="flex flex-col w-full overflow-hidden" style={{ height: windowHeight || "100dvh" }}>
         {wavReady ? (
