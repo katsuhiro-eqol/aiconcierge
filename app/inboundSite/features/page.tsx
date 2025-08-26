@@ -20,37 +20,37 @@ export default function Features() {
         title: "簡単な手順でQ&Aを登録",
         description: "Q&Aを記載したCSVファイルを登録するだけです",
         id:"procedure"
-      },
-    {
-      icon: <Globe className="w-12 h-12 text-blue-500" />,
-      title: "多言語対応",
-      description: "日本語Q&Aを登録するだけで多言語対応アプリが構築されます",
-      id:"language"
     },
     {
-      icon: <MicVocal className="w-12 h-12 text-lime-500" />,
-      title: "音声認識＆AIボイス",
-      description: "音声認識とAIボイスが多言語で使用可能です（オプション）",
-      id:"voice"
-    },
+        icon: <Info className="w-12 h-12 text-fuchsia-500" />,
+        title: "インターネット情報を併用",
+        description: "QA情報に加えてインターネット情報も参照します",
+        id:"generative"
+        } ,
     {
-      icon: <Info className="w-12 h-12 text-fuchsia-500" />,
-      title: "インターネット情報を併用",
-      description: "QAに登録してない内容も一般的な情報は回答可能です（オプリョン）",
-      id:"generative"
-    } ,
+        icon: <Globe className="w-12 h-12 text-blue-500" />,
+        title: "多言語対応",
+        description: "日本語Q&Aを登録するだけで多言語対応アプリが構築されます",
+        id:"language"
+        },
     {
-      icon: <Smile className="w-12 h-12 text-green-500" />,
-      title: "ヒューマンサポートチャット",
-      description: "人間スタッフとのチャットにシームレスに移行できます（オプション）",
-      id:"human_chat"
-    },
+        icon: <MicVocal className="w-12 h-12 text-lime-500" />,
+        title: "音声認識＆AIボイス",
+        description: "音声認識とAIボイスが多言語で使用可能です（オプション）",
+        id:"voice"
+        },
     {
-      icon: <FileStack className="w-12 h-12 text-amber-500" />,
-      title: "会話履歴解析",
-      description: "会話履歴を解析しより良いサービス提供に繋げることができます（オプション）",
-      id:"research"
-    }
+        icon: <Smile className="w-12 h-12 text-green-500" />,
+        title: "ヒューマンサポートチャット",
+        description: "人間スタッフとのチャットにシームレスに移行できます（オプション）",
+        id:"human_chat"
+        },
+    {
+        icon: <FileStack className="w-12 h-12 text-amber-500" />,
+        title: "会話履歴解析",
+        description: "会話履歴を解析しより良いサービス提供に繋げることができます（オプション）",
+        id:"research"
+        }
   ];
 
   return (
@@ -87,28 +87,34 @@ export default function Features() {
         </div>
       </section>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <section id="algorithm" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
-                <div className="text-2xl text-slate-800">簡単な手順でQ&Aを登録</div>
-                <div className="text-sm text-slate-800">御社オリジナルのQ&AデータにてAIコンシェルジュ（AIコン）を作成できます。AIコン作成に必要なデータはQ&Aデータを保存したCSVファイルのみです。</div>
-            </section>
-        </div>
 
-      <footer className="relative z-10 border-t border-white/10 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-lg font-bold">AI</span>
-              </div>
-              <span className="text-lg font-bold">concierge</span>
-            </div>
-            <div className="text-gray-400 text-sm">
-              © 2025 AI concierge. All rights reserved.
-            </div>
-          </div>
-        </div>
-      </footer>
+        <section id="procedure" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
+            <div className="mb-5 font-bold text-2xl text-slate-800">簡単な手順でQ&Aを登録</div>
+            <div className="text-base text-slate-800">オリジナルのQ&Aデータを保存したCSVファイルを登録するだけで、AIコンシェルジュに必要なデータベースが自動的にセッティングされます</div>
+            <div className="text-base text-slate-800">単に用意したAを返すだけでなく、ユーザー質問に応じてQA情報を再編集するアルゴリズムを採用しています</div>
+            <img className="min-w-72 w-2/5 mx-auto mt-8 opacity-60" src="/QAtable.png" alt="エクセルやスプレッドシート" />
+        </section>
+        <section id="generative" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
+            <div className="mb-5 font-bold text-2xl text-slate-800">インターネット情報を併用</div>
+            <div className="text-base text-slate-800">登録されたQAに該当する情報がない、あるいは不足する場合はインターネット情報等を組み合わせて回答を生成します</div>
+        </section>
+        <section id="language" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
+            <div className="mb-5 font-bold text-2xl text-slate-800">多言語対応</div>
+            <div className="text-base text-slate-800">日本語でQA情報を登録するだけで、多言語に対応したAIコンシェルジュを生成できます</div>
+            <div className="text-base text-slate-800">現時点で、日本語（デフォルト）、英語、中国語（簡体）、中国語（繁体）、韓国語、フランス語、スペイン語、ポルトガル語に対応可能です</div>
+        </section>
+        <section id="voice" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
+            <div className="mb-5 font-bold text-2xl text-slate-800">音声認識＆AIボイス（オプション）</div>
+            <div className="text-base text-slate-800">多言語での音声認識とAIボイスに対応していますので、会話をするようにAIコンシェルジュを利用できます</div>
+        </section>
+        <section id="human_chat" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
+            <div className="mb-5 font-bold text-2xl text-slate-800">ヒューマンサポートチャット（オプション）</div>
+            <div className="text-base text-slate-800">人間スタッフとのチャットにシームレスに移行することができます</div>
+        </section>
+        <section id="research" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
+            <div className="mb-5 font-bold text-2xl text-slate-800">会話履歴解析（オプション）</div>
+            <div className="text-base text-slate-800">AIコンシェルジュの会話履歴を解析することが可能です</div>
+        </section>
     </div>
   );
 }

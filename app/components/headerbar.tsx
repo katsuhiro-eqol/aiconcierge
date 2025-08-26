@@ -2,11 +2,9 @@
 
 import { useState } from 'react'
 import { Menu, X } from 'lucide-react'
-import { useRouter } from 'next/navigation';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const router = useRouter()
 
 
   return (
@@ -29,7 +27,7 @@ export default function Header() {
             <div className="hidden md:flex items-center space-x-8">
                 <a href="/inboundSite/demoTop" className="px-4 text-lg font--bold border-2 rounded-lg border-blue-500 bg-purple-600  text-slate-100 hover:bg-purple-700 transition-colors">無料デモ</a>
                 <a href="/inboundSite/features" className="text-slate-700 hover:text-slate-900">特徴</a>
-                <a href="#pricing" className="text-slate-700 hover:text-slate-900">料金</a>
+                <a href="/inboundSite/price" className="text-slate-700 hover:text-slate-900">料金</a>
                 <a href="/user" className="text-slate-700 hover:text-slate-900">サインイン</a>
               </div>
             </div>
@@ -50,7 +48,7 @@ export default function Header() {
             <div className="flex flex-col items-center justify-center h-full space-y-8 text-2xl">
             <a href="/inboundSite/demoTop" className="px-4 text-lg font--bold border-2 rounded-lg border-blue-500 bg-purple-600  text-slate-100 hover:bg-purple-700 transition-colors">無料デモ</a>
                 <a href="/inboundSite/features" className="text-slate-700 hover:text-slate-900">特徴</a>
-                <a href="#pricing" className="text-slate-700 hover:text-slate-900">料金</a>
+                <a href="/inboundSite/price" className="text-slate-700 hover:text-slate-900">料金</a>
                 <a href="/user" className="text-slate-700 hover:text-slate-900">サインイン</a>
             </div>
           </div>

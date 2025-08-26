@@ -212,6 +212,7 @@ export default function Aicon() {
             }
 
             await waitCanPlay()
+            console.log("sttStatus2",sttStatus)
             
             if (existingVoice){
                 console.log("not newly created voice")
@@ -496,7 +497,10 @@ export default function Aicon() {
             alert("データ読み込みに時間がかかっています。少し時間をおいてスタートしてください")
             return
         }
-        
+        if (audioRef.current){
+            audioRef.current.pause()
+            audioRef.current.currentTime = 0
+        }
         audioPlay()
         setWavReady(true)
         const date = new Date()
@@ -543,18 +547,6 @@ export default function Aicon() {
     }
 
     const inputClear = async () => {
-        /*
-        setRecord(false)
-        try {
-            if (listening){
-            await SpeechRecognition.stopListening()
-            resetTranscript()
-            }
-        } catch(error){
-            console.error('音声認識の停止に失敗:', error)
-            alert(`音声認識停止不良:${error}`)
-        }
-            */
         await sttStop()
         setUserInput("")
     }
@@ -635,30 +627,11 @@ export default function Aicon() {
         window.location.reload()
     }
 
-    /*
-    useEffect(() => {
-        console.log("wavUrl", wavUrl)
-        if (wavUrl !== no_sound){
-            audioPlay()
-        }
-    }, [wavUrl])
-    */
-
     useEffect(() => {
         return () => {
             clearSilenceTimer();
         };
     }, []);
-
-    /*
-    useEffect(() => {
-        if (recognizing){
-            setRecord(true)
-        } else {
-            setRecord(false)
-        }
-    }, [recognizing])
-    */
 
     useEffect(() => {
         const updateHeight = () => {
@@ -727,7 +700,12 @@ export default function Aicon() {
             if (currentIndex === slides.length-2 && currentIndex !== 0){
                 const s = initialSlides
                 setCurrentIndex(0)
-                setWavUrl(no_sound)
+                if (audioRef.current){
+                    audioRef.current.pause()
+                    audioRef.current.currentTime = 0
+                }
+
+                //setWavUrl(no_sound)
                 setSlides(Array(1).fill(initialSlides))
                 if (intervalRef.current !== null){
                     clearInterval(intervalRef.current);
