@@ -93,67 +93,9 @@ export default function Aicon() {
             if (el.readyState >= 2) { cleanup(); resolve(); }
     }), []);
 
-    /*
-    const speakAfterSTT = useCallback((opts: {
-        getUrl: UrlSupplier;                  // ← ここで5つの処理を全部やってURLを返す
-        minGapMs?: number;                    // 既定 1500ms
-      }) => {
-        const { getUrl, minGapMs = 1500 } = opts;
-        const el = audioRef.current;
-        if (!el) return Promise.resolve();
-    
-        playChainRef.current = playChainRef.current
-          .catch(() => {}) // 直前の失敗でチェーンが詰まらないように
-          .then(async () => {
-            // 1) STT完全停止
-            try { await SpeechRecognition.stopListening(); } catch {}
-    
-            // 2) “停止から minGapMs 経過するまで再生しない”
-            const endAt = Date.now() + minGapMs;
-    
-            // 完全停止・無再生・空srcで待機（無音再生は禁止）
-            try { el.pause(); el.currentTime = 0; } catch {}
-            el.src = ''; // 明示リセット（任意）
-            el.load();
-    
-            // 3) URL生成（5つの前処理はここで実行）
-            const url = await getUrl();
-    
-            // 4) 残りの待ち
-            const remain = endAt - Date.now();
-            if (remain > 0) await sleep(remain);
-    
-            // 5) 再生準備 → canplay → play
-            el.setAttribute('playsinline', '');
-            el.setAttribute('x-webkit-airplay', 'deny');
-            el.preload = 'auto';
-            el.src = url;
-    
-            await waitCanPlay(el);
-            try { await el.play(); } catch (e) { console.warn('play failed:', e); }
-          });
-    
-        return playChainRef.current;
-    }, [waitCanPlay]);
-    */
-
-    async function getAnswer() {      
-        //await sttStop()  
-        //setWavUrl(no_sound)
-        setCanSend(false)//同じInputで繰り返し送れないようにする
-        //setSlides(Array(1).fill(initialSlides))
-        //setModalUrl(null)
-        //setModalFile(null)
-        //一日50以上のリクエストを制限する
-        const res = await fetch("/api/checkHugeRequest", { method: "POST" });
-        const data2 = await res.json();
-        if (res.status === 429) {
-            alert(`１日のアクセス上限に達しました。リセットまで約 ${Math.ceil((data2.resetSec ?? 0)/3600)} 時間`);
-            return
-        } else {
-        console.log("残回数", data2.remaining);
-        }
-  
+    async function getAnswer() {    
+        console.log("sttStatus2",sttStatus)  
+        await sttStop()  
         const date = new Date()
         const offset = date.getTimezoneOffset() * 60000
         const localDate = new Date(date.getTime() - offset)
@@ -168,7 +110,21 @@ export default function Aicon() {
             source:null
         }
         setMessages(prev => [...prev, userMessage]);
-
+        setCanSend(false)//同じInputで繰り返し送れないようにする
+        
+        const sleep = (ms:number) => new Promise(res => setTimeout(res, ms));
+        await sleep(1000)
+        setUserInput("")
+        
+        const res = await fetch("/api/checkHugeRequest", { method: "POST" });
+        const data2 = await res.json();
+        if (res.status === 429) {
+            alert(`１日のアクセス上限に達しました。リセットまで約 ${Math.ceil((data2.resetSec ?? 0)/3600)} 時間`);
+            return
+        } else {
+        console.log("残回数", data2.remaining);
+        }
+  
         try {
             const response1 = await fetch("/api/embedding2", {
                 method: "POST",
@@ -177,7 +133,6 @@ export default function Aicon() {
                 },
                 body: JSON.stringify({ input: userInput, model: eventData?.embedding ?? "text-embedding-3-small", language: language }),
             });
-            setUserInput("")
             const data1 = await response1.json();
             if (response1.status !== 200) {
               throw data1.error || new Error(`Request failed with status ${response1.status}`);
@@ -211,8 +166,8 @@ export default function Aicon() {
                 }
             }
 
-            await waitCanPlay()
-            console.log("sttStatus2",sttStatus)
+            //await waitCanPlay()
+            console.log("sttStatus3",sttStatus)
             
             if (existingVoice){
                 console.log("not newly created voice")
@@ -608,8 +563,6 @@ export default function Aicon() {
                 resetTranscript()
                 setRecord(false)
             }
-            const sleep = (ms:number) => new Promise(res => setTimeout(res, ms));
-            await sleep(2000)
         } catch(error) {
             console.error('音声認識の停止に失敗:', error)
             setRecord(false)
@@ -621,12 +574,23 @@ export default function Aicon() {
         setRecord(false)
         const sleep = (ms:number) => new Promise(res => setTimeout(res, ms));
         try {
+            await SpeechRecognition.stopListening()
+            resetTranscript()
+            //await sleep(1000)
+            /*
             if (listening) {
+                console.log("listening true")
                 await SpeechRecognition.stopListening()
                 resetTranscript()
+                await sleep(5000)
+                await getAnswer()
+                console.log("answer await")
+            } else {
+                console.log("answer not await")
+                await getAnswer()
             }
-            await sleep(2000)
-            await getAnswer()
+                */
+
         } catch(error) {
             console.error('音声認識の停止に失敗:', error)
         }        
