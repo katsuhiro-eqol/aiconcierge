@@ -138,7 +138,7 @@ export default function Aicon() {
     */
 
     async function getAnswer() {      
-        await sttStop()  
+        //await sttStop()  
         //setWavUrl(no_sound)
         setCanSend(false)//同じInputで繰り返し送れないようにする
         //setSlides(Array(1).fill(initialSlides))
