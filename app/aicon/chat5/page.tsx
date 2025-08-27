@@ -608,11 +608,28 @@ export default function Aicon() {
                 resetTranscript()
                 setRecord(false)
             }
+            const sleep = (ms:number) => new Promise(res => setTimeout(res, ms));
+            await sleep(2000)
         } catch(error) {
             console.error('音声認識の停止に失敗:', error)
             setRecord(false)
             //setIsListening(false)
         }
+    }
+
+    const sttStop2 = async () => {
+        setRecord(false)
+        const sleep = (ms:number) => new Promise(res => setTimeout(res, ms));
+        try {
+            if (listening) {
+                await SpeechRecognition.stopListening()
+                resetTranscript()
+            }
+            await sleep(2000)
+            await getAnswer()
+        } catch(error) {
+            console.error('音声認識の停止に失敗:', error)
+        }        
     }
 
     const selectLanguage = (e: React.ChangeEvent<HTMLSelectElement>) => {
