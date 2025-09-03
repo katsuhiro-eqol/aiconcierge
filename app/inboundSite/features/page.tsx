@@ -28,7 +28,7 @@ export default function Features() {
         id:"generative"
         } ,
     {
-        icon: <Globe className="w-12 h-12 text-blue-500" />,
+        icon: <Globe className="w-12 h-12 text-orange-400" />,
         title: "多言語対応",
         description: "日本語Q&Aを登録するだけで多言語対応アプリが構築されます",
         id:"language"
@@ -68,7 +68,7 @@ export default function Features() {
             {features.map((feature, index) => (
               <div 
                 key={index}
-                className="p-5 border-2 rounded-xl bg-blue-900 hover:bg-blue-950 text-white"
+                className="p-5 border-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white"
               >
                 <div className="mb-6 transform group-hover:scale-110 transition-transform">
                   {feature.icon}

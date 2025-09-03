@@ -36,8 +36,10 @@
     "react-qr-code": "^2.0.15",
     "react-speech-recognition": "^3.10.0",
     "regenerator-runtime": "^0.14.1",
+    "resend": "^6.0.2",
     "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

@@ -13,13 +13,6 @@ export default function DemoTop() {
                     <img className="w-40 m-5 mx-auto mt-5" src="/コンシェルジュQRコード.jpg" alt="QRコード" />
                     </a>
                 </button>
-                <button className="w-48 sm:w-72 lg:w-96 h-96 border-2 bg-blue-900 rounded-xl hover:bg-blue-950 text-white">
-                    <a href="/userRegistration" className="flex flex-col h-full">
-                    <div className="text-xl font-bold sm:text-2xl mt-12">オリジナルコンシェルジュを作る</div>
-                    <div className="mx-8 mt-4 text-sm">コンシェルジュアプリ作成の一連の流れを体験できるデモを用意しました</div>
-                    <div className="mx-8 mt-10 text-sm">作成したアプリは1ヶ月間無料で利用可能。期間内に有料契約に変更すれば継続利用が可能です</div>
-                    </a>
-                </button>
             </div>
             </div>
         </div>
