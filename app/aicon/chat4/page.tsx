@@ -168,6 +168,7 @@ export default function Aicon4() {
                 id: item.id,
                 question: item.question,
                 answer: item.answer,
+                foreign: item.foreign,
                 similarity: cosineSimilarity(inputVector, item.vector)
             }))
             .sort((a, b) => b.similarity - a.similarity)
@@ -177,10 +178,10 @@ export default function Aicon4() {
         return meaningfulList;
     }
 
-    const chooseQA = (similarities:{id:string, question:string, answer:string, similarity:number}[]) => {
+    const chooseQA = (similarities:{id:string, question:string, answer:string, foreign:ForeignAnswer, similarity:number}[]) => {
         let QAs = ""
         for (let i = 0; i < similarities.length; i++){
-            const QA = `id:${similarities[i].id} - Q:${similarities[i].question} - A:${similarities[i].answer}\n`
+            const QA = `id:${similarities[i].id} - Q:${similarities[i].question} - A:${similarities[i].foreign[language]}\n`
             QAs += QA
         }
         return QAs

@@ -37,7 +37,6 @@ export async function POST(req: NextRequest): Promise<NextResponse>  {
         });
         const data = await response.json();
         const decoded = decode(data.data.translations[0].translatedText)
-        console.log(decoded)
         try {
             const response = await openai.embeddings.create({
             model: model,
@@ -54,7 +53,6 @@ export async function POST(req: NextRequest): Promise<NextResponse>  {
         }        
     } else {
         try {
-            console.log(input)
             const response = await openai.embeddings.create({
             model: model,
             input: input,

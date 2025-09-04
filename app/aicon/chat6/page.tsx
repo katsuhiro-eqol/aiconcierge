@@ -11,7 +11,7 @@ import { db } from "@/firebase";
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion, increment } from "firebase/firestore";
 import Modal from "../../components/modalModal"
 import getVoiceData from "@/app/func/getVoiceData";
-import {Message2, EmbeddingsData, EventData, VoiceData, ForeignAnswer} from "@/types"
+import {Message2, EmbeddingsData, EventData, VoiceData, ForeignAnswer, Foreign} from "@/types"
 import { realtimeVoice } from "@/app/func/realtimeVoice";
 type LanguageCode = 'ja-JP' | 'en-US' | 'zh-CN' | 'zh-TW' | 'ko-KR' | 'fr-FR' | 'pt-BR' | 'es-ES'
 
@@ -227,6 +227,7 @@ export default function Aicon() {
                 id: item.id,
                 question: item.question,
                 answer: item.answer,
+                foreign: item.foreign,
                 similarity: cosineSimilarity(inputVector, item.vector)
             }))
             .sort((a, b) => b.similarity - a.similarity)
@@ -236,10 +237,10 @@ export default function Aicon() {
         return meaningfulList;
     }
 
-    const chooseQA = (similarities:{id:string, question:string, answer:string, similarity:number}[]) => {
+    const chooseQA = (similarities:{id:string, question:string, answer:string, foreign: ForeignAnswer, similarity:number}[]) => {
         let QAs = ""
         for (let i = 0; i < similarities.length; i++){
-            const QA = `id:${similarities[i].id} - Q:${similarities[i].question} - A:${similarities[i].answer}\n`
+            const QA = `id:${similarities[i].id} - Q:${similarities[i].question} - A:${similarities[i].foreign[language]}\n`
             QAs += QA
         }
         return QAs
@@ -594,13 +595,15 @@ export default function Aicon() {
         window.location.reload()
     }
 
+    /*
     useEffect(() => {
         console.log("wavUrl", wavUrl)
         if (wavUrl !== no_sound){
             audioPlay()
         }
     }, [wavUrl])
-        
+    */
+
     useEffect(() => {
         return () => {
             clearSilenceTimer();
