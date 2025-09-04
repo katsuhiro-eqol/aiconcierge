@@ -25,7 +25,7 @@ export default function Header() {
             
             <div className="hidden md:flex items-center space-x-8">
             <div className="hidden md:flex items-center space-x-8">
-                <a href="/inboundSite/demoTop" className="px-4 text-lg font--bold border-2 rounded-lg border-blue-500 bg-purple-600  text-slate-100 hover:bg-purple-700 transition-colors">無料デモ</a>
+                <a href="/inboundSite/demoTop" className="px-4 text-lg font--bold border-2 rounded-lg border-blue-500 bg-blue-800  text-slate-100 hover:bg-blue-900 transition-colors">無料デモ</a>
                 <a href="/inboundSite/features" className="text-slate-700 hover:text-slate-900">特徴</a>
                 <a href="/inboundSite/price" className="text-slate-700 hover:text-slate-900">料金</a>
                 <a href="/inboundSite/contact" className="text-slate-700 hover:text-slate-900">問い合わせ</a>
@@ -45,7 +45,7 @@ export default function Header() {
 
       {/* モバイルメニュー */}
       {isMenuOpen && (
-            <div className="md:hidden fixed inset-0 z-40 bg-slate-900/95 backdrop-blur-lg">
+            <div className="md:hidden fixed inset-0 z-40 bg-blue-300 backdrop-blur-lg">
             <div className="flex flex-col items-center justify-center h-full space-y-8 text-2xl">
             <a href="/inboundSite/demoTop" className="px-4 text-lg font--bold border-2 rounded-lg border-blue-500 bg-purple-600  text-slate-100 hover:bg-purple-700 transition-colors">無料デモ</a>
                 <a href="/inboundSite/features" className="text-slate-700 hover:text-slate-900">特徴</a>

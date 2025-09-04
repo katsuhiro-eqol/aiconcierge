@@ -98,7 +98,7 @@ export default function Aicon4() {
                 body: JSON.stringify({ question: userInput, model: eventData!.gpt, prompt: eventData!.prompt, refQA: refQA, history: history, language: language, undefined: undefined }),
             });
             const data = await response.json();
-            console.log(data.answer)
+            console.log(data.answer, data.id)
 
             if (data.id !== ""){
                 const modal = embeddingsData.filter((item) => item.id === data.id)
@@ -244,7 +244,7 @@ export default function Aicon4() {
                     qaData:data.qaData,
                     code:data.code,
                     langStr:"",
-                    prompt:data.prompt2,
+                    prompt:data.prompt,
                     gpt:data.gpt
                 }
                 setEventData(event_data)
@@ -257,6 +257,8 @@ export default function Aicon4() {
                     setThumnail("/AICON-w.png")
                 } else if (data.image.name === "AI-con_woman2_01.png"){
                     setThumnail("/AICON-w2.png")
+                } else if (data.image.name === "ai-concierge1_1.png") {
+                    setThumnail("/ai-concierge1_1.png")
                 } else {
                     setThumnail("")
                 }
@@ -448,7 +450,9 @@ export default function Aicon4() {
             </div>
         </div>):(
             <div className="flex flex-col h-screen bg-stone-200">
-            <button className="w-2/3 bg-cyan-500 hover:bg-cyan-700 text-white mx-auto mt-24 px-4 py-2 rounded text-xl font-bold" onClick={() => {talkStart()}}>ai concierge</button>
+            <button className="w-2/3 bg-cyan-500 hover:bg-cyan-700 text-white mx-auto mt-24 px-4 py-2 rounded text-xl font-bold" onClick={() => {talkStart()}}>
+            <div className="text-2xl font-bold">ai concierge</div>
+            <div>click to start</div></button>
             <div className="mx-auto mt-32 text-sm">使用言語(language)</div>
             <select className="mt-3 mx-auto text-sm w-36 h-8 text-center border-2 border-lime-600" value={dLang} onChange={selectLanguage}>
                 {langList.map((lang, index) => {
