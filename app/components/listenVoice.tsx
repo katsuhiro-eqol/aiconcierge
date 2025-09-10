@@ -28,6 +28,7 @@ export default function ListenVoice({foreign, answer, voiceNumber, setIsAudio}:V
             console.log(ans)
             const idWord = `${String(voiceNumber)}-${ans.trim()}`
             const voiceId = `${md5(idWord)}`//voiceIdはtrimした値
+            console.log("voiceId",voiceId)
             const voiceRef = doc(db, "Voice", voiceId)
             const voiceSnap = await getDoc(voiceRef);
             if (voiceSnap.exists()){

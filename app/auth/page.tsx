@@ -69,7 +69,7 @@ export default function AUTH() {
         <br />
         <button className="p-2 border-2 rounded-lg bg-blue-600 hover:bg-blue-800 text-white" onClick={() => login()}>login</button>
         <br />
-        <a href="/userRegistration" className="text-center text-blue-500 hover:text-blue-700">ユーザー登録はこちら</a>
+        <a href="/inboundSite/contact" className="text-center text-blue-500 hover:text-blue-700">ユーザー登録はお問い合わせページから</a>
         </div>
     </div>
   );

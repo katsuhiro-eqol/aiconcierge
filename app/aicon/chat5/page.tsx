@@ -26,8 +26,8 @@ export default function Aicon() {
     const [history, setHistory] = useState<{user: string, aicon: string}[]>([])
     const [eventData, setEventData] = useState<EventData|null>(null)
     const [langList, setLangList] = useState<string[]>([])
-    const [dLang, setDLang] = useState<string>("日本語")//表示用言語
-    const [language, setLanguage] = useState<string>("日本語")
+    const [dLang, setDLang] = useState<string>("")//表示用言語
+    const [language, setLanguage] = useState<string>("")
     const [embeddingsData, setEmbeddingsData] = useState<EmbeddingsData[]>([])
     const [wavUrl, setWavUrl] = useState<string>(no_sound)
     const [slides, setSlides] = useState<string[]|null>(null)
@@ -152,7 +152,7 @@ export default function Aicon() {
             const answer = data.answer
             
             // キャッシュキーを生成
-            const cacheKey = `${eventData!.voiceNumber}-${answer.trim()}-${language}`;
+            const cacheKey = `${eventData!.voiceNumber}-${answer.trim()}`;
             
             // キャッシュから音声データを確認
             let existingVoice: VoiceData | null = voiceCache.get(cacheKey) || null;
@@ -435,7 +435,8 @@ export default function Aicon() {
     const getLanguageList = () => {
         if (eventData?.languages){
             const langs = eventData.languages.map((item) => {return nativeName[item as keyof typeof nativeName]})
-            setLangList(langs)
+            const langs2 = ["",...langs]
+            setLangList(langs2)            
         }
     }
 
@@ -449,10 +450,11 @@ export default function Aicon() {
     }
     
     const talkStart = async () => {
-        if (!eventData){
-            alert("データ読み込みに時間がかかっています。少し時間をおいてスタートしてください")
+        if (dLang === ""){
+            alert("使用する言語を選択してください。Please select your language")
             return
         }
+        createConvField(attribute!)
         if (audioRef.current){
             audioRef.current.pause()
             audioRef.current.currentTime = 0
@@ -464,11 +466,11 @@ export default function Aicon() {
         const localDate = new Date(date.getTime() - offset)
         const now = localDate.toISOString()
         if (startText){
-            const cacheKey = `${eventData!.voiceNumber}-${startText.answer.trim()}-${language}`;
+            const cacheKey = `${eventData!.voiceNumber}-${startText.foreign[language].trim()}`;
             let voiceData: VoiceData | null = voiceCache.get(cacheKey) || null;
             if (!voiceData) {
                 // キャッシュにない場合はFirestoreから取得
-                voiceData = await getVoiceData(startText.answer, language, eventData!.voiceNumber);
+                voiceData = await getVoiceData(startText.foreign[language], language, eventData!.voiceNumber);
                 if (voiceData) {
                     // キャッシュに保存
                     setVoiceCache(prev => new Map(prev).set(cacheKey, voiceData!));
@@ -571,32 +573,6 @@ export default function Aicon() {
         }
     }
 
-    const sttStop2 = async () => {
-        setRecord(false)
-        const sleep = (ms:number) => new Promise(res => setTimeout(res, ms));
-        try {
-            await SpeechRecognition.stopListening()
-            resetTranscript()
-            //await sleep(1000)
-            /*
-            if (listening) {
-                console.log("listening true")
-                await SpeechRecognition.stopListening()
-                resetTranscript()
-                await sleep(5000)
-                await getAnswer()
-                console.log("answer await")
-            } else {
-                console.log("answer not await")
-                await getAnswer()
-            }
-                */
-
-        } catch(error) {
-            console.error('音声認識の停止に失敗:', error)
-        }        
-    }
-
     const selectLanguage = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const lang = e.target.value
         setDLang(lang)
@@ -636,7 +612,6 @@ export default function Aicon() {
     useEffect(() => {
         if (attribute && code){
             loadEventData(attribute, code)
-            createConvField(attribute)
         }        
     }, [attribute, code])
 

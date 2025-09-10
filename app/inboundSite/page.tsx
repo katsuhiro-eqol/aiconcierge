@@ -9,9 +9,9 @@ export default function InboundSite() {
         <div className="mt-10 text-2xl font-bold text-blue-800 text-center lg:text-3xl sm:text-2xl">インバウンド顧客対応に頭を悩ませている事業主様へ</div>
         <div className="mt-4 text-lg font-bold text-blue-800 text-center lg:text-2xl sm:text-xl">日本語QAを登録するだけで多言語対応AIコンシェルジュアプリが構築できます</div>
         <div className="mt-6 w-4/5 mx-auto bg-yellow-400 p-5 rounded-xl">
-          <li>対応言語は、「日本語」「英語」「中国語（簡体）」「中国語（繁体）」「韓国語」</li>
-          <li>日本語のQ&Aデータを用意するだけ</li>
           <li>ユーザーはQRコードで一発アクセス</li>
+          <li>対応言語は、「日本語」「英語」「中国語（簡体）」「中国語（繁体）」「韓国語」</li>
+          <li>事業者様は日本語のQ&Aデータを用意するだけ</li>
           <li>地図や写真なども表示可能</li>
           <li>臨時のイベント情報などの追加・更新も簡単</li>
           <li>インターネット情報も参照して回答</li>

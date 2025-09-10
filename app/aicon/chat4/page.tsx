@@ -21,8 +21,8 @@ export default function Aicon4() {
     const [history, setHistory] = useState<{user: string, aicon: string}[]>([])
     const [eventData, setEventData] = useState<EventData|null>(null)
     const [langList, setLangList] = useState<string[]>([])
-    const [dLang, setDLang] = useState<string>("日本語")//表示用言語
-    const [language, setLanguage] = useState<string>("日本語")
+    const [dLang, setDLang] = useState<string>("")//表示用言語
+    const [language, setLanguage] = useState<string>("")
     const [embeddingsData, setEmbeddingsData] = useState<EmbeddingsData[]>([])
 
     const [wavReady, setWavReady] = useState<boolean>(false)
@@ -299,7 +299,8 @@ export default function Aicon4() {
         if (eventData?.languages){
             console.log("languages",eventData?.languages)
             const langs = eventData.languages.map((item) => {return nativeName[item as keyof typeof nativeName]})
-            setLangList(langs)
+            const langs2 = ["",...langs]
+            setLangList(langs2)            
         }
     }
 
@@ -313,7 +314,11 @@ export default function Aicon4() {
     }
     
     const talkStart = async () => {
-        //audioPlay()
+        if (dLang === ""){
+            alert("使用する言語を選択してください。Please select your language")
+            return
+        }        
+        createConvField(attribute!)
         setWavReady(true)
         const date = new Date()
         const offset = date.getTimezoneOffset() * 60000
@@ -362,7 +367,7 @@ export default function Aicon4() {
     useEffect(() => {
         if (attribute && code){
             loadEventData(attribute, code)
-            createConvField(attribute)
+            //createConvField(attribute)
         }        
     }, [attribute, code])
 

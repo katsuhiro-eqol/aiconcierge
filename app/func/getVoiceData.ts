@@ -26,6 +26,7 @@ export default async function getVoiceData(answer:string, lang:string, voiceNumb
                 }
                 return voiceData
             } else {
+                console.log("no voice data")
                 return null
             }    
         } else {

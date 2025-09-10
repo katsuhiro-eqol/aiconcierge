@@ -6,7 +6,7 @@ import { useSearchParams as useSearchParamsOriginal } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk"
 //import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-import { Mic, Send, Eraser, Paperclip, X } from 'lucide-react';
+import { Mic, Send, Eraser, Paperclip, X, LoaderCircle } from 'lucide-react';
 import { db } from "@/firebase";
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion, increment } from "firebase/firestore";
 import Modal from "../../components/modalModal"
@@ -26,8 +26,8 @@ export default function Aicon() {
     const [history, setHistory] = useState<{user: string, aicon: string}[]>([])
     const [eventData, setEventData] = useState<EventData|null>(null)
     const [langList, setLangList] = useState<string[]>([])
-    const [dLang, setDLang] = useState<string>("日本語")//表示用言語
-    const [language, setLanguage] = useState<string>("日本語")
+    const [dLang, setDLang] = useState<string>("")//表示用言語
+    const [language, setLanguage] = useState<string>("")
     const [embeddingsData, setEmbeddingsData] = useState<EmbeddingsData[]>([])
     const [wavUrl, setWavUrl] = useState<string>(no_sound)
     const [slides, setSlides] = useState<string[]|null>(null)
@@ -130,7 +130,7 @@ export default function Aicon() {
             const answer = data.answer
             
             // キャッシュキーを生成
-            const cacheKey = `${eventData!.voiceNumber}-${answer.trim()}-${language}`;
+            const cacheKey = `${eventData!.voiceNumber}-${answer.trim()}`;
             
             // キャッシュから音声データを確認
             let existingVoice: VoiceData | null = voiceCache.get(cacheKey) || null;
@@ -417,7 +417,8 @@ export default function Aicon() {
     const getLanguageList = () => {
         if (eventData?.languages){
             const langs = eventData.languages.map((item) => {return nativeName[item as keyof typeof nativeName]})
-            setLangList(langs)
+            const langs2 = ["",...langs]
+            setLangList(langs2)
         }
     }
 
@@ -432,10 +433,14 @@ export default function Aicon() {
     
     const talkStart = async () => {
         if (!eventData){
-            alert("データ読み込みに時間がかかっています。少し時間をおいてスタートしてください")
+            alert("データ読み込み中です。しばらくお待ちください。Now data loading...")
+            return            
+        }
+        if (dLang === ""){
+            alert("使用する言語を選択してください。Please select your language")
             return
         }
-
+        createConvField(attribute!)
         audioPlay()
         setWavReady(true)
         const date = new Date()
@@ -445,14 +450,14 @@ export default function Aicon() {
         console.log("startText",startText)
         if (startText){
             // キャッシュキーを生成
-            const cacheKey = `${eventData!.voiceNumber}-${startText.answer.trim()}-${language}`;
+            const cacheKey = `${eventData!.voiceNumber}-${startText.foreign[language].trim()}`;
             
             // キャッシュから音声データを確認
             let voiceData: VoiceData | null = voiceCache.get(cacheKey) || null;
             
             if (!voiceData) {
                 // キャッシュにない場合はFirestoreから取得
-                voiceData = await getVoiceData(startText.answer, language, eventData!.voiceNumber);
+                voiceData = await getVoiceData(startText.foreign[language], language, eventData!.voiceNumber);
                 if (voiceData) {
                     // キャッシュに保存
                     setVoiceCache(prev => new Map(prev).set(cacheKey, voiceData!));
@@ -595,15 +600,6 @@ export default function Aicon() {
         window.location.reload()
     }
 
-    /*
-    useEffect(() => {
-        console.log("wavUrl", wavUrl)
-        if (wavUrl !== no_sound){
-            audioPlay()
-        }
-    }, [wavUrl])
-    */
-
     useEffect(() => {
         return () => {
             clearSilenceTimer();
@@ -642,7 +638,6 @@ export default function Aicon() {
     useEffect(() => {
         if (attribute && code){
             loadEventData(attribute, code)
-            createConvField(attribute)
         }        
     }, [attribute, code])
 
@@ -807,16 +802,26 @@ export default function Aicon() {
             </div>
         </div>):(
             <div className="flex flex-col h-screen bg-stone-200">
-            <button className="w-2/3 bg-cyan-500 hover:bg-cyan-700 text-white mx-auto mt-24 px-4 py-2 rounded" onClick={() => {talkStart()}}>
+            <button className="w-2/3 bg-cyan-500 hover:bg-cyan-700 text-white mx-auto mt-24 px-4 py-2 rounded" disabled={!eventData} onClick={() => {talkStart()}}>
                 <div className="text-2xl font-bold">ai concierge</div>
                 <div>click to start</div>
             </button>
-            <div className="mx-auto mt-32 text-sm">使用言語(language)</div>
-            <select className="mt-3 mx-auto text-sm w-36 h-8 text-center border-2 border-lime-600" value={dLang} onChange={selectLanguage}>
-                {langList.map((lang, index) => {
-                return <option className="text-center" key={index} value={lang}>{lang}</option>;
-                })}
-            </select>
+            {eventData ? (
+                <div className="flex flex-col">
+                    <div className="mx-auto mt-32 text-sm">使用言語(language)</div>
+                    <select className="mt-3 mx-auto text-sm w-36 h-8 text-center border-2 border-lime-600" value={dLang} onChange={selectLanguage}>
+                        {langList.map((lang, index) => {
+                        return <option className="text-center" key={index} value={lang}>{lang}</option>;
+                        })}
+                    </select>
+                </div>
+            ):(
+                <div className="flex flex-row gap-x-4 mx-auto mt-32">
+                <LoaderCircle size={24} className="text-slate-500 animate-spin" />
+                <p className="text-slate-500">データ読み込み中(Data Loading...)</p>
+                </div>
+            )}
+
             <button className="mt-auto mb-32 text-blue-500 hover:text-blue-700 text-sm">はじめにお読みください</button>
             </div>            
             )}
