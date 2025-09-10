@@ -10,9 +10,11 @@ import { Mic, Send, Eraser, Paperclip, X, LoaderCircle } from 'lucide-react';
 import { db } from "@/firebase";
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion, increment } from "firebase/firestore";
 import Modal from "../../components/modalModal"
+import UsersManual from "../../components/usersManual"
 import getVoiceData from "@/app/func/getVoiceData";
 import {Message2, EmbeddingsData, EventData, VoiceData, ForeignAnswer, Foreign} from "@/types"
 import { realtimeVoice } from "@/app/func/realtimeVoice";
+import User from "@/app/user/page";
 type LanguageCode = 'ja-JP' | 'en-US' | 'zh-CN' | 'zh-TW' | 'ko-KR' | 'fr-FR' | 'pt-BR' | 'es-ES'
 
 const no_sound = "https://firebasestorage.googleapis.com/v0/b/conciergeproject-1dc77.firebasestorage.app/o/voice%2Fno_sound.wav?alt=media&token=80abe4c5-a52d-40eb-9e6f-23b265fd9d72"
@@ -48,6 +50,7 @@ export default function Aicon() {
     const [undefinedAnswer, setUndefinedAnswer] = useState<ForeignAnswer|null>(null)
     const [voiceCache, setVoiceCache] = useState<Map<string, VoiceData>>(new Map())
     const [isQADBLoading, setIsQADBLoading] = useState<boolean>(false)
+    const [isManual, setIsManual] = useState<boolean>(false)
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const nativeName = {"日本語":"日本語", "英語":"English","中国語（簡体）":"简体中文","中国語（繁体）":"繁體中文","韓国語":"한국어","フランス語":"Français","スペイン語":"Español","ポルトガル語":"Português"}
@@ -801,8 +804,10 @@ export default function Aicon() {
                 </div>
             </div>
         </div>):(
+            <div>
+            {!isManual ? (
             <div className="flex flex-col h-screen bg-stone-200">
-            <button className="w-2/3 bg-cyan-500 hover:bg-cyan-700 text-white mx-auto mt-24 px-4 py-2 rounded" disabled={!eventData} onClick={() => {talkStart()}}>
+            <button className={`w-2/3 ${eventData ? `bg-cyan-500 hover:bg-cyan-700 text-white` : `bg-slate-300 text-white`}  mx-auto mt-24 px-4 py-2 rounded`} disabled={!eventData} onClick={() => {talkStart()}}>
                 <div className="text-2xl font-bold">ai concierge</div>
                 <div>click to start</div>
             </button>
@@ -821,11 +826,20 @@ export default function Aicon() {
                 <p className="text-slate-500">データ読み込み中(Data Loading...)</p>
                 </div>
             )}
+            <button onClick={() => setIsManual(true)} className="mt-auto mb-32 text-blue-500 hover:text-blue-700 text-sm">はじめにお読みください</button>              
+            </div>
+            ):(
+            <div>
+                <UsersManual setIsManual={setIsManual} />
+            </div>
+            
+            )}
 
-            <button className="mt-auto mb-32 text-blue-500 hover:text-blue-700 text-sm">はじめにお読みください</button>
+
+
             </div>            
             )}
-                        {wavReady && (
+            {wavReady && (
             <div className="flex flex-row w-20 h-6 bg-white hover:bg-gray-200 p-1 rounded-lg shadow-lg relative ml-auto mr-3 mt-5 mb-auto" onClick={() => closeApp()}>
             <X size={16} />
             <div className="text-xs">終了する</div>
