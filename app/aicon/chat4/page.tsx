@@ -4,10 +4,11 @@ import "regenerator-runtime";
 import React from "react";
 import { useSearchParams as useSearchParamsOriginal } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { Mic, Send, Eraser } from 'lucide-react';
+import { Send, LoaderCircle } from 'lucide-react';
 import { db } from "@/firebase";
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import Modal from "../../components/modalModal"
+import UsersManual from "../../components/usersManual"
 import {Message2, EmbeddingsData, EventData, ForeignAnswer} from "@/types"
 type LanguageCode = 'ja-JP' | 'en-US' | 'zh-CN' | 'zh-TW' | 'ko-KR' | 'fr-FR' | 'pt-BR' | 'es-ES'
 
@@ -33,7 +34,7 @@ export default function Aicon4() {
     const [convId, setConvId] = useState<string>("")
     const [startText, setStartText] = useState<EmbeddingsData|null>(null)
     const [undefinedAnswer, setUndefinedAnswer] = useState<ForeignAnswer|null>(null)
-
+    const [isManual, setIsManual] = useState<boolean>(false)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const nativeName = {"日本語":"日本語", "英語":"English","中国語（簡体）":"简体中文","中国語（繁体）":"繁體中文","韓国語":"한국어","フランス語":"Français","スペイン語":"Español","ポルトガル語":"Português"}
     const japaneseName = {"日本語":"日本語", "English":"英語","简体中文":"中国語（簡体）","繁體中文":"中国語（繁体）","한국어":"韓国語","Français":"フランス語","Español":"スペイン語","Português":"ポルトガル語"}
@@ -292,7 +293,7 @@ export default function Aicon4() {
 
         const convId = `${isoString}_${random}`
         setConvId(convId)
-        await setDoc(doc(db,"Events",attr,"Conversation",convId), {conversations:[], langage:language, date:now})
+        await setDoc(doc(db,"Events",attr,"Conversation",convId), {conversations:[], language:language, date:now})
     }
 
     const getLanguageList = () => {
@@ -455,18 +456,36 @@ export default function Aicon4() {
                 </div>
             </div>
         </div>):(
+            <div>
+            {!isManual ? (
             <div className="flex flex-col h-screen bg-stone-200">
-            <button className="w-2/3 bg-cyan-500 hover:bg-cyan-700 text-white mx-auto mt-24 px-4 py-2 rounded text-xl font-bold" onClick={() => {talkStart()}}>
-            <div className="text-2xl font-bold">ai concierge</div>
-            <div>click to start</div></button>
-            <div className="mx-auto mt-32 text-sm">使用言語(language)</div>
-            <select className="mt-3 mx-auto text-sm w-36 h-8 text-center border-2 border-lime-600" value={dLang} onChange={selectLanguage}>
-                {langList.map((lang, index) => {
-                return <option className="text-center" key={index} value={lang}>{lang}</option>;
-                })}
-            </select>
-            <button className="mt-auto mb-32 text-blue-500 hover:text-blue-700 text-sm">はじめにお読みください</button>
-            </div>            
+            <button className={`w-2/3 ${eventData ? `bg-cyan-500 hover:bg-cyan-700 text-white` : `bg-slate-300 text-white`}  mx-auto mt-24 px-4 py-2 rounded`} disabled={!eventData} onClick={() => {talkStart()}}>
+                <div className="text-2xl font-bold">ai concierge</div>
+                <div>click to start</div>
+            </button>
+            {eventData ? (
+                <div className="flex flex-col">
+                    <div className="mx-auto mt-32 text-sm">使用言語(language)</div>
+                    <select className="mt-3 mx-auto text-sm w-36 h-8 text-center border-2 border-lime-600" value={dLang} onChange={selectLanguage}>
+                        {langList.map((lang, index) => {
+                        return <option className="text-center" key={index} value={lang}>{lang}</option>;
+                        })}
+                    </select>
+                </div>
+            ):(
+                <div className="flex flex-row gap-x-4 mx-auto mt-32">
+                <LoaderCircle size={24} className="text-slate-500 animate-spin" />
+                <p className="text-slate-500">データ読み込み中(Data Loading...)</p>
+                </div>
+            )}
+            <button onClick={() => setIsManual(true)} className="mt-auto mb-32 text-blue-500 hover:text-blue-700 text-sm">はじめにお読みください</button>              
+            </div>
+            ):(
+            <div>
+                <UsersManual setIsManual={setIsManual} />
+            </div>
+            )}
+            </div>     
             )}
         </div>
     );

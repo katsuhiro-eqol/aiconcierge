@@ -414,7 +414,7 @@ export default function Aicon() {
 
         const convId = `${isoString}_${random}`
         setConvId(convId)
-        await setDoc(doc(db,"Events",attr,"Conversation",convId), {conversations:[], langage:language, date:now})
+        await setDoc(doc(db,"Events",attr,"Conversation",convId), {conversations:[], language:language, date:now})
     }
 
     const getLanguageList = () => {
@@ -832,11 +832,7 @@ export default function Aicon() {
             <div>
                 <UsersManual setIsManual={setIsManual} />
             </div>
-            
             )}
-
-
-
             </div>            
             )}
             {wavReady && (

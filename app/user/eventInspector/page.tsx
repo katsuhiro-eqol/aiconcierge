@@ -2,15 +2,11 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import { db } from "@/firebase"
-import { doc, getDoc, collection, query, getDocs, orderBy, limit, deleteDoc, setDoc, where } from "firebase/firestore"
-import { ConvData } from "@/types"
+import { doc, getDoc, collection, query, getDocs, orderBy, limit, deleteDoc, getCountFromServer, startAfter, setDoc, where } from "firebase/firestore"
+import { ConvData, ForeignAnswer } from "@/types"
+import { constants } from "fs";
 
-interface SelectedConv {
-    id:string;
-    uJapanese:string;
-    nearestQ:string;
-    similarity:number;
-}
+type Cursor = { date: string; id: string } | null
 
 
 export default function EventInspector(){
@@ -18,20 +14,27 @@ export default function EventInspector(){
     const [event, setEvent] = useState<string>("")
     const [organization, setOrganization] = useState<string>("")
     const [convData, setConvData] = useState<ConvData[]>([])
-    const [emptyCount, setEmptyCount] = useState<number>(0)
+    const [totalCount, setTotalCount] = useState<number>(0)
+    const [totalPages, setTotalPages] = useState<number>(1)
+    const [page, setPage] = useState<number>(1)
+    const [cursors, setCursors] = useState<Cursor[]>([])
     const [selectedConvs, setSelectedConvs] = useState<ConvData[]>([])
     const [selectedAnalysis, setSelectedAnalysis] = useState<string>("")
+    const [unanswerable, setUnanswerable] = useState<ForeignAnswer>({})
+
+    const PAGE_SIZE = 10
     
     const columns = [
-        { key: 'id', label: 'date' },
-        { key: 'uJapanese', label: 'Question(JP)' },
-        { key: 'nearestQ', label: 'nearest' },
-        { key: 'similarity', label: 'similarity' }
+        { key: 'id', label: 'id' },
+        { key: 'userNumber', label: 'userNumber' },
+        { key: 'lamguage', label: 'language' },
+        { key: 'question', label: 'question' },
+        { key: 'answer', label: 'answer' }
     ]
 
     const buttons = [
-        { key: 'unclassify', label: '回答不能質問'},
-        { key: 'FAQ', label: '高頻度質問'},
+        { key: 'all', label: '全会話閲覧'},
+        { key: 'unanswerable', label: '回答不能質問'},
         { key: 'time_series', label: '会話数推移'}
     ]
 
@@ -55,45 +58,97 @@ export default function EventInspector(){
         }
     }
 
-    const loadConvData = async (event:string) => {
-        //const conv = []
-        let empty = 0
+    const loadConvData = async (event:string, page:number) => {
         try {
             const eventId = organization + "_" + event
             const convRef = collection(db,"Events",eventId, "Conversation")
-            const q = query(convRef, limit(50))
-            const querySnapshot = await getDocs(q)
-            for (const document of querySnapshot.docs) {
-                const data = document.data()
-                if (data.conversations.length === 0){
-                    const docRef = doc(db, "Events",eventId,"Conversation", document.id);
-                    await deleteDoc(docRef);
-                    empty ++
-                } else {
-                    console.log(document.id)
-                    if (data.conversations[0].uJapanese){
-                        setConvData(prev => [...prev, ...data.conversations])
-                    }
+            let q = query(convRef, orderBy("date", "desc"), limit(PAGE_SIZE))
+
+                // 2ページ目以降は直前ページの「最後尾」から開始
+            if (page > 1) {
+                const prevCursor = cursors[page - 2];
+                if (prevCursor) {
+                q = query(
+                    convRef,
+                    orderBy("date", "desc"),
+                    startAfter(prevCursor.date, prevCursor.id),
+                    limit(PAGE_SIZE)
+                );
                 }
             }
-            setEmptyCount(empty)
+
+            const querySnapshot = await getDocs(q)
+            const rows: ConvData[] = []
+            let userNumber = 1
+            querySnapshot.forEach((doc) => {
+                const data = doc.data()
+                const conversations = data.conversations
+                if (Array.isArray(conversations)){
+                    conversations.forEach((c) => {
+
+                        const con:ConvData = {
+                            id: c.id.replace(/T/g, '\n'),
+                            userNumber:`user-${userNumber}`,
+                            language:data.language,
+                            user:c.user,
+                            aicon: c.aicon,
+                            unanswerable:judgeUnanswerable(c.aicon, data.language)
+                        }
+                        rows.push(con)
+                    })
+                }
+                userNumber++
+            })
+            setConvData(rows)
         } catch {
             alert("データのロード時にエラーが発生しました")
         }
+            
     }
 
-    const extractUnclassifiableQuestion = () => {
-        const unclassify = convData.filter((conv) => conv.aJapanese == "回答不能")
-        console.log(unclassify)
-        setSelectedConvs(unclassify)
+    //回答不能時の応答をロード
+    const loadUnanswerable = async (event:string) => {
+        const eventId = organization + "_" + event
+        const docRef = doc(db,"Events",eventId, "QADB", "2")
+        const docSnap = await getDoc(docRef)
+        if (docSnap.exists()) {
+            const data = docSnap.data()
+            setUnanswerable(data.foreign)
+        }
+    }
+    //回答不能か否かの判定
+    const judgeUnanswerable = (answer:string, language:string) => {
+        const ans = answer.trim().replace("公開情報","")
+        if (ans === unanswerable[language]){
+            return true
+        } else {
+            return false
+        }
     }
 
-    const selectEvent = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectEvent = async (e: React.ChangeEvent<HTMLSelectElement>) => {
         setEvent(e.target.value);
         setSelectedConvs([])
         if (e.target.value !== ""){
-            loadConvData(e.target.value)
+            const eventId = organization + "_" + e.target.value
+            const convRef = collection(db,"Events", eventId, "Conversation")
+            const snapshot = await getCountFromServer(query(convRef))
+            const total = snapshot.data().count
+            setTotalCount(total)
+            setTotalPages(Math.max(1, Math.ceil(total / PAGE_SIZE)))
+            await loadUnanswerable(e.target.value)
+            if (selectedAnalysis === "all"){
+                await loadConvData(e.target.value, 1)
+            }
         }
+    }
+
+    const selectAnalysis = async (analysis:string) => {
+        setSelectedAnalysis(analysis)
+        if (analysis === "all" && event !== ""){
+            await loadConvData(event, 1)
+        }
+
     }
 
     const convertDate = (date:string) => {
@@ -112,11 +167,6 @@ export default function EventInspector(){
         console.log(selectedConvs)
     }, [selectedConvs])
 
-    useEffect(() => {
-        if (selectedAnalysis === "unclassify"){
-            extractUnclassifiableQuestion()
-        }
-    }, [selectedAnalysis])
 
     useEffect(() => {
         const org = sessionStorage.getItem("user")
@@ -129,7 +179,7 @@ export default function EventInspector(){
     return (
         <div>
             <div className="font-bold text-xl">会話応答分析：{event}</div>
-            <div className="text-sm text-red-500">2025/6/20以降に作成したイベントのみ分析対象</div>
+            <div className="text-sm text-red-500">2025/9以降に作成したイベントのみ分析対象</div>
             <div className="text-base mt-5">イベントを選択</div>
             <select className="mb-8 w-96 h-8 text-center border-2 border-lime-600" value={event} onChange={selectEvent}>
             {events.map((name) => {
@@ -139,7 +189,7 @@ export default function EventInspector(){
 
             <div className="flex flex-row gap-x-4 mb-10">
             {buttons.map((button) => (
-                <div key={button.key} onClick={() => setSelectedAnalysis(button.key)}>
+                <div key={button.key} onClick={() => selectAnalysis(button.key)}>
                     {(selectedAnalysis === button.key) ? (
                         <button className="w-36 h-8 mt-2 px-2 border-2 text-sm bg-gray-500 hover:bg-gray-600 text-white">{button.label}</button>
                     ):(
@@ -148,10 +198,10 @@ export default function EventInspector(){
                 </div>
             ))}
             </div>
-            {(selectedAnalysis === "unclassify") && (
+            <button onClick={() => loadConvData(event, 1)} className="w-36 h-8 mb-6 px-2 border-2 text-sm bg-green-500 hover:bg-green-600 text-white">データをロード</button>
+            <div>全会話スレッド(user)数：　{totalCount}</div>
+            {(selectedAnalysis === "all") && (
             <div>
-            <div>全会話数：{String(convData.length)}　うち回答不能と判定した会話数：{String(selectedConvs.length)}</div>
-            <div className="mt-5">分類できなかった質問のリスト</div>
             <table className="w-full border border-gray-300">
                 <thead>
                 <tr className="bg-gray-100">
@@ -166,12 +216,13 @@ export default function EventInspector(){
                 </tr>
                 </thead>
                 <tbody>
-                    {selectedConvs.map(conv => (
+                    {convData.map(conv => (
                         <tr key={conv.id}>
-                            <td className="text-xs px-1">{convertDate(conv.id)}</td>
-                            <td className="text-xs px-1">{conv.uJapanese}</td>
-                            <td className="text-xs px-1">{conv.nearestQ}</td>
-                            <td className="text-sm px-1">{similarityToString(conv.similarity)}</td>
+                            <td className="text-xs px-1">{conv.id}</td>
+                            <td className="text-xs px-1">{conv.userNumber}</td>
+                            <td className="text-xs px-1">{conv.language}</td>
+                            <td className="text-xs px-1">{conv.user}</td>
+                            <td className="text-xs px-1">{conv.aicon}</td>
                         </tr>
                     ))}
                 </tbody>
