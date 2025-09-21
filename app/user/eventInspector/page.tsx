@@ -1,12 +1,12 @@
 "use client"
 import React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { db } from "@/firebase"
 import { doc, getDoc, collection, query, getDocs, orderBy, limit, deleteDoc, getCountFromServer, startAfter, setDoc, where } from "firebase/firestore"
 import { ConvData, ForeignAnswer } from "@/types"
 import { constants } from "fs";
 
-type Cursor = { date: string; id: string } | null
+type Cursor = { date: string } | null
 
 
 export default function EventInspector(){
@@ -58,52 +58,76 @@ export default function EventInspector(){
         }
     }
 
-    const loadConvData = async (event:string, page:number) => {
-        try {
-            const eventId = organization + "_" + event
-            const convRef = collection(db,"Events",eventId, "Conversation")
-            let q = query(convRef, orderBy("date", "desc"), limit(PAGE_SIZE))
+    
 
-                // 2ページ目以降は直前ページの「最後尾」から開始
-            if (page > 1) {
-                const prevCursor = cursors[page - 2];
-                if (prevCursor) {
+    const loadConvData = async (event:string, page:number) => {
+        //cursorsに前pageの情報があるかどうか確認し、なければ生成する
+        const knownPrevCursor = page > 1 ? cursors[page - 2] : null
+        //cursorsに記録された最後のindexをbasseIndexとする
+        let baseIndex = -1
+        if (!knownPrevCursor && page > 1) {
+            for (let i = page - 2; i >= 0; i--) {
+              if (cursors[i]) {
+                baseIndex = i; // i は「ページ(i+1)の最後尾カーソル」
+                break;
+              }
+            }
+        }
+
+        let currentPage = baseIndex + 2; // cursorを取得するための変数。初期値がこれ
+        let lastCursor = baseIndex >= 0 ? cursors[baseIndex]! : null;
+        const nextCursors = [...cursors];
+
+        //目標ページの前ページまでのcursor(最後のdate情報)を取得する
+        const eventId = organization + "_" + event
+        const convRef = collection(db,"Events",eventId, "Conversation")
+        let q = query(convRef, orderBy("date", "desc"), limit(PAGE_SIZE))
+
+        while (currentPage <= page) {
+            if (currentPage > 1){
+                if (!lastCursor){
+                    throw new Error("Missing cursor while walking pages")
+                }
                 q = query(
                     convRef,
                     orderBy("date", "desc"),
-                    startAfter(prevCursor.date, prevCursor.id),
+                    startAfter(lastCursor.date),
                     limit(PAGE_SIZE)
                 );
-                }
             }
-
             const querySnapshot = await getDocs(q)
-            const rows: ConvData[] = []
-            let userNumber = 1
-            querySnapshot.forEach((doc) => {
-                const data = doc.data()
-                const conversations = data.conversations
-                if (Array.isArray(conversations)){
-                    conversations.forEach((c) => {
+            const lastDoc = querySnapshot.docs.at(-1);
+            const pageCursor:Cursor = lastDoc ? {date: lastDoc!.data().date} : null
+            nextCursors[currentPage - 1] = pageCursor
 
-                        const con:ConvData = {
-                            id: c.id.replace(/T/g, '\n'),
-                            userNumber:`user-${userNumber}`,
-                            language:data.language,
-                            user:c.user,
-                            aicon: c.aicon,
-                            unanswerable:judgeUnanswerable(c.aicon, data.language)
-                        }
-                        rows.push(con)
-                    })
-                }
-                userNumber++
-            })
-            setConvData(rows)
-        } catch {
-            alert("データのロード時にエラーが発生しました")
+            if (currentPage === page){
+                const rows: ConvData[] = []
+                let userNumber = (page-1)*10 +1
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data()
+                    const conversations = data.conversations
+                    if (Array.isArray(conversations)){
+                        conversations.forEach((c) => {
+    
+                            const con:ConvData = {
+                                id: c.id.replace(/T/g, '\n'),
+                                userNumber:`user-${userNumber}`,
+                                language:data.language,
+                                user:c.user,
+                                aicon: c.aicon,
+                                unanswerable:judgeUnanswerable(c.aicon)
+                            }
+                            rows.push(con)
+                        })
+                    }
+                    userNumber++
+                })
+                setConvData(rows)
+            }
+            lastCursor = pageCursor;
+            currentPage++;
         }
-            
+        setCursors(nextCursors)
     }
 
     //回答不能時の応答をロード
@@ -117,9 +141,9 @@ export default function EventInspector(){
         }
     }
     //回答不能か否かの判定
-    const judgeUnanswerable = (answer:string, language:string) => {
-        const ans = answer.trim().replace("公開情報","")
-        if (ans === unanswerable[language]){
+    const judgeUnanswerable = (answer:string) => {
+        const judge = answer.split("QA情報 ")[1]
+        if (judge === "2"){
             return true
         } else {
             return false
@@ -158,15 +182,15 @@ export default function EventInspector(){
         return cDate
     }
 
-    const similarityToString = (similarity:number) => {
-        const sim = Math.floor(similarity*1000)/1000
-        return sim.toString()
+    const pages = useMemo(() => {
+        if (totalPages>20) return Array.from({ length: 20 }, (_, i) => i + 1);
+        return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }, [totalPages]);
+
+    const loadPage = (page:number) => {
+        loadConvData(event,page)
+        setPage(page)
     }
-
-    useEffect(() => {
-        console.log(selectedConvs)
-    }, [selectedConvs])
-
 
     useEffect(() => {
         const org = sessionStorage.getItem("user")
@@ -198,8 +222,21 @@ export default function EventInspector(){
                 </div>
             ))}
             </div>
-            <button onClick={() => loadConvData(event, 1)} className="w-36 h-8 mb-6 px-2 border-2 text-sm bg-green-500 hover:bg-green-600 text-white">データをロード</button>
-            <div>全会話スレッド(user)数：　{totalCount}</div>
+            <div>全会話スレッド(user)数（最新200スレッドまで表示可能)：　{totalCount}</div>
+            <nav className="flex items-center gap-2">
+            {pages.map((p) => (
+            <button
+                key={p}
+                onClick={() => loadPage(p)}
+                disabled={p === page}
+                className={`text-xs my-1 px-3 py-1 rounded border ${
+                p === page ? "bg-black text-white" : ""
+                }`}
+            >
+                {p}
+            </button>
+            ))}
+        </nav>
             {(selectedAnalysis === "all") && (
             <div>
             <table className="w-full border border-gray-300">
@@ -217,12 +254,12 @@ export default function EventInspector(){
                 </thead>
                 <tbody>
                     {convData.map(conv => (
-                        <tr key={conv.id}>
-                            <td className="text-xs px-1">{conv.id}</td>
-                            <td className="text-xs px-1">{conv.userNumber}</td>
-                            <td className="text-xs px-1">{conv.language}</td>
-                            <td className="text-xs px-1">{conv.user}</td>
-                            <td className="text-xs px-1">{conv.aicon}</td>
+                        <tr key={conv.id} className={`border border-gray-300 ${conv.unanswerable ? "bg-yellow-200" : "bg-slate-100"}`}>
+                            <td className="border border-gray-300 text-xs px-1">{conv.id}</td>
+                            <td className="border border-gray-300 text-xs px-1">{conv.userNumber}</td>
+                            <td className="border border-gray-300 text-xs px-1">{conv.language}</td>
+                            <td className="border border-gray-300 text-xs px-1">{conv.user}</td>
+                            <td className="border border-gray-300 text-xs px-1">{conv.aicon}</td>
                         </tr>
                     ))}
                 </tbody>
