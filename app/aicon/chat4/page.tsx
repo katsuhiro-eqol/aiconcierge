@@ -273,10 +273,12 @@ export default function Aicon4() {
     }
 
     const saveMessage = async (userMessage:Message2, message:Message2, attr:string) => {
+        const judge = message.text.includes("QA情報 2")
         const data = {
             id:userMessage.id,
             user:userMessage.text,
-            aicon:message.text
+            aicon:message.text,
+            unanswerable:judge
         }
         setHistory(prev => [...prev, data])
         await updateDoc(doc(db, "Events",attr, "Conversation", convId), {conversations: arrayUnion(data)})

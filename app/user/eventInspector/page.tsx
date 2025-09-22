@@ -18,9 +18,7 @@ export default function EventInspector(){
     const [totalPages, setTotalPages] = useState<number>(1)
     const [page, setPage] = useState<number>(1)
     const [cursors, setCursors] = useState<Cursor[]>([])
-    const [selectedConvs, setSelectedConvs] = useState<ConvData[]>([])
     const [selectedAnalysis, setSelectedAnalysis] = useState<string>("")
-    const [unanswerable, setUnanswerable] = useState<ForeignAnswer>({})
 
     const PAGE_SIZE = 10
     
@@ -58,9 +56,77 @@ export default function EventInspector(){
         }
     }
 
-    
-
     const loadConvData = async (event:string, page:number) => {
+        //cursorsに前pageの情報があるかどうか確認し、なければ生成する
+        const knownPrevCursor = page > 1 ? cursors[page - 2] : null
+        //cursorsに記録された最後のindexをbasseIndexとする
+        let baseIndex = -1
+        if (!knownPrevCursor && page > 1) {
+            for (let i = page - 2; i >= 0; i--) {
+              if (cursors[i]) {
+                baseIndex = i; // i は「ページ(i+1)の最後尾カーソル」
+                break;
+              }
+            }
+        }
+
+        let currentPage = baseIndex + 2; // cursorを取得するための変数。初期値がこれ
+        let lastCursor = baseIndex >= 0 ? cursors[baseIndex]! : null;
+        const nextCursors = [...cursors];
+
+        //目標ページの前ページまでのcursor(最後のdate情報)を取得する
+        const eventId = organization + "_" + event
+        const convRef = collection(db,"Events",eventId, "Conversation")
+        let q = query(convRef, orderBy("date", "desc"), limit(PAGE_SIZE))
+
+        while (currentPage <= page) {
+            if (currentPage > 1){
+                if (!lastCursor){
+                    throw new Error("Missing cursor while walking pages")
+                }
+                q = query(
+                    convRef,
+                    orderBy("date", "desc"),
+                    startAfter(lastCursor.date),
+                    limit(PAGE_SIZE)
+                );
+            }
+            const querySnapshot = await getDocs(q)
+            const lastDoc = querySnapshot.docs.at(-1);
+            const pageCursor:Cursor = lastDoc ? {date: lastDoc!.data().date} : null
+            nextCursors[currentPage - 1] = pageCursor
+
+            if (currentPage === page){
+                const rows: ConvData[] = []
+                let userNumber = (page-1)*10 +1
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data()
+                    const conversations = data.conversations
+                    if (Array.isArray(conversations)){
+                        conversations.forEach((c) => {
+    
+                            const con:ConvData = {
+                                id: c.id.replace(/T/g, '\n'),
+                                userNumber:`user-${userNumber}`,
+                                language:data.language,
+                                user:c.user,
+                                aicon: c.aicon,
+                                unanswerable:c.unanswerable
+                            }
+                            rows.push(con)
+                        })
+                    }
+                    userNumber++
+                })
+                setConvData(rows)
+            }
+            lastCursor = pageCursor;
+            currentPage++;
+        }
+        setCursors(nextCursors)
+    }    
+
+    const loadUnanswerableData = async (event:string, page:number) => {
         //cursorsに前pageの情報があるかどうか確認し、なければ生成する
         const knownPrevCursor = page > 1 ? cursors[page - 2] : null
         //cursorsに記録された最後のindexをbasseIndexとする
@@ -129,17 +195,6 @@ export default function EventInspector(){
         }
         setCursors(nextCursors)
     }
-
-    //回答不能時の応答をロード
-    const loadUnanswerable = async (event:string) => {
-        const eventId = organization + "_" + event
-        const docRef = doc(db,"Events",eventId, "QADB", "2")
-        const docSnap = await getDoc(docRef)
-        if (docSnap.exists()) {
-            const data = docSnap.data()
-            setUnanswerable(data.foreign)
-        }
-    }
     //回答不能か否かの判定
     const judgeUnanswerable = (answer:string) => {
         const judge = answer.split("QA情報 ")[1]
@@ -152,7 +207,6 @@ export default function EventInspector(){
 
     const selectEvent = async (e: React.ChangeEvent<HTMLSelectElement>) => {
         setEvent(e.target.value);
-        setSelectedConvs([])
         if (e.target.value !== ""){
             const eventId = organization + "_" + e.target.value
             const convRef = collection(db,"Events", eventId, "Conversation")
@@ -160,10 +214,9 @@ export default function EventInspector(){
             const total = snapshot.data().count
             setTotalCount(total)
             setTotalPages(Math.max(1, Math.ceil(total / PAGE_SIZE)))
-            await loadUnanswerable(e.target.value)
             if (selectedAnalysis === "all"){
                 await loadConvData(e.target.value, 1)
-            }
+            } 
         }
     }
 
