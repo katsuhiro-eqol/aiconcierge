@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   try {
     let answer: string | null = null;
     
-    if (model === "gpt-5"){
+    if (model.includes("gpt-5")){
       try {
           const chatRes = await openai.responses.create({
               model: model,

@@ -19,6 +19,7 @@ export default function EventInspector(){
     const [page, setPage] = useState<number>(1)
     const [cursors, setCursors] = useState<Cursor[]>([])
     const [selectedAnalysis, setSelectedAnalysis] = useState<string>("")
+    const [convCount, setConvCount] = useState<number>(0)
 
     const PAGE_SIZE = 10
     
@@ -119,91 +120,13 @@ export default function EventInspector(){
                     userNumber++
                 })
                 setConvData(rows)
+                setConvCount(rows.length)
             }
             lastCursor = pageCursor;
             currentPage++;
         }
         setCursors(nextCursors)
     }    
-
-    const loadUnanswerableData = async (event:string, page:number) => {
-        //cursorsに前pageの情報があるかどうか確認し、なければ生成する
-        const knownPrevCursor = page > 1 ? cursors[page - 2] : null
-        //cursorsに記録された最後のindexをbasseIndexとする
-        let baseIndex = -1
-        if (!knownPrevCursor && page > 1) {
-            for (let i = page - 2; i >= 0; i--) {
-              if (cursors[i]) {
-                baseIndex = i; // i は「ページ(i+1)の最後尾カーソル」
-                break;
-              }
-            }
-        }
-
-        let currentPage = baseIndex + 2; // cursorを取得するための変数。初期値がこれ
-        let lastCursor = baseIndex >= 0 ? cursors[baseIndex]! : null;
-        const nextCursors = [...cursors];
-
-        //目標ページの前ページまでのcursor(最後のdate情報)を取得する
-        const eventId = organization + "_" + event
-        const convRef = collection(db,"Events",eventId, "Conversation")
-        let q = query(convRef, orderBy("date", "desc"), limit(PAGE_SIZE))
-
-        while (currentPage <= page) {
-            if (currentPage > 1){
-                if (!lastCursor){
-                    throw new Error("Missing cursor while walking pages")
-                }
-                q = query(
-                    convRef,
-                    orderBy("date", "desc"),
-                    startAfter(lastCursor.date),
-                    limit(PAGE_SIZE)
-                );
-            }
-            const querySnapshot = await getDocs(q)
-            const lastDoc = querySnapshot.docs.at(-1);
-            const pageCursor:Cursor = lastDoc ? {date: lastDoc!.data().date} : null
-            nextCursors[currentPage - 1] = pageCursor
-
-            if (currentPage === page){
-                const rows: ConvData[] = []
-                let userNumber = (page-1)*10 +1
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data()
-                    const conversations = data.conversations
-                    if (Array.isArray(conversations)){
-                        conversations.forEach((c) => {
-    
-                            const con:ConvData = {
-                                id: c.id.replace(/T/g, '\n'),
-                                userNumber:`user-${userNumber}`,
-                                language:data.language,
-                                user:c.user,
-                                aicon: c.aicon,
-                                unanswerable:judgeUnanswerable(c.aicon)
-                            }
-                            rows.push(con)
-                        })
-                    }
-                    userNumber++
-                })
-                setConvData(rows)
-            }
-            lastCursor = pageCursor;
-            currentPage++;
-        }
-        setCursors(nextCursors)
-    }
-    //回答不能か否かの判定
-    const judgeUnanswerable = (answer:string) => {
-        const judge = answer.split("QA情報 ")[1]
-        if (judge === "2"){
-            return true
-        } else {
-            return false
-        }
-    }
 
     const selectEvent = async (e: React.ChangeEvent<HTMLSelectElement>) => {
         setEvent(e.target.value);
@@ -224,6 +147,8 @@ export default function EventInspector(){
         setSelectedAnalysis(analysis)
         if (analysis === "all" && event !== ""){
             await loadConvData(event, 1)
+        } else if (analysis === "unanswerable"){
+
         }
 
     }
@@ -292,6 +217,7 @@ export default function EventInspector(){
         </nav>
             {(selectedAnalysis === "all") && (
             <div>
+            <div>1スレッドあたりの平均会話数：　{(convCount/10).toFixed(1)}</div>
             <table className="w-full border border-gray-300">
                 <thead>
                 <tr className="bg-gray-100">
@@ -319,7 +245,7 @@ export default function EventInspector(){
             </table>
             </div>
             )}
-            {(selectedAnalysis ==="FAQ") && (<div className="text-red-500">Under Construction</div>)}
+            {(selectedAnalysis ==="unanswerable") && (<div className="text-red-500">Under Construction</div>)}
             {(selectedAnalysis ==="time_series") && (<div className="text-red-500">Under Construction</div>)}
         </div>
     )
