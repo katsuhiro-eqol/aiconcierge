@@ -394,7 +394,7 @@ export default function Aicon() {
     }
 
     const saveMessage = async (userMessage:Message2, message:Message2, attr:string) => {
-        const judge = message.text.includes("QA情報 2")
+        const judge = message.text.endsWith("QA情報 2")
         const data = {
             id:userMessage.id,
             user:userMessage.text,
@@ -402,7 +402,7 @@ export default function Aicon() {
             unanswerable:judge
         }
         setHistory(prev => [...prev, data])
-        await updateDoc(doc(db, "Events",attr, "Conversation", convId), {conversations: arrayUnion(data)})
+        await setDoc(doc(db, "Events",attr, "Conversation", convId), {conversations: arrayUnion(data), date:userMessage.id}, {merge:true})
     }
 
 
@@ -410,13 +410,10 @@ export default function Aicon() {
         const date = new Date()
         const offset = date.getTimezoneOffset() * 60000
         const localDate = new Date(date.getTime() - offset)
-        const isoString = localDate.toISOString().split('T')[0]
-        const random = randomStr(6)
         const now = localDate.toISOString()
 
-        const convId = `${isoString}_${random}`
-        setConvId(convId)
-        await setDoc(doc(db,"Events",attr,"Conversation",convId), {conversations:[], language:language, date:now})
+        setConvId(now)
+        //await setDoc(doc(db,"Events",attr,"Conversation",convId), {conversations:[], language:language, date:now})
     }
 
     const getLanguageList = () => {
