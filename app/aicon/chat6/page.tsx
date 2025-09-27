@@ -51,6 +51,8 @@ export default function Aicon() {
     const [voiceCache, setVoiceCache] = useState<Map<string, VoiceData>>(new Map())
     const [isQADBLoading, setIsQADBLoading] = useState<boolean>(false)
     const [isManual, setIsManual] = useState<boolean>(false)
+    const [sttStartTime, setSttStartTime] = useState<number>(0)
+    const [sttDuration, setSttDuration] = useState<number>(0)
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const nativeName = {"日本語":"日本語", "英語":"English","中国語（簡体）":"简体中文","中国語（繁体）":"繁體中文","韓国語":"한국어","フランス語":"Français","スペイン語":"Español","ポルトガル語":"Português"}
@@ -202,7 +204,11 @@ export default function Aicon() {
                 setMessages(prev => [...prev, aiMessage]);
                 await saveMessage(userMessage, aiMessage, attribute!)
             }
-            await incrementCounter(attribute!)
+          // 現在進行中のSTT時間も含めて計算
+          const currentSttDuration = sttStartTime !== 0 ? sttDuration + (new Date().getTime() - sttStartTime) : sttDuration;
+          await incrementCounter(attribute!, currentSttDuration)          
+          // getAnswer実行後にsttDurationをリセット
+          setSttDuration(0)
         } catch(error) {
         console.error(error);
         }
@@ -260,10 +266,10 @@ export default function Aicon() {
           return embeddingsList
     }
 
-    const incrementCounter = async (attribute:string) => {
+    const incrementCounter = async (attribute:string, duration:number) => {
         const counterRef = doc(db, "Events", attribute)
         console.log("incriment")
-        await updateDoc(counterRef, { counter: increment(1) })
+        await updateDoc(counterRef, { counter: increment(1), sttDuration: increment(duration) })
     }
 
     const createSlides = (duration:number) => {
@@ -527,6 +533,9 @@ export default function Aicon() {
 
         const audioConfig = SpeechSDK.AudioConfig.fromDefaultMicrophoneInput();
         const recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+        const now = new Date()
+        const startTime = now.getTime()
+        setSttStartTime(startTime)
 
         recognizer.recognizing = (_s, e) => {
             setInterim(e.result.text);
@@ -561,7 +570,13 @@ export default function Aicon() {
         const recognizer = recognizerRef.current;
         clearSilenceTimer();
         if (!recognizer) return;
-
+        //sttの積算時間を取得するためのコード
+        const now = new Date()
+        const endTime = now.getTime()
+        if (sttStartTime !== 0){
+            setSttDuration((prev) => prev + (sttStartTime - endTime))
+            setSttStartTime(0)
+        }
         recognizer.stopContinuousRecognitionAsync(
             () => {
             recognizer.close();

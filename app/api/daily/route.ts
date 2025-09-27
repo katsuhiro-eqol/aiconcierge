@@ -7,13 +7,22 @@ export async function GET(request: NextRequest) {
     const date = new Date()
     //apiなのでgetTimezoneOffset()が取得できない。
     const jOffset = 9 * 60 * 60 * 1000
-    const localDate = new Date(date.getTime() - jOffset)
+    const localDate = new Date(date.getTime() + jOffset)
     const now = localDate.toISOString()
 
     const y = new Date(date.getTime() - 24 * 60 * 60 * 1000)
-    const yDate = new Date(y.getTime() - jOffset)
+    const yDate = new Date(y.getTime() + jOffset)
     const yesterday = yDate.toISOString()
 
     const cronRef = doc(db, "Cron",now)
     await setDoc(cronRef, {date:now, yesterday:yesterday})
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/dailySummary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task: "daily summary"}),
+      }).then(r => r.json());
+
+      const updated = response.updated
+      return NextResponse.json({updated})
 }

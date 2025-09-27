@@ -101,7 +101,8 @@ export default function CreateEvent2(){
                 gpt:gpt,
                 role:role,
                 address:address,
-                counter:0
+                counter:0,
+                sttDuration:0
             }
             
                 const eventRef = collection(db, "Events")
