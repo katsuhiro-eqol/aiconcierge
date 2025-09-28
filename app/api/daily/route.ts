@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const cronRef = doc(db, "Cron",now)
     await setDoc(cronRef, {date:now, yesterday:yesterday})
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/dailySummary`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_HOST_URL}/api/dailySummary`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ task: "daily summary"}),
