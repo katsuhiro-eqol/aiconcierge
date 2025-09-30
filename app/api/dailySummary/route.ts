@@ -19,10 +19,17 @@ export async function POST(request: NextRequest) {
     
         for (const doc of snap.docs) {
             const data = doc.data();
-            if (!("counter" in data)) continue;
+            if (!("counter" in data)) return;
       
-            const count = data["counter"];
-            const stt = data["sttDuration"];
+            const count = data["counter"] || 0;
+            const stt = data["sttDuration"] || 0;
+            
+            // データの検証
+            if (typeof count !== 'number' || typeof stt !== 'number') {
+                console.warn(`Invalid data for document ${doc.id}: count=${count}, stt=${stt}`);
+                continue;
+            }
+            
             batch.set(
                 doc.ref,
                 {
