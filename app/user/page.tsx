@@ -13,14 +13,14 @@ export default function User(){
 
     return (
         <div>
-            <div className="font-bold text-xl my-3">「インバウンドコンシェルジュ」管理者用ページ</div>
-            <div className="text-sm">インバウンドコンシェルジュは、契約者自らが日本語で対話型AI用のデータベースを作成、登録することで多言語対応のAIチャットボットアプリとしてユーザーに提供できるサービスです。この管理者用ページでデータベースを構築・管理していきます。</div>
+            <div className="font-bold text-xl my-3">「AIコンシェルジュ」管理者用ページ</div>
+            <div className="text-sm">AIコンシェルジュは、契約者自らが日本語で対話型AI用のデータベースを作成、登録することで多言語対応のAIチャットボットアプリとしてユーザーに提供できるサービスです。この管理者用ページでデータベースを構築・管理していきます。</div>
             <div className="text-sm">データベースは「イベント」と「Q&Aデータ」からなります。複数のイベントを同時に運用することも可能です。</div>
             <img className="w-1/2" src="/AIコン_イベントQA.png" alt="Image" />
             <div className="mt-8 text-lg font-bold text-gray-500 ">データ新規登録</div>
             <div className="ml-3">
             <div className="mt-2 font-semibold">イベント登録</div>
-            <div className="text-sm">データベースの１セットのことをAIコンではイベントと呼びます。最初にイベントを登録してデータベースの枠組みを作ります。</div>
+            <div className="text-sm">データベースの１セットのことをAIコンシェルジュではイベントと呼びます。最初にイベントを登録してデータベースの枠組みを作ります。</div>
             <div className="text-sm">イベントで設定する項目は、「使用する言語」「AI音声キャラ」「読み辞書」「UI画像」「利用期間」です。</div>
             <div className="mt-8 font-semibold">Q&Aデータ登録</div>
             <div className="text-sm">イベント設定後にQ&Aデータを登録します。Q&Aデータはエクセルやグーグルスプレッドシートなどで作成しCSVファイルに変換して登録します。</div>

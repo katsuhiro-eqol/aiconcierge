@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     
         for (const doc of snap.docs) {
             const data = doc.data();
-            if (!("counter" in data)) return;
+            if (!("counter" in data)) continue;
       
             const count = data["counter"] || 0;
             const stt = data["sttDuration"] || 0;
