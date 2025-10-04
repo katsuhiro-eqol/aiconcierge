@@ -30,18 +30,21 @@ export async function POST(request: NextRequest) {
                 continue;
             }
             
-            batch.set(
-                doc.ref,
-                {
-                  ["dailyCounts"]: { [today]: count },
-                  ["counter"]: 0,
-                  ["dailySTT"]: {[today]: stt},
-                  ["sttDuration"]: 0
-                },
-                { merge: true }
-              );
-        
-              updated++;
+            if (count !== 0){
+                batch.set(
+                    doc.ref,
+                    {
+                      ["dailyCounts"]: { [today]: count },
+                      ["counter"]: 0,
+                      ["dailySTT"]: {[today]: stt},
+                      ["sttDuration"]: 0
+                    },
+                    { merge: true }
+                  );
+            
+                  updated++;
+            }
+
         }
         if (updated > 0) await batch.commit();
         return NextResponse.json({ updated });
