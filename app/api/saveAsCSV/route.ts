@@ -23,10 +23,12 @@ const getPrevMonthRange = (base = new Date())  => {
     const y = base.getFullYear();
     const m = base.getMonth();
     const prevStart = new Date(y, m - 1, 1, 0, 0, 0, 0);
-    const prevEnd   = new Date(y, m, 1, 0, 0, 0, 0);
+    const startString = prevStart.toISOString()
+    const prevEnd  = new Date(y, m, 1, 0, 0, 0, 0);
+    const endString = prevEnd.toISOString()
     const labelY = prevStart.getFullYear();
     const labelM = String(prevStart.getMonth() + 1).padStart(2, "0");
-    return { prevStart, prevEnd, label: `${labelY}-${labelM}` };
+    return { startString, endString, label: `${labelY}-${labelM}` };
 }
 
 async function subcollectionExists(parentId: string): Promise<boolean> {
@@ -54,36 +56,36 @@ const toCSV = (uNumber: number, lang: string, conv:FireConv[]) => {
     return s
 }
 
-async function processParentDoc(parentId: string, label: string, start: Date, end: Date) {
+async function processParentDoc(parentId: string, label: string, start: string, end: string) {
     const subRef = db.collection(MAIN_COLLECTION).doc(parentId).collection(SUB_COLLECTION);
-  
     const snap = await subRef
-      .where(DATE_FIELD, ">=", start)
-      .where(DATE_FIELD, "<", end)
-      .get();
-  
-    if (snap.empty) return { parentId, count: 0, saved: false };
+        .where(DATE_FIELD, ">=", start)
+        .where(DATE_FIELD, "<", end)
+        .get();
 
-    let csv = headers.join(",")+"\n"
-    let uNumber = 1
-    snap.forEach((doc) => {
-        const data = doc.data()
-        csv += toCSV(uNumber, data.language, data.conversations)
-        uNumber += 1
-    })
-    const path = `conversations/${parentId}/${label}.csv`;
+      if (snap.empty) return { parentId, count: 0, saved: false };
   
-    await bucket.file(path).save(csv, {
-      contentType: "text/csv; charset=utf-8",
-      resumable: false,
-    });
-  
-    return { parentId, saved: true, path };
+      let csv = headers.join(",")+"\n"
+      let uNumber = 1
+      snap.forEach((doc) => {
+          const data = doc.data()
+          csv += toCSV(uNumber, data.language, data.conversations)
+          uNumber += 1
+      })
+      const path = `conversations/${parentId}/${label}.csv`;
+    
+      await bucket.file(path).save(csv, {
+          contentType: "text/csv; charset=utf-8",
+          resumable: false,
+          });
+      
+          return { parentId, saved: true, path };        
 }
+
 
 export async function GET() {
     try {
-      const { prevStart, prevEnd, label } = getPrevMonthRange(new Date());
+      const { startString, endString, label } = getPrevMonthRange(new Date());
       const parentsSnap = await db.collection(MAIN_COLLECTION).get();
       if (parentsSnap.empty) {
         return NextResponse.json({ ok: true, message: "No parent documents." });
@@ -104,7 +106,7 @@ export async function GET() {
         if (!exists) {
           return { parentId, saved: false, reason: "no-subcollection" };
         }
-        return await processParentDoc(parentId, label, prevStart, prevEnd);
+        return await processParentDoc(parentId, label, startString, endString);
       });
       
       const processedResults = await Promise.all(promises);

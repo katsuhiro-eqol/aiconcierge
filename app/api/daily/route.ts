@@ -24,5 +24,6 @@ export async function GET(request: NextRequest) {
       }).then(r => r.json());
 
       const updated = response.updated
-      return NextResponse.json({updated})
+
+    return NextResponse.json({updated})
 }

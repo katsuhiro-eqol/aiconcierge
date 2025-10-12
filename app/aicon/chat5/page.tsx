@@ -22,6 +22,7 @@ export default function Aicon() {
     const [initialSlides, setInitialSlides] = useState<string|null>(null)
     const [thumbnail, setThumnail] = useState<string|null>("")
     const [userInput, setUserInput] = useState<string>("")
+    const [userMessage, setUserMessage] = useState<Message2|null>(null)
     const [messages, setMessages] = useState<Message2[]>([])
     const [history, setHistory] = useState<{user: string, aicon: string}[]>([])
     const [eventData, setEventData] = useState<EventData|null>(null)
@@ -74,6 +75,7 @@ export default function Aicon() {
     const code = searchParams.get("code")
 
     //stt → audioの最適化検討
+    /*
     const waitCanPlay = useCallback(() =>
         new Promise<void>((resolve, reject) => {
             const el = audioRef.current
@@ -92,28 +94,16 @@ export default function Aicon() {
             el.addEventListener('error', ng, { once: true });
             if (el.readyState >= 2) { cleanup(); resolve(); }
     }), []);
+    */
 
     async function getAnswer() {    
         console.log("sttStatus2",sttStatus)  
-        await sttStop()  
+        //await sttStop()  
         const date = new Date()
         const offset = date.getTimezoneOffset() * 60000
         const localDate = new Date(date.getTime() - offset)
         const now = localDate.toISOString()
-  
-        const userMessage: Message2 = {
-            id: now,
-            text: userInput,
-            sender: 'user',
-            modalUrl:"",
-            modalFile:"",
-            source:null
-        }
-        setMessages(prev => [...prev, userMessage]);
-        setCanSend(false)//同じInputで繰り返し送れないようにする
-        
-        const sleep = (ms:number) => new Promise(res => setTimeout(res, ms));
-        await sleep(1000)
+
         setUserInput("")
         
         const res = await fetch("/api/checkHugeRequest", { method: "POST" });
@@ -165,9 +155,6 @@ export default function Aicon() {
                     setVoiceCache(prev => new Map(prev).set(cacheKey, existingVoice!));
                 }
             }
-
-            //await waitCanPlay()
-            console.log("sttStatus3",sttStatus)
             
             if (existingVoice){
                 console.log("not newly created voice")
@@ -194,7 +181,7 @@ export default function Aicon() {
                         thumbnail: thumbnail
                       };
                       setMessages(prev => [...prev, aiMessage]);
-                      await saveMessage(userMessage, aiMessage, attribute!)                    
+                      await saveMessage(userMessage!, aiMessage, attribute!)                    
                 } else {
                     const aiMessage: Message2 = {
                         id: `A${now}`,
@@ -206,7 +193,7 @@ export default function Aicon() {
                         thumbnail: thumbnail
                       };
                       setMessages(prev => [...prev, aiMessage]);
-                      await saveMessage(userMessage, aiMessage, attribute!)
+                      await saveMessage(userMessage!, aiMessage, attribute!)
                 }
             } else {
                 const aiMessage: Message2 = {
@@ -219,7 +206,7 @@ export default function Aicon() {
                     thumbnail: thumbnail
                   };
                 setMessages(prev => [...prev, aiMessage]);
-                await saveMessage(userMessage, aiMessage, attribute!)
+                await saveMessage(userMessage!, aiMessage, attribute!)
             }
             //全ユーザーの質問総数
             await incrementCounter(attribute!)
@@ -421,7 +408,7 @@ export default function Aicon() {
     }
 
 
-    const createConvField = async (attr:string) => {
+    const createConvField = (attr:string) => {
         const date = new Date()
         const offset = date.getTimezoneOffset() * 60000
         const localDate = new Date(date.getTime() - offset)
@@ -514,10 +501,12 @@ export default function Aicon() {
         }
     };
 
+    /*
     const scheduleSilenceStop = () => {
         clearSilenceTimer();
         silenceTimerRef.current = setTimeout(() => sttStop(), 4000);
     };
+    */
 
     const sttStatus = {
         listening: listening,
@@ -581,6 +570,33 @@ export default function Aicon() {
     const closeApp = async () => {
         await sttStop()
         window.location.reload()
+    }
+
+    const sendMessage = async () => {
+        const date = new Date()
+        const offset = date.getTimezoneOffset() * 60000
+        const localDate = new Date(date.getTime() - offset)
+        const now = localDate.toISOString()
+        const userMessage: Message2 = {
+            id: now,
+            text: userInput,
+            sender: 'user',
+            modalUrl:"",
+            modalFile:"",
+            source:null
+        }
+        setUserMessage(userMessage)
+        setMessages(prev => [...prev, userMessage]);
+        setCanSend(false)//同じInputで繰り返し送れないようにする
+        if (record){
+            await sttStop()
+            setTimeout(async() => {
+                await getAnswer()
+                setRecord(false)
+            }, 2000)
+        } else {
+            await getAnswer()
+        }
     }
 
     useEffect(() => {
@@ -774,7 +790,7 @@ export default function Aicon() {
                 クリア(clear)
                 </button>)}
             {canSend ? (
-                <button className="flex items-center ml-5 mx-auto border-2 bg-sky-600 text-white p-2 text-xs rounded" onClick={() => {getAnswer()}}>
+                <button className="flex items-center ml-5 mx-auto border-2 bg-sky-600 text-white p-2 text-xs rounded" onClick={() => {sendMessage()}}>
                 <Send size={16} />
                 送信(send)
                 </button>):(
