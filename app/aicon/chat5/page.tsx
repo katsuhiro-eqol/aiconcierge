@@ -491,7 +491,7 @@ export default function Aicon() {
 
     const inputClear = async () => {
         await sttStop()
-        setUserInput("")
+        //setUserInput("")
     }
 
     const clearSilenceTimer = () => {
