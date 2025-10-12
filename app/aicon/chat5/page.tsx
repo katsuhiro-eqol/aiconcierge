@@ -22,7 +22,7 @@ export default function Aicon() {
     const [initialSlides, setInitialSlides] = useState<string|null>(null)
     const [thumbnail, setThumnail] = useState<string|null>("")
     const [userInput, setUserInput] = useState<string>("")
-    const [userMessage, setUserMessage] = useState<Message2|null>(null)
+    const [userMessage, setUserMessage] = useState<Message2>({id: "",text: "",sender: 'user',modalUrl:"",modalFile:"",source:null})
     const [messages, setMessages] = useState<Message2[]>([])
     const [history, setHistory] = useState<{user: string, aicon: string}[]>([])
     const [eventData, setEventData] = useState<EventData|null>(null)
@@ -181,7 +181,7 @@ export default function Aicon() {
                         thumbnail: thumbnail
                       };
                       setMessages(prev => [...prev, aiMessage]);
-                      await saveMessage(userMessage!, aiMessage, attribute!)                    
+                      await saveMessage(userMessage, aiMessage, attribute!)                    
                 } else {
                     const aiMessage: Message2 = {
                         id: `A${now}`,
@@ -193,7 +193,7 @@ export default function Aicon() {
                         thumbnail: thumbnail
                       };
                       setMessages(prev => [...prev, aiMessage]);
-                      await saveMessage(userMessage!, aiMessage, attribute!)
+                      await saveMessage(userMessage, aiMessage, attribute!)
                 }
             } else {
                 const aiMessage: Message2 = {
@@ -206,7 +206,7 @@ export default function Aicon() {
                     thumbnail: thumbnail
                   };
                 setMessages(prev => [...prev, aiMessage]);
-                await saveMessage(userMessage!, aiMessage, attribute!)
+                await saveMessage(userMessage, aiMessage, attribute!)
             }
             //全ユーザーの質問総数
             await incrementCounter(attribute!)
@@ -577,7 +577,7 @@ export default function Aicon() {
         const offset = date.getTimezoneOffset() * 60000
         const localDate = new Date(date.getTime() - offset)
         const now = localDate.toISOString()
-        const userMessage: Message2 = {
+        const userM: Message2 = {
             id: now,
             text: userInput,
             sender: 'user',
@@ -585,15 +585,24 @@ export default function Aicon() {
             modalFile:"",
             source:null
         }
-        setUserMessage(userMessage)
-        setMessages(prev => [...prev, userMessage]);
+        console.log(userM)
+        setUserMessage(userM)
+        setMessages(prev => [...prev, userM]);
         setCanSend(false)//同じInputで繰り返し送れないようにする
         if (record){
-            await sttStop()
-            setTimeout(async() => {
-                await getAnswer()
-                setRecord(false)
-            }, 2000)
+            await inputClear()
+            if (listening){
+                setTimeout(async() => {
+                    await getAnswer()
+                    setRecord(false)
+                }, 3000)
+            } else {
+                setTimeout(async() => {
+                    await getAnswer()
+                    setRecord(false)
+                }, 1000)
+            }
+
         } else {
             await getAnswer()
         }
