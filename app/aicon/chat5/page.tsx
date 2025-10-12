@@ -489,7 +489,7 @@ export default function Aicon() {
         }
     }
 
-    const stopSTT = async () => {
+    const inputClear = async () => {
         await sttStop()
         setUserInput("")
     }
@@ -590,7 +590,7 @@ export default function Aicon() {
         setMessages(prev => [...prev, userM]);
         setCanSend(false)//同じInputで繰り返し送れないようにする
         if (record){
-            //await inputClear()
+            await inputClear()
             if (listening){
                 setTimeout(async() => {
                     await getAnswer()
@@ -794,7 +794,7 @@ export default function Aicon() {
                 音声入力(mic)
                 </button>
             ):(
-                <button className="flex items-center mr-5 mx-auto text-xs border-2 bg-pink-600 text-white p-2 rounded" onClick={() => {stopSTT()}}>
+                <button className="flex items-center mr-5 mx-auto text-xs border-2 bg-pink-600 text-white p-2 rounded" onClick={async() => {await inputClear()}}>
                 <Eraser size={16} />
                 クリア(clear)
                 </button>)}
