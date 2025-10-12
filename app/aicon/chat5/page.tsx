@@ -489,9 +489,9 @@ export default function Aicon() {
         }
     }
 
-    const inputClear = async () => {
+    const stopSTT = async () => {
         await sttStop()
-        //setUserInput("")
+        setUserInput("")
     }
 
     const clearSilenceTimer = () => {
@@ -590,12 +590,12 @@ export default function Aicon() {
         setMessages(prev => [...prev, userM]);
         setCanSend(false)//同じInputで繰り返し送れないようにする
         if (record){
-            await inputClear()
+            //await inputClear()
             if (listening){
                 setTimeout(async() => {
                     await getAnswer()
                     setRecord(false)
-                }, 3000)
+                }, 5000)
             } else {
                 setTimeout(async() => {
                     await getAnswer()
@@ -794,12 +794,12 @@ export default function Aicon() {
                 音声入力(mic)
                 </button>
             ):(
-                <button className="flex items-center mr-5 mx-auto text-xs border-2 bg-pink-600 text-white p-2 rounded" onClick={inputClear}>
+                <button className="flex items-center mr-5 mx-auto text-xs border-2 bg-pink-600 text-white p-2 rounded" onClick={() => {stopSTT()}}>
                 <Eraser size={16} />
                 クリア(clear)
                 </button>)}
             {canSend ? (
-                <button className="flex items-center ml-5 mx-auto border-2 bg-sky-600 text-white p-2 text-xs rounded" onClick={() => {sendMessage()}}>
+                <button className="flex items-center ml-5 mx-auto border-2 bg-sky-600 text-white p-2 text-xs rounded" onClick={async() => {await sendMessage()}}>
                 <Send size={16} />
                 送信(send)
                 </button>):(
