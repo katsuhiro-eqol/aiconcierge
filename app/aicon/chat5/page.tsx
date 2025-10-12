@@ -14,6 +14,7 @@ import getVoiceData from "@/app/func/getVoiceData";
 import {Message2, EmbeddingsData, EventData, VoiceData, ForeignAnswer} from "@/types"
 import { realtimeVoice } from "@/app/func/realtimeVoice";
 type LanguageCode = 'ja-JP' | 'en-US' | 'zh-CN' | 'zh-TW' | 'ko-KR' | 'fr-FR' | 'pt-BR' | 'es-ES'
+type SpeechRecognitionWithAbort = typeof SpeechRecognition & { abortListening?: () => void; }
 
 const no_sound = "https://firebasestorage.googleapis.com/v0/b/conciergeproject-1dc77.firebasestorage.app/o/voice%2Fno_sound.wav?alt=media&token=80abe4c5-a52d-40eb-9e6f-23b265fd9d72"
 
@@ -42,12 +43,8 @@ export default function Aicon() {
     const [convId, setConvId] = useState<string>("")
     const [startText, setStartText] = useState<EmbeddingsData|null>(null)
     const [undefindQA, setUndefindQA] = useState<EmbeddingsData|null>(null)
-
-    //const [isListening, setIsListening] = useState<boolean>(false)
-    //const [recognizing, setRecognizing] = useState<boolean>(false)
     const [undefinedAnswer, setUndefinedAnswer] = useState<ForeignAnswer|null>(null)
     const [voiceCache, setVoiceCache] = useState<Map<string, VoiceData>>(new Map())
-    //const [isQADBLoading, setIsQADBLoading] = useState<boolean>(false)
 
     const {
         transcript,
@@ -55,6 +52,10 @@ export default function Aicon() {
         listening,
         browserSupportsSpeechRecognition
     } = useSpeechRecognition();
+    //以下音声認識を確実に停止するための変数
+    const listeningRef = useRef(listening);
+    const inFlightRef = useRef<"start" | "stop" | null>(null);
+    const [status, setStatus] = useState<"idle" | "recognizing" | "speaking">("idle");
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const nativeName = {"日本語":"日本語", "英語":"English","中国語（簡体）":"简体中文","中国語（繁体）":"繁體中文","韓国語":"한국어","フランス語":"Français","スペイン語":"Español","ポルトガル語":"Português"}
@@ -66,6 +67,21 @@ export default function Aicon() {
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null)
     const playChainRef = useRef<Promise<void>>(Promise.resolve());
 
+    const micStreamRef = useRef<MediaStream | null>(null);
+    const openMic = async () => {
+        // 既存があれば一旦閉じる
+        closeMic();
+        micStreamRef.current = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true },
+        });
+    };
+    const closeMic = () => {
+        if (micStreamRef.current) {
+          micStreamRef.current.getTracks().forEach(t => t.stop()); // ★これが肝心
+          micStreamRef.current = null;
+        }
+      };
+
     const useSearchParams = ()  => {
         const searchParams = useSearchParamsOriginal();
         return searchParams;
@@ -74,30 +90,9 @@ export default function Aicon() {
     const attribute = searchParams.get("attribute")
     const code = searchParams.get("code")
 
-    //stt → audioの最適化検討
-    /*
-    const waitCanPlay = useCallback(() =>
-        new Promise<void>((resolve, reject) => {
-            const el = audioRef.current
-            if (!el){
-                return
-            }
-            const ok = () => { cleanup(); resolve(); };
-            const ng = () => { cleanup(); reject(new Error('media error')); };
-            const cleanup = () => {
-                el.removeEventListener('canplay', ok);
-                el.removeEventListener('loadeddata', ok);
-                el.removeEventListener('error', ng);
-            };
-            el.addEventListener('canplay', ok, { once: true });
-            el.addEventListener('loadeddata', ok, { once: true });
-            el.addEventListener('error', ng, { once: true });
-            if (el.readyState >= 2) { cleanup(); resolve(); }
-    }), []);
-    */
-
     async function getAnswer() {    
         console.log("sttStatus2",sttStatus)  
+        closeMic()
         //await sttStop()  
         const date = new Date()
         const offset = date.getTimezoneOffset() * 60000
@@ -515,6 +510,7 @@ export default function Aicon() {
     }
 
     const sttStart = async() => {
+        openMic()
         console.log("sttStatus1",sttStatus)
         if (audioRef.current) {
             audioRef.current.pause();
@@ -524,39 +520,66 @@ export default function Aicon() {
             alert('このブラウザは音声認識をサポートしていません')
             return
         }
+        
+        if (inFlightRef.current || listeningRef.current) return;
+        inFlightRef.current = "start";
+        
         try {
             if (listening) {
                 await SpeechRecognition.stopListening()
                 resetTranscript()
             }
             setUserInput("")
-            setRecord(true)
+            setStatus("recognizing")
 
             const langCode = foreignLanguages[language] || "ja-JP";
             await SpeechRecognition.startListening({ 
                 language: langCode, 
-                continuous: false,
+                continuous: true,
                 interimResults: true
             });
         } catch(error) {
             console.error('音声認識の開始に失敗:', error)
-            setRecord(false)
-            //setIsListening(false)
+        } finally {
+            inFlightRef.current = null;
         }
     }
 
+    async function waitUntil(pred: () => boolean, timeoutMs: number) {
+        const start = Date.now();
+        while (!pred()) {
+          if (Date.now() - start > timeoutMs) return false;
+          await new Promise(r => setTimeout(r, 50));
+        }
+        return true;
+      }
+
+    function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
+
     const sttStop = async () => {
-        setRecord(false)
+        const softWaitMs = 800
+        const hardWaitMs = 600
+        const cooldownMs = 500
+        
+        if (inFlightRef.current || !listeningRef.current) return;
+        inFlightRef.current = "stop";
+        
         try {
-            if (listening) {
-                await SpeechRecognition.stopListening()
-                resetTranscript()
-                setRecord(false)
+            await SpeechRecognition.stopListening();
+            const softOk = await waitUntil(() => !listeningRef.current, softWaitMs);
+            console.log("softOK", softOk)
+            if (!softOk && typeof SpeechRecognition.abortListening === "function") {
+                SpeechRecognition.abortListening();
+                console.log("aborting")
+                await waitUntil(() => !listeningRef.current, hardWaitMs);
             }
+            await sleep(cooldownMs)
+            resetTranscript();
+            setStatus("idle");
         } catch(error) {
             console.error('音声認識の停止に失敗:', error)
-            setRecord(false)
-            //setIsListening(false)
+        } finally {
+            inFlightRef.current = null;
         }
     }
 
@@ -589,17 +612,18 @@ export default function Aicon() {
         setUserMessage(userM)
         setMessages(prev => [...prev, userM]);
         setCanSend(false)//同じInputで繰り返し送れないようにする
-        if (record){
-            await inputClear()
+
+        if (listening){
+            console.log("stopSTT")
+            await sttStop()
+            setUserInput("")
             if (listening){
                 setTimeout(async() => {
                     await getAnswer()
-                    setRecord(false)
                 }, 5000)
             } else {
                 setTimeout(async() => {
                     await getAnswer()
-                    setRecord(false)
                 }, 1000)
             }
 
@@ -708,15 +732,9 @@ export default function Aicon() {
         }
     }, [userInput])
 
-    /*
     useEffect(() => {
-        console.log("record", record)
-    }, [record])
-    */
-
-    useEffect(() => {
+        console.log("listening state change")
         if (listening === false && userInput === "") {
-            setRecord(false);
             if (audioRef.current) {
                 // デバイスのボリュームに追随
                 audioRef.current.volume = 1.0;
@@ -724,27 +742,9 @@ export default function Aicon() {
         }
     }, [listening]);
 
-    // 音声ファイルの読み込み完了時の処理
-    /*
-    useEffect(() => {
-        const handleCanPlay = () => {
-            if (audioRef.current) {
-                audioRef.current.volume = 1.0;
-            }
-        };
 
-        const audioElement = audioRef.current;
-        if (audioElement) {
-            audioElement.addEventListener('canplay', handleCanPlay);
-        }
-
-        return () => {
-            if (audioElement) {
-                audioElement.removeEventListener('canplay', handleCanPlay);
-            }
-        };
-    }, []);
-*/
+    useEffect(() => { listeningRef.current = listening }, [listening]);
+ 
     return (
         <div className="flex flex-col w-full overflow-hidden" style={{ height: windowHeight || "100dvh" }}>
         {wavReady ? (
@@ -788,7 +788,7 @@ export default function Aicon() {
                 onChange={(e) => setUserInput(e.target.value)}
             />
             <div  className="flex flex-row gap-x-4 justify-center">
-            {!record ?(     
+            {!listening ?(     
                 <button className="flex items-center mr-5 mx-auto border-2 border-sky-600 p-2 text-sky-800 bg-white text-xs rounded" disabled={!wavReady} onClick={sttStart}>
                 <Mic size={16} />
                 音声入力(mic)
