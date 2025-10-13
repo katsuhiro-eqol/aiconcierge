@@ -467,6 +467,7 @@ export default function Aicon() {
 
     const audioPlay = () => {
         if (audioRef.current) {
+            console.log("wav url",audioRef.current.src)
             audioRef.current.play().catch((error) => {
                 console.error('音声再生エラー:', error);
             });
