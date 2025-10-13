@@ -54,8 +54,6 @@ export default function Aicon() {
     } = useSpeechRecognition();
     //以下音声認識を確実に停止するための変数
     const listeningRef = useRef(listening);
-    const inFlightRef = useRef<"start" | "stop" | null>(null);
-    const [status, setStatus] = useState<"idle" | "recognizing" | "speaking">("idle");
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const nativeName = {"日本語":"日本語", "英語":"English","中国語（簡体）":"简体中文","中国語（繁体）":"繁體中文","韓国語":"한국어","フランス語":"Français","スペイン語":"Español","ポルトガル語":"Português"}
@@ -70,7 +68,7 @@ export default function Aicon() {
     const micStreamRef = useRef<MediaStream | null>(null);
     const openMic = async () => {
         // 既存があれば一旦閉じる
-        closeMic();
+        //closeMic();
         micStreamRef.current = await navigator.mediaDevices.getUserMedia({
           audio: { echoCancellation: true, noiseSuppression: true },
         });
@@ -92,7 +90,7 @@ export default function Aicon() {
 
     async function getAnswer() {    
         console.log("sttStatus2",sttStatus)  
-        closeMic()
+        //closeMic()
         //await sttStop()  
         const date = new Date()
         const offset = date.getTimezoneOffset() * 60000
@@ -419,15 +417,6 @@ export default function Aicon() {
             setLangList(langs2)            
         }
     }
-
-    const randomStr = (length:number) => {
-        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        let result = '';
-        for (let i = 0; i < length; i++) {
-            result += characters.charAt(Math.floor(Math.random() * characters.length));
-        }
-        return result;
-    }
     
     const talkStart = async () => {
         if (dLang === ""){
@@ -521,16 +510,12 @@ export default function Aicon() {
             return
         }
         
-        if (inFlightRef.current || listeningRef.current) return;
-        inFlightRef.current = "start";
-        
         try {
             if (listening) {
                 await SpeechRecognition.stopListening()
                 resetTranscript()
             }
             setUserInput("")
-            setStatus("recognizing")
 
             const langCode = foreignLanguages[language] || "ja-JP";
             await SpeechRecognition.startListening({ 
@@ -540,8 +525,6 @@ export default function Aicon() {
             });
         } catch(error) {
             console.error('音声認識の開始に失敗:', error)
-        } finally {
-            inFlightRef.current = null;
         }
     }
 
@@ -561,9 +544,6 @@ export default function Aicon() {
         const hardWaitMs = 600
         const cooldownMs = 500
         
-        if (inFlightRef.current || !listeningRef.current) return;
-        inFlightRef.current = "stop";
-        
         try {
             await SpeechRecognition.stopListening();
             const softOk = await waitUntil(() => !listeningRef.current, softWaitMs);
@@ -573,13 +553,12 @@ export default function Aicon() {
                 console.log("aborting")
                 await waitUntil(() => !listeningRef.current, hardWaitMs);
             }
+            closeMic()
+            audioPlay()//無音を鳴らす
             await sleep(cooldownMs)
             resetTranscript();
-            setStatus("idle");
         } catch(error) {
             console.error('音声認識の停止に失敗:', error)
-        } finally {
-            inFlightRef.current = null;
         }
     }
 
@@ -620,13 +599,12 @@ export default function Aicon() {
             if (listening){
                 setTimeout(async() => {
                     await getAnswer()
-                }, 5000)
+                }, 2000)
             } else {
                 setTimeout(async() => {
                     await getAnswer()
-                }, 1000)
+                }, 500)
             }
-
         } else {
             await getAnswer()
         }
@@ -704,6 +682,7 @@ export default function Aicon() {
             if (currentIndex === slides.length-2 && currentIndex !== 0){
                 const s = initialSlides
                 setCurrentIndex(0)
+                setWavUrl(no_sound)
                 if (audioRef.current){
                     audioRef.current.pause()
                     audioRef.current.currentTime = 0
