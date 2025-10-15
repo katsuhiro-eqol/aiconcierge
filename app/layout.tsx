@@ -13,8 +13,14 @@ export const metadata: Metadata = {
     description: '日本語のQAデータをCSVファイルで登録するだけで、多言語対応の高性能なAIコンシェルジュが構築できます',
     images: ['/icons8-ai-48.png'],
   },
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
 };
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maxminScale: 1,
+  userScalable: 'no'
+}
 
 export default function RootLayout({
   children,

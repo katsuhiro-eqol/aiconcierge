@@ -1,11 +1,9 @@
-//SpeechRecognition旧バージョン
-
+//SpeechRecognition新バージョン
 "use client"
 import "regenerator-runtime";
 import React from "react";
 import { useSearchParams as useSearchParamsOriginal } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
-//import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk"
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { Mic, Send, Eraser, X, LoaderCircle } from 'lucide-react';
 import { db } from "@/firebase";
@@ -17,7 +15,7 @@ import { realtimeVoice } from "@/app/func/realtimeVoice";
 type LanguageCode = 'ja-JP' | 'en-US' | 'zh-CN' | 'zh-TW' | 'ko-KR' | 'fr-FR' | 'pt-BR' | 'es-ES'
 type SpeechRecognitionWithAbort = typeof SpeechRecognition & { abortListening?: () => void; }
 
-const no_sound = "https://firebasestorage.googleapis.com/v0/b/conciergeproject-1dc77.firebasestorage.app/o/voice%2Fno_sound.wav?alt=media&token=80abe4c5-a52d-40eb-9e6f-23b265fd9d72"
+//const no_sound = "https://firebasestorage.googleapis.com/v0/b/conciergeproject-1dc77.firebasestorage.app/o/voice%2Fno_sound.wav?alt=media&token=80abe4c5-a52d-40eb-9e6f-23b265fd9d72"
 
 export default function Aicon() {
     const [windowHeight, setWindowHeight] = useState<number>(0)
@@ -32,7 +30,7 @@ export default function Aicon() {
     const [dLang, setDLang] = useState<string>("")//表示用言語
     const [language, setLanguage] = useState<string>("")
     const [embeddingsData, setEmbeddingsData] = useState<EmbeddingsData[]>([])
-    const [wavUrl, setWavUrl] = useState<string>(no_sound)
+    const [wavUrl, setWavUrl] = useState<string>("/noSound.wav")
     const [slides, setSlides] = useState<string[]|null>(null)
     const [currentIndex, setCurrentIndex] = useState<number>(0)
     const [wavReady, setWavReady] = useState<boolean>(false)
@@ -68,6 +66,53 @@ export default function Aicon() {
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null)
     //const playChainRef = useRef<Promise<void>>(Promise.resolve());
 
+    /*
+    async function unlockAudio() {
+        if (unlocked) return;
+        const Ctx = (window.AudioContext || (window as any).webkitAudioContext);
+        audioCtx = new Ctx();
+        // 無音1サンプルで解錠（再生ポリシー解除）
+        const b = audioCtx.createBuffer(1, 1, 22050);
+        const s = audioCtx.createBufferSource();
+        s.buffer = b; s.connect(audioCtx.destination); s.start(0);
+        await audioCtx.resume();
+        unlocked = true;
+    }
+    */
+
+    const sendMessage2 = async () => {
+        const date = new Date()
+        const offset = date.getTimezoneOffset() * 60000
+        const localDate = new Date(date.getTime() - offset)
+        const now = localDate.toISOString()
+        const userM: Message2 = {
+            id: now,
+            text: userInput,
+            sender: 'user',
+            modalUrl:"",
+            modalFile:"",
+            source:null
+        }
+        console.log(userM)
+        setUserMessage(userM)
+        setMessages(prev => [...prev, userM]);
+        setCanSend(false)//同じInputで繰り返し送れないようにする
+
+        if (listening){
+            if (audioRef.current){
+                audioRef.current.muted = true
+                //audioRef.current.volume = 0
+                setWavUrl("/noSound.wav")
+                audioRef.current.play().then(async () => {
+                    await sttStop()
+                    audioRef.current!.muted = false
+                    await getAnswer()
+                })
+            }
+        } else {
+            await getAnswer()
+        }
+    }
 
     const micStreamRef = useRef<MediaStream | null>(null);
     const openMic = async () => {
@@ -490,6 +535,13 @@ export default function Aicon() {
         }
     };
 
+    /*
+    const scheduleSilenceStop = () => {
+        clearSilenceTimer();
+        silenceTimerRef.current = setTimeout(() => sttStop(), 4000);
+    };
+    */
+
     const sttStatus = {
         listening: listening,
         audioRef: audioRef.current,
@@ -540,7 +592,7 @@ export default function Aicon() {
     const sttStop = async () => {
         const softWaitMs = 800
         const hardWaitMs = 600
-        const cooldownMs = 500
+        const cooldownMs = 1000
         
         try {
             await SpeechRecognition.stopListening();
@@ -663,7 +715,7 @@ export default function Aicon() {
     }, [embeddingsData])
 
     useEffect(() => {
-        if (Array.isArray(slides) && slides.length>1 && wavUrl!= no_sound){
+        if (Array.isArray(slides) && slides.length>1 && wavUrl!= "/noSound.wav"){
             audioPlay()
             setCurrentIndex(0)
             if (intervalRef.current !== null) {//タイマーが進んでいる時はstart押せないように//2
@@ -680,7 +732,7 @@ export default function Aicon() {
             if (currentIndex === slides.length-2 && currentIndex !== 0){
                 const s = initialSlides
                 setCurrentIndex(0)
-                setWavUrl(no_sound)
+                setWavUrl("/noSound.wav")
                 if (audioRef.current){
                     audioRef.current.pause()
                     audioRef.current.currentTime = 0
@@ -776,7 +828,7 @@ export default function Aicon() {
                 クリア(clear)
                 </button>)}
             {canSend ? (
-                <button className="flex items-center ml-5 mx-auto border-2 bg-sky-600 text-white p-2 text-xs rounded" onClick={async() => {await sendMessage()}}>
+                <button className="flex items-center ml-5 mx-auto border-2 bg-sky-600 text-white p-2 text-xs rounded" onClick={async() => {await sendMessage2()}}>
                 <Send size={16} />
                 送信(send)
                 </button>):(
@@ -826,3 +878,124 @@ export default function Aicon() {
     );
 }
 
+/*
+    async function getAnswer() {    
+        console.log("sttStatus2",sttStatus)  
+        //closeMic()
+        //await sttStop()  
+        const date = new Date()
+        const offset = date.getTimezoneOffset() * 60000
+        const localDate = new Date(date.getTime() - offset)
+        const now = localDate.toISOString()
+
+        setUserInput("")
+        
+        const res = await fetch("/api/checkHugeRequest", { method: "POST" });
+        const data2 = await res.json();
+        if (res.status === 429) {
+            alert(`１日のアクセス上限に達しました。リセットまで約 ${Math.ceil((data2.resetSec ?? 0)/3600)} 時間`);
+            return
+        } else {
+        console.log("残回数", data2.remaining);
+        }
+  
+        try {
+            const response1 = await fetch("/api/embedding2", {
+                method: "POST",
+                headers: {
+                "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ input: userInput, model: eventData?.embedding ?? "text-embedding-3-small", language: language }),
+            });
+            const data1 = await response1.json();
+            if (response1.status !== 200) {
+              throw data1.error || new Error(`Request failed with status ${response1.status}`);
+            }
+            //const translatedQuestion = data1.input
+            const similarityList = findMostSimilarQuestion(data1.embedding)
+            const refQA = chooseQA(similarityList)
+            const undefined = undefinedAnswer?.[language] || "申し訳ありません。回答できない質問です"
+            const response = await fetch("/api/concierge", {
+                method: "POST",
+                headers: {
+                "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ question: userInput, model: eventData!.gpt, prompt: eventData!.prompt, refQA: refQA, history: history, language: language, undefined:undefined }),
+            });
+            const data = await response.json();
+            const answer = data.answer
+            
+            // キャッシュキーを生成
+            const cacheKey = `${eventData!.voiceNumber}-${answer.trim()}`;
+            
+            // キャッシュから音声データを確認
+            let existingVoice: VoiceData | null = voiceCache.get(cacheKey) || null;
+            
+            if (!existingVoice) {
+                // キャッシュにない場合はFirestoreから取得
+                existingVoice = await getVoiceData(answer, language, eventData!.voiceNumber);
+                if (existingVoice) {
+                    // キャッシュに保存
+                    setVoiceCache(prev => new Map(prev).set(cacheKey, existingVoice!));
+                }
+            }
+            
+            if (existingVoice){
+                console.log("not newly created voice")
+                setWavUrl(existingVoice.url)   
+                const sl = createSlides(existingVoice.duration)
+                setSlides(sl)
+            } else {
+                const voiceData = await realtimeVoice(answer.trim(),language,1)
+                setWavUrl(voiceData.url)
+                const sl = createSlides(voiceData.duration)
+                setSlides(sl)
+            }
+
+            if (data.id !== ""){
+                const modal = embeddingsData.filter((item) => item.id === data.id)
+                if (modal.length > 0){
+                    const aiMessage: Message2 = {
+                        id: `A${now}`,
+                        text: `${data.answer} ${data.source} ${data.id}`,
+                        sender: 'AIcon',
+                        modalUrl:modal[0].modalUrl,
+                        modalFile:modal[0].modalFile,
+                        source:data.source,
+                        thumbnail: thumbnail
+                      };
+                      setMessages(prev => [...prev, aiMessage]);
+                      await saveMessage(userMessage, aiMessage, attribute!)                    
+                } else {
+                    const aiMessage: Message2 = {
+                        id: `A${now}`,
+                        text: `${data.answer} ${data.source}`,
+                        sender: 'AIcon',
+                        modalUrl:"",
+                        modalFile:"",
+                        source:data.source,
+                        thumbnail: thumbnail
+                      };
+                      setMessages(prev => [...prev, aiMessage]);
+                      await saveMessage(userMessage, aiMessage, attribute!)
+                }
+            } else {
+                const aiMessage: Message2 = {
+                    id: `A${now}`,
+                    text: `${data.answer} ${data.source}`,
+                    sender: 'AIcon',
+                    modalUrl:"",
+                    modalFile:"",
+                    source:data.source,
+                    thumbnail: thumbnail
+                  };
+                setMessages(prev => [...prev, aiMessage]);
+                await saveMessage(userMessage, aiMessage, attribute!)
+            }
+            //全ユーザーの質問総数
+            await incrementCounter(attribute!)
+        } catch(error) {
+        console.error(error);
+        }
+      }
+        */

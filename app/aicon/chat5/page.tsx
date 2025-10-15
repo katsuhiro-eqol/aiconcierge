@@ -13,8 +13,7 @@ import getVoiceData from "@/app/func/getVoiceData";
 import {Message2, EmbeddingsData, EventData, VoiceData, ForeignAnswer} from "@/types"
 import { realtimeVoice } from "@/app/func/realtimeVoice";
 type LanguageCode = 'ja-JP' | 'en-US' | 'zh-CN' | 'zh-TW' | 'ko-KR' | 'fr-FR' | 'pt-BR' | 'es-ES'
-type SpeechRecognitionWithAbort = typeof SpeechRecognition & { abortListening?: () => void; }
-
+type AudioContextCtor = new (opts?: AudioContextOptions) => AudioContext
 //const no_sound = "https://firebasestorage.googleapis.com/v0/b/conciergeproject-1dc77.firebasestorage.app/o/voice%2Fno_sound.wav?alt=media&token=80abe4c5-a52d-40eb-9e6f-23b265fd9d72"
 
 export default function Aicon() {
@@ -52,7 +51,6 @@ export default function Aicon() {
         browserSupportsSpeechRecognition
     } = useSpeechRecognition();
     //以下音声認識を確実に停止するための変数
-    const listeningRef = useRef(listening);
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const nativeName = {"日本語":"日本語", "英語":"English","中国語（簡体）":"简体中文","中国語（繁体）":"繁體中文","韓国語":"한국어","フランス語":"Français","スペイン語":"Español","ポルトガル語":"Português"}
@@ -60,25 +58,79 @@ export default function Aicon() {
     
     const foreignLanguages: Record<string, LanguageCode> = {"日本語": "ja-JP","英語": "en-US","中国語（簡体）": "zh-CN","中国語（繁体）": "zh-TW","韓国語": "ko-KR","フランス語": "fr-FR","ポルトガル語": "pt-BR","スペイン語": "es-ES"}
     const audioRef = useRef<HTMLAudioElement>(null)
-    //let audioCtx: AudioContext | null = null;
-    //let unlocked = false;
     const intervalRef = useRef<NodeJS.Timeout | null>(null)
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null)
-    //const playChainRef = useRef<Promise<void>>(Promise.resolve());
 
-    /*
-    async function unlockAudio() {
-        if (unlocked) return;
-        const Ctx = (window.AudioContext || (window as any).webkitAudioContext);
-        audioCtx = new Ctx();
-        // 無音1サンプルで解錠（再生ポリシー解除）
-        const b = audioCtx.createBuffer(1, 1, 22050);
-        const s = audioCtx.createBufferSource();
-        s.buffer = b; s.connect(audioCtx.destination); s.start(0);
-        await audioCtx.resume();
-        unlocked = true;
+    //以下WebAudio関連
+    const ctxRef = useRef<AudioContext | null>(null);
+    const srcRef = useRef<AudioBufferSourceNode | null>(null);
+    const w = typeof window !== 'undefined' ? window as Window & {
+        AudioContext?: AudioContextCtor;
+        webkitAudioContext?: AudioContextCtor;
+    } : {} as Window & {
+        AudioContext?: AudioContextCtor;
+        webkitAudioContext?: AudioContextCtor;
+    };
+
+    const ensureCtx = () => {
+        if (!ctxRef.current) {
+            const Ctx = w.AudioContext ?? w.webkitAudioContext;
+            if (!Ctx) throw new Error('Web Audio API not supported');
+            ctxRef.current = new Ctx({ latencyHint: "playback" });
+        }
+        return ctxRef.current!;
+      };
+    
+    /** 初回は必ずユーザー操作内で呼ぶ（クリック直後など） */
+    const unlock = async () => {
+    const ctx = ensureCtx();
+    // 無音1サンプルで解錠
+    const buf = ctx.createBuffer(1, 1, 22050);
+    const src = ctx.createBufferSource();
+    src.buffer = buf; src.connect(ctx.destination); src.start();
+    await ctx.resume();
+    };
+
+    const stop = () => {
+    try { srcRef.current?.stop(0); } catch {}
+    srcRef.current = null;
+    };
+
+    /** URLの音声をデコードして再生（完了まで待つ） */
+    const playUrl = async (url: string) => {
+    const ctx = ensureCtx();
+    await ctx.resume(); // iOSでsuspend解除
+
+    // 既存再生を止める
+    stop();
+
+    const ab = await (await fetch(`/api/audio-proxy?src=${encodeURIComponent(url)}`, {
+        cache: "no-store",
+    })).arrayBuffer();
+    const buffer: AudioBuffer = await new Promise((res, rej) =>
+        ctx.decodeAudioData(ab, res, rej)
+    );
+
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(ctx.destination);
+    srcRef.current = src;
+
+    await new Promise<void>((resolve) => {
+        src.onended = () => { srcRef.current = null; resolve(); };
+        src.start(0);
+    });
+    };
+
+    /** 完全破棄（必要なときだけ） */
+    const dispose = async () => {
+    stop();
+    if (ctxRef.current) {
+        try { await ctxRef.current.close(); } catch {}
+        ctxRef.current = null;
     }
-    */
+    }
+    //ここまでWebAudio関連
 
     const sendMessage2 = async () => {
         const date = new Date()
@@ -473,11 +525,8 @@ export default function Aicon() {
             return
         }
         createConvField(attribute!)
-        if (audioRef.current){
-            audioRef.current.pause()
-            audioRef.current.currentTime = 0
-        }
-        audioPlay()
+        await unlock()
+
         setWavReady(true)
         const date = new Date()
         const offset = date.getTimezoneOffset() * 60000
@@ -514,15 +563,6 @@ export default function Aicon() {
         }
     }
 
-    const audioPlay = () => {
-        if (audioRef.current) {
-            console.log("wav url",audioRef.current.src)
-            audioRef.current.play().catch((error) => {
-                console.error('音声再生エラー:', error);
-            });
-        }
-    }
-
     const inputClear = async () => {
         await sttStop()
         setUserInput("")
@@ -549,12 +589,9 @@ export default function Aicon() {
     }
 
     const sttStart = async() => {
+        await unlock()
         openMic()
         console.log("sttStatus1",sttStatus)
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-        }
         if (!browserSupportsSpeechRecognition) {
             alert('このブラウザは音声認識をサポートしていません')
             return
@@ -596,17 +633,16 @@ export default function Aicon() {
         
         try {
             await SpeechRecognition.stopListening();
-            const softOk = await waitUntil(() => !listeningRef.current, softWaitMs);
+            const softOk = await waitUntil(() => !listening, softWaitMs);
             console.log("softOK", softOk)
             if (!softOk && typeof SpeechRecognition.abortListening === "function") {
                 SpeechRecognition.abortListening();
                 console.log("aborting")
-                await waitUntil(() => !listeningRef.current, hardWaitMs);
+                await waitUntil(() => !listening, hardWaitMs);
             }
-            closeMic()
-            audioPlay()//無音を鳴らす
             await sleep(cooldownMs)
             resetTranscript();
+            closeMic()
         } catch(error) {
             console.error('音声認識の停止に失敗:', error)
         }
@@ -621,42 +657,8 @@ export default function Aicon() {
 
     const closeApp = async () => {
         await sttStop()
-        window.location.reload()
-    }
-
-    const sendMessage = async () => {
-        const date = new Date()
-        const offset = date.getTimezoneOffset() * 60000
-        const localDate = new Date(date.getTime() - offset)
-        const now = localDate.toISOString()
-        const userM: Message2 = {
-            id: now,
-            text: userInput,
-            sender: 'user',
-            modalUrl:"",
-            modalFile:"",
-            source:null
-        }
-        console.log(userM)
-        setUserMessage(userM)
-        setMessages(prev => [...prev, userM]);
-        setCanSend(false)//同じInputで繰り返し送れないようにする
-
-        if (listening){
-            console.log("stopSTT")
-            await sttStop()
-            setUserInput("")
-            if (listening){
-                setTimeout(async() => {
-                    await getAnswer()
-                }, 2000)
-            } else {
-                setTimeout(async() => {
-                    await getAnswer()
-                }, 500)
-            }
-        } else {
-            await getAnswer()
+        if (typeof window !== 'undefined') {
+            window.location.reload()
         }
     }
 
@@ -667,22 +669,24 @@ export default function Aicon() {
     }, []);
 
     useEffect(() => {
+        if (typeof window === 'undefined') return; // サーバーサイドでは実行しない
+        
         const updateHeight = () => {
             setWindowHeight(window.innerHeight);
-          };
-      
-          updateHeight(); // 初期値設定
-          window.addEventListener("resize", updateHeight);
-
+        };
+    
+        updateHeight(); // 初期値設定
+        window.addEventListener("resize", updateHeight);
+    
         return () => {
             window.removeEventListener("resize", updateHeight);
             if (intervalRef.current !== null){
                 clearInterval(intervalRef.current);
-                intervalRef.current = null// コンポーネントがアンマウントされたらタイマーをクリア
+                intervalRef.current = null
             }
             sttStop()
         };
-    },[])
+    }, []);
 
     useEffect(() => {
         if (attribute && code){
@@ -716,7 +720,7 @@ export default function Aicon() {
 
     useEffect(() => {
         if (Array.isArray(slides) && slides.length>1 && wavUrl!= "/noSound.wav"){
-            audioPlay()
+            playUrl(wavUrl)
             setCurrentIndex(0)
             if (intervalRef.current !== null) {//タイマーが進んでいる時はstart押せないように//2
                 return;
@@ -733,10 +737,6 @@ export default function Aicon() {
                 const s = initialSlides
                 setCurrentIndex(0)
                 setWavUrl("/noSound.wav")
-                if (audioRef.current){
-                    audioRef.current.pause()
-                    audioRef.current.currentTime = 0
-                }
 
                 //setWavUrl(no_sound)
                 setSlides(Array(1).fill(initialSlides))
@@ -763,16 +763,15 @@ export default function Aicon() {
 
     useEffect(() => {
         console.log("listening state change")
+        /*
         if (listening === false && userInput === "") {
             if (audioRef.current) {
                 // デバイスのボリュームに追随
                 audioRef.current.volume = 1.0;
             }
         }
-    }, [listening]);
-
-
-    useEffect(() => { listeningRef.current = listening }, [listening]);
+        */
+    }, [listening])
  
     return (
         <div className="flex flex-col w-full overflow-hidden" style={{ height: windowHeight || "100dvh" }}>
@@ -876,126 +875,4 @@ export default function Aicon() {
             <audio key={wavUrl} src={wavUrl} ref={audioRef} playsInline preload="auto"/>
         </div>
     );
-}
-
-/*
-    async function getAnswer() {    
-        console.log("sttStatus2",sttStatus)  
-        //closeMic()
-        //await sttStop()  
-        const date = new Date()
-        const offset = date.getTimezoneOffset() * 60000
-        const localDate = new Date(date.getTime() - offset)
-        const now = localDate.toISOString()
-
-        setUserInput("")
-        
-        const res = await fetch("/api/checkHugeRequest", { method: "POST" });
-        const data2 = await res.json();
-        if (res.status === 429) {
-            alert(`１日のアクセス上限に達しました。リセットまで約 ${Math.ceil((data2.resetSec ?? 0)/3600)} 時間`);
-            return
-        } else {
-        console.log("残回数", data2.remaining);
-        }
-  
-        try {
-            const response1 = await fetch("/api/embedding2", {
-                method: "POST",
-                headers: {
-                "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ input: userInput, model: eventData?.embedding ?? "text-embedding-3-small", language: language }),
-            });
-            const data1 = await response1.json();
-            if (response1.status !== 200) {
-              throw data1.error || new Error(`Request failed with status ${response1.status}`);
-            }
-            //const translatedQuestion = data1.input
-            const similarityList = findMostSimilarQuestion(data1.embedding)
-            const refQA = chooseQA(similarityList)
-            const undefined = undefinedAnswer?.[language] || "申し訳ありません。回答できない質問です"
-            const response = await fetch("/api/concierge", {
-                method: "POST",
-                headers: {
-                "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ question: userInput, model: eventData!.gpt, prompt: eventData!.prompt, refQA: refQA, history: history, language: language, undefined:undefined }),
-            });
-            const data = await response.json();
-            const answer = data.answer
-            
-            // キャッシュキーを生成
-            const cacheKey = `${eventData!.voiceNumber}-${answer.trim()}`;
-            
-            // キャッシュから音声データを確認
-            let existingVoice: VoiceData | null = voiceCache.get(cacheKey) || null;
-            
-            if (!existingVoice) {
-                // キャッシュにない場合はFirestoreから取得
-                existingVoice = await getVoiceData(answer, language, eventData!.voiceNumber);
-                if (existingVoice) {
-                    // キャッシュに保存
-                    setVoiceCache(prev => new Map(prev).set(cacheKey, existingVoice!));
-                }
-            }
-            
-            if (existingVoice){
-                console.log("not newly created voice")
-                setWavUrl(existingVoice.url)   
-                const sl = createSlides(existingVoice.duration)
-                setSlides(sl)
-            } else {
-                const voiceData = await realtimeVoice(answer.trim(),language,1)
-                setWavUrl(voiceData.url)
-                const sl = createSlides(voiceData.duration)
-                setSlides(sl)
-            }
-
-            if (data.id !== ""){
-                const modal = embeddingsData.filter((item) => item.id === data.id)
-                if (modal.length > 0){
-                    const aiMessage: Message2 = {
-                        id: `A${now}`,
-                        text: `${data.answer} ${data.source} ${data.id}`,
-                        sender: 'AIcon',
-                        modalUrl:modal[0].modalUrl,
-                        modalFile:modal[0].modalFile,
-                        source:data.source,
-                        thumbnail: thumbnail
-                      };
-                      setMessages(prev => [...prev, aiMessage]);
-                      await saveMessage(userMessage, aiMessage, attribute!)                    
-                } else {
-                    const aiMessage: Message2 = {
-                        id: `A${now}`,
-                        text: `${data.answer} ${data.source}`,
-                        sender: 'AIcon',
-                        modalUrl:"",
-                        modalFile:"",
-                        source:data.source,
-                        thumbnail: thumbnail
-                      };
-                      setMessages(prev => [...prev, aiMessage]);
-                      await saveMessage(userMessage, aiMessage, attribute!)
-                }
-            } else {
-                const aiMessage: Message2 = {
-                    id: `A${now}`,
-                    text: `${data.answer} ${data.source}`,
-                    sender: 'AIcon',
-                    modalUrl:"",
-                    modalFile:"",
-                    source:data.source,
-                    thumbnail: thumbnail
-                  };
-                setMessages(prev => [...prev, aiMessage]);
-                await saveMessage(userMessage, aiMessage, attribute!)
-            }
-            //全ユーザーの質問総数
-            await incrementCounter(attribute!)
-        } catch(error) {
-        console.error(error);
-        }
-      }
-        */
+};
