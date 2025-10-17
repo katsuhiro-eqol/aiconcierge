@@ -83,52 +83,59 @@ export default function Aicon() {
     
     /** 初回は必ずユーザー操作内で呼ぶ（クリック直後など） */
     const unlock = async () => {
-    const ctx = ensureCtx();
-    // 無音1サンプルで解錠
-    const buf = ctx.createBuffer(1, 1, 22050);
-    const src = ctx.createBufferSource();
-    src.buffer = buf; src.connect(ctx.destination); src.start();
-    await ctx.resume();
+        const ctx = ensureCtx();
+        // 無音1サンプルで解錠
+        const buf = ctx.createBuffer(1, 1, 22050);
+        const src = ctx.createBufferSource();
+        src.buffer = buf; src.connect(ctx.destination); src.start();
+        await ctx.resume();
     };
 
     const stop = () => {
-    try { srcRef.current?.stop(0); } catch {}
-    srcRef.current = null;
+        try { srcRef.current?.stop(0); } catch {}
+        srcRef.current = null;
     };
 
     /** URLの音声をデコードして再生（完了まで待つ） */
     const playUrl = async (url: string) => {
-    const ctx = ensureCtx();
-    await ctx.resume(); // iOSでsuspend解除
+        const ctx = ensureCtx();
+        await ctx.resume(); // iOSでsuspend解除
+        stop();
 
-    // 既存再生を止める
-    stop();
+        const ab = await (await fetch(`/api/audio-proxy?src=${encodeURIComponent(url)}`, {
+            cache: "no-store",
+        })).arrayBuffer();
+        const buffer: AudioBuffer = await new Promise((res, rej) =>
+            ctx.decodeAudioData(ab, res, rej)
+        );
 
-    const ab = await (await fetch(`/api/audio-proxy?src=${encodeURIComponent(url)}`, {
-        cache: "no-store",
-    })).arrayBuffer();
-    const buffer: AudioBuffer = await new Promise((res, rej) =>
-        ctx.decodeAudioData(ab, res, rej)
-    );
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        src.connect(ctx.destination);
+        srcRef.current = src;
 
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-    src.connect(ctx.destination);
-    srcRef.current = src;
-
-    await new Promise<void>((resolve) => {
-        src.onended = () => { srcRef.current = null; resolve(); };
-        src.start(0);
-    });
+        await new Promise<void>((resolve) => {
+            src.onended = () => { srcRef.current = null; resolve(); };
+            src.start(0);
+            if (Array.isArray(slides) && slides.length>1 && url != "/noSound.wav"){
+                setCurrentIndex(0)
+                if (intervalRef.current !== null) {//タイマーが進んでいる時はstart押せないように//2
+                    return;
+                }
+                intervalRef.current = setInterval(() => {
+                    setCurrentIndex((prevIndex) => (prevIndex + 1) % (slides.length))
+                }, 250)
+            }
+        });
     };
 
     /** 完全破棄（必要なときだけ） */
     const dispose = async () => {
-    stop();
-    if (ctxRef.current) {
-        try { await ctxRef.current.close(); } catch {}
-        ctxRef.current = null;
-    }
+        stop();
+        if (ctxRef.current) {
+            try { await ctxRef.current.close(); } catch {}
+            ctxRef.current = null;
+        }
     }
     //ここまでWebAudio関連
 

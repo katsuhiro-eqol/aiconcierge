@@ -92,11 +92,12 @@ export default function Features() {
             <div className="mb-5 font-bold text-2xl text-blue-800">簡単な手順でQ&Aを登録</div>
             <div className="text-base text-slate-800">オリジナルのQ&Aデータを保存したCSVファイルを登録するだけで、AIコンシェルジュに必要なデータベースが自動的にセッティングされます</div>
             <div className="text-base text-slate-800">登録したQ&Aデータは常時修正・更新・削除が可能です。またデータの追加も簡単です</div>
-            <div className="text-base text-slate-800">チャットボットとは異なり、単に用意したAを返すだけでなく、ユーザー質問に応じてQA情報を再編集するアルゴリズムを採用しています</div>
+            <div className="text-base text-slate-800">チャットボットとは異なり、単に用意した回答を返すだけでなく、ユーザー質問に応じてQA情報を再編集するアルゴリズムを採用しています</div>
+            <div className="text-base text-slate-800">QA情報の登録にはエクセルやスプレッドシートのテンプレートを用意しています</div>
             <img className="min-w-72 w-2/5 mx-auto mt-8 opacity-60" src="/QAtable.png" alt="エクセルやスプレッドシート" />
         </section>
         <section id="generative" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
-            <div className="mb-5 font-bold text-2xl text-blue-800">インターネット情報を併用</div>
+            <div className="mb-5 font-bold text-2xl text-blue-800">インターネット情報を活用</div>
             <div className="text-base text-slate-800">登録されたQAに該当する情報がない、あるいは不足する場合はインターネット情報等を組み合わせて回答を生成します</div>
             <div className="text-base text-slate-800">サービスを提供する拠点情報をもとに、交通アクセスや周辺情報などを回答したり、指定したインターネットページのみを参照させたりも可能です</div>
         </section>
