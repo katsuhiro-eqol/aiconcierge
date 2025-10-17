@@ -20,6 +20,7 @@ export default function Price() {
                 </td>
             <td className="p-4 border border-gray-400">        
                 <li>多言語対応（日本語、英語、中国語（簡体、繁体）、韓国語</li>
+                <li>任意の言語の追加が可能（応相談）</li>
                 <li>インターネット情報も併用して回答</li>
             </td>
             <td className="p-4 border border-gray-400">¥30,000/月</td>

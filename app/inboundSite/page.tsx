@@ -9,15 +9,16 @@ export default function InboundSite() {
         <div className="mt-10 text-2xl font-bold text-blue-800 text-center lg:text-3xl sm:text-2xl">インバウンド顧客対応に頭を悩ませている事業主様へ</div>
         <div className="mt-4 text-lg font-bold text-blue-800 text-center lg:text-2xl sm:text-xl">日本語QAを登録するだけで多言語対応AIコンシェルジュアプリが構築できます</div>
         <div className="mt-6 w-4/5 mx-auto bg-yellow-400 p-5 rounded-xl">
-          <li>ユーザーはQRコードで一発アクセス</li>
-          <li>対応言語は、「日本語」「英語」「中国語（簡体）」「中国語（繁体）」「韓国語」</li>
-          <li>事業者様は日本語のQ&Aデータを用意するだけ</li>
-          <li>地図や写真なども表示可能</li>
-          <li>臨時のイベント情報などの追加・更新も簡単</li>
-          <li>インターネット情報も参照して回答</li>
-          <li>多言語対応の音声入力・AIボイス（オプション）</li>
-          <li>人間スタップの対応が必要な場面でのチャットアプリへの移行サービス（オプション）</li>
-          <li>問い合わせや回答内容の解析支援サービス（オプション）</li>
+          <li className="ml-5">ユーザーはQRコードで一発アクセス</li>
+          <li className="ml-5">対応言語は、「日本語」「英語」「中国語（簡体）」「中国語（繁体）」「韓国語」（デフォルト）</li>
+          <li className="ml-5">言語の追加も応相談</li>
+          <li className="ml-5">事業者様は日本語のQ&Aデータを用意するだけ</li>
+          <li className="ml-5">地図や写真なども表示可能</li>
+          <li className="ml-5">臨時のイベント情報などの追加・更新も簡単</li>
+          <li className="ml-5">インターネット情報も参照して回答</li>
+          <li className="ml-5">多言語対応の音声入力・AIボイス（オプション）</li>
+          <li className="ml-5">人間スタップの対応が必要な場面でのチャットアプリへの移行サービス（オプション）</li>
+          <li className="ml-5">問い合わせや回答内容の解析支援サービス（オプション）</li>
         </div>
 
 
