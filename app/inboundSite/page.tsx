@@ -1,5 +1,6 @@
 "use client"
 import React from 'react';
+import YouTubeEmbed from "@/app/components/youtubeEmbedded";
 
 
 export default function InboundSite() {
@@ -8,6 +9,9 @@ export default function InboundSite() {
     <div className="p-2 min-h-screen bg-gradient-to-br from-white via-slate-200 to-slate-100 overflow-hidden">
         <div className="mt-10 text-2xl font-bold text-blue-800 text-center lg:text-3xl sm:text-2xl">インバウンド顧客対応に頭を悩ませている事業主様へ</div>
         <div className="mt-4 text-lg font-bold text-blue-800 text-center lg:text-2xl sm:text-xl">日本語QAを登録するだけで多言語対応AIコンシェルジュアプリが構築できます</div>
+        <div className="mt-8 mb-8 w-3/5 mx-auto">
+        <YouTubeEmbed videoId="m2QlPKsPFz0?si=IPZzoWGjw-SKPXA5" title="インバウンドコンシェルジュ紹介動画"/>
+        </div>
         <div className="mt-6 w-4/5 mx-auto bg-yellow-400 p-5 rounded-xl">
           <li className="ml-5">ユーザーはQRコードで一発アクセス</li>
           <li className="ml-5">対応言語は、「日本語」「英語」「中国語（簡体）」「中国語（繁体）」「韓国語」（デフォルト）</li>
