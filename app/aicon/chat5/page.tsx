@@ -505,7 +505,7 @@ export default function Aicon() {
             unanswerable:judge
         }
         setHistory(prev => [...prev, data])
-        await setDoc(doc(db, "Events",attr, "Conversation", convId), {conversations: arrayUnion(data), date:userMessage.id}, {merge:true})
+        await setDoc(doc(db, "Events",attr, "Conversation", convId), {conversations: arrayUnion(data), date:userMessage.id, language:language}, {merge:true})
     }
 
 
