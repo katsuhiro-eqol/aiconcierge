@@ -28,10 +28,10 @@ export default function User(){
             </div>
             <div className="mt-8 text-lg font-bold text-gray-500">データ更新・削除</div>
             <div className="ml-3">
-            <div className="mt-2 font-semibold">イベント設定更新</div>
-            <div className="text-sm">イベント設定項目のうち、「UI画面」と「利用期間」は常時変更可能です。また、イベントのアクセスコードはQRコード発行のページから変更可能です。</div>
-            <div className="mt-8 font-semibold">Q&Aデータ更新</div>
+            <div className="mt-2 font-semibold">Q&Aデータ更新</div>
             <div className="text-sm">Q&Aデータは個別に修正を加えることが可能です。</div>
+            <div className="mt-8 font-semibold">イベント複製</div>
+            <div className="text-sm">既存のイベント・Q&Aデータを複製して別のイベントとして登録できます。</div>
             <div className="mt-8 font-semibold">イベント削除</div>
             <div className="text-sm">イベントは削除可能です。</div>
             </div>
@@ -41,8 +41,8 @@ export default function User(){
             <div className="text-sm">登録したイベントおよびQ&A情報は登録情報一覧で確認できます。自動生成した外国語翻訳文、AI音声、添付書類なども確認できます。</div>
             <div className="mt-8 font-semibold">QRコード発行</div>
             <div className="text-sm">ユーザーが使用するWEBアプリのURLをQRコードで発行することができます。</div>
-            <div className="mt-8 font-semibold">進捗確認・分析</div>
-            <div className="text-sm">ユーザーの利用状況を取得、解析するページです。ただいま構築中です。</div>            
+            <div className="mt-8 font-semibold">会話応答分析</div>
+            <div className="text-sm">ユーザーの利用状況を取得、解析するページです。</div>            
             </div>
         </div>
     )

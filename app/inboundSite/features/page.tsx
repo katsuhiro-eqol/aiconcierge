@@ -1,8 +1,7 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+import YouTubeEmbed from "@/app/components/youtubeEmbedded";
 import { ChevronRight, Zap, Globe, Info, Menu, X, Star, Smile, Paperclip, MicVocal, FolderKanban, FileStack } from 'lucide-react';
-import Image from 'next/image';
 
 export default function Features() {
   const [scrollY, setScrollY] = useState(0);
@@ -94,18 +93,24 @@ export default function Features() {
             <div className="text-base text-slate-800">登録したQ&Aデータは常時修正・更新・削除が可能です。またデータの追加も簡単です</div>
             <div className="text-base text-slate-800">チャットボットとは異なり、単に用意した回答を返すだけでなく、ユーザー質問に応じてQA情報を再編集するアルゴリズムを採用しています</div>
             <div className="text-base text-slate-800">QA情報の登録にはエクセルやスプレッドシートのテンプレートを用意しています</div>
-            <img className="min-w-72 w-2/5 mx-auto mt-8 opacity-60" src="/QAtable.png" alt="エクセルやスプレッドシート" />
+            <img className="min-w-72 w-3/5 mx-auto mt-8 opacity-60" src="/QAtable.png" alt="エクセルやスプレッドシート" />
+            <div className="mt-8 mb-8 w-3/5 mx-auto">
+            <YouTubeEmbed videoId="p_fKVBbyUN8?si=_7TC6TnTWzP8yJb0" title="インバウンドコンシェルジュ紹介動画"/>
+            </div>
         </section>
         <section id="generative" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
             <div className="mb-5 font-bold text-2xl text-blue-800">インターネット情報を活用</div>
             <div className="text-base text-slate-800">登録されたQAに該当する情報がない、あるいは不足する場合はインターネット情報等を組み合わせて回答を生成します</div>
             <div className="text-base text-slate-800">サービスを提供する拠点情報をもとに、交通アクセスや周辺情報などを回答したり、指定したインターネットページのみを参照させたりも可能です</div>
+            <img className="min-w-72 w-3/5 mx-auto mt-8" src="/回答アルゴリズム.png" alt="回答生成アルゴリズム" />
         </section>
         <section id="language" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
             <div className="mb-5 font-bold text-2xl text-blue-800">多言語対応</div>
             <div className="text-base text-slate-800">日本語でQA情報を登録するだけで、多言語に対応したAIコンシェルジュを生成できます</div>
-            <div className="text-base text-slate-800">現時点で、日本語（デフォルト）、英語、中国語（簡体）、中国語（繁体）、韓国語に対応可能です</div>
-            <div className="text-base text-slate-800">インバウンドコンシェルジュアプリを利用するユーザーが使用言語を指定します</div>
+            <div className="text-base text-slate-800">デフォルトで日本語、英語、中国語（簡体）、中国語（繁体）、韓国語を使用できます</div>
+            <div className="text-base text-slate-800">これ以外の言語に関しても応相談です</div>
+            <div className="text-base text-slate-800">テキスト表示以外に、音声認識、音声出力も多言語対応しています</div>
+            <div className="text-base text-slate-800">インバウンドコンシェルジュアプリを利用する際にユーザーが使用言語を指定します</div>
         </section>
         <section id="voice" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
             <div className="mb-5 font-bold text-2xl text-blue-800">音声認識＆AIボイス（オプション）</div>
