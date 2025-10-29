@@ -2,7 +2,6 @@
 import React from 'react';
 import YouTubeEmbed from "@/app/components/youtubeEmbedded";
 
-
 export default function InboundSite() {
 
   return (

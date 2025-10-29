@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Header from "@/app//components/headerbar"
+import { Analytics } from "@vercel/analytics/next"
 import "@/app/globals.css";
 
 export const metadata: Metadata = {
@@ -31,6 +32,7 @@ export default function RootLayout({
       <body>
         <Header />
         {children}
+        <Analytics />
         <footer className="relative z-10 py-12 bg-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
