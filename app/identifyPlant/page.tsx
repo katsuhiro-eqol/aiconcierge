@@ -48,7 +48,7 @@ export default function PlantIdentifierTest() {
         reader.onerror = () => reject(new Error('Base64変換に失敗しました'));
       });
 
-      // APIを呼び出し
+      // APIを呼び出し'/api/identifyPlant'
       const apiResponse = await fetch('/api/identifyPlant', {
         method: 'POST',
         headers: {
@@ -64,6 +64,7 @@ export default function PlantIdentifierTest() {
 
       const data: PlantIdentificationResponse = await apiResponse.json();
       setResult(data);
+      console.log(data)
 
     } catch (err) {
       console.error('Error:', err);
