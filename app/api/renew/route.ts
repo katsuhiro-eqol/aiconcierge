@@ -3,6 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "edge";
 
+// 環境変数の確認
+if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+  console.error('KV環境変数が設定されていません:', {
+    hasUrl: !!process.env.KV_REST_API_URL,
+    hasToken: !!process.env.KV_REST_API_TOKEN,
+  });
+}
+
 const kv = createClient({
     url: process.env.KV_REST_API_URL!,     // ← UpstashのREST URL
     token: process.env.KV_REST_API_TOKEN!, // ← UpstashのREST TOKEN

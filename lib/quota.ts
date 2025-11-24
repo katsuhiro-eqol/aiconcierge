@@ -1,5 +1,11 @@
 // lib/quota.ts
-import { kv } from "@vercel/kv";
+import { createClient } from "@vercel/kv";
+
+// KVクライアントを明示的に作成（環境変数から読み込む）
+const kv = createClient({
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
+});
 
 type Opts = {
   sessionId: string;
@@ -14,6 +20,15 @@ export async function checkQuotaOrThrow({
   limit,
   windowSec = 60 * 60 * 24,
 }: Opts) {
+  // 環境変数の確認（デバッグ用）
+  if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+    console.error('KV環境変数が設定されていません:', {
+      hasUrl: !!process.env.KV_REST_API_URL,
+      hasToken: !!process.env.KV_REST_API_TOKEN,
+    });
+    throw new Error('KV環境変数が設定されていません');
+  }
+
   const key = `quota:${functionName}:${sessionId}`;
   console.log("key", key)
   // 原子的にカウント
