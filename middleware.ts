@@ -6,11 +6,13 @@ const COOKIE = "session_id";
 
 // KVクライアントを取得する関数（実行時に環境変数を読み込む）
 function getKvClient() {
+  console.log('[GET_KV_CLIENT START]');
+  
   const url = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
   
-  // デバッグ用ログ
-  console.log('KV環境変数チェック:', {
+  // デバッグ用ログ（確実に表示されるように）
+  console.log('[KV環境変数チェック]', {
     hasUrl: !!url,
     hasToken: !!token,
     token20: token?.slice(0,20),
@@ -19,35 +21,53 @@ function getKvClient() {
   });
   
   if (!url || !token) {
+    console.log('[KV CLIENT] 環境変数が不足しているためnullを返す');
     return null;
   }
   
-  return createClient({
-    url,
-    token,
-  });
+  try {
+    const client = createClient({
+      url,
+      token,
+    });
+    console.log('[KV CLIENT] クライアント作成成功');
+    return client;
+  } catch (error) {
+    console.error('[KV CLIENT] エラー:', error);
+    return null;
+  }
 }
 
   // ミドルウェア関数
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   
+  // 最初にログを出力（確実に表示されるように）
+  console.log('[MIDDLEWARE START]', path);
+  
   // クッキーの読み込み（デバッグ用）
   const cookieHeader = request.headers.get('cookie');
   const sid = request.cookies.get(COOKIE)?.value;
   
-  // KVクライアントを実行時に取得（Edge Runtimeではこれが重要）
-  const kv = getKvClient();
-  
-  // デバッグログ
-  console.log('Middleware debug:', {
-    path,
+  console.log('[COOKIE CHECK]', {
     hasCookieHeader: !!cookieHeader,
     cookieHeaderLength: cookieHeader?.length || 0,
     sidValue: sid || 'undefined',
     allCookies: request.cookies.getAll().map(c => c.name),
   });
   
+  // KVクライアントを実行時に取得（Edge Runtimeではこれが重要）
+  console.log('[BEFORE KV CLIENT]');
+  const kv = getKvClient();
+  console.log('[AFTER KV CLIENT]', { kvIsNull: kv === null, kvIsUndefined: kv === undefined });
+  
+  // KVとSIDの状態をログ出力
+  const kvStatus = (kv === null || kv === undefined) ? "kv:false" : "kv:OK";
+  const sidStatus = (sid === null || sid === undefined) ? "sid:false" : "sid:OK";
+  
+  console.log('[STATUS]', { kvStatus, sidStatus });
+  
+  // 個別のログも出力（互換性のため）
   if (kv === null || kv === undefined){
     console.log("kv:false")
   } else {
