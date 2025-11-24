@@ -19,6 +19,7 @@ function randomId() {
 }
 
 export async function GET(request: NextRequest) {
+  console.log("renew")
   const sid = request.cookies.get(COOKIE)?.value || randomId();
 
   const now = Date.now();
