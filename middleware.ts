@@ -2,20 +2,52 @@ import { NextResponse } from 'next/server';
 import { createClient } from "@vercel/kv"
 import type { NextRequest } from 'next/server';
 
-// 環境変数が設定されている場合のみKVクライアントを作成
-const kv = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN 
-  ? createClient({
-      url: process.env.KV_REST_API_URL,
-      token: process.env.KV_REST_API_TOKEN,
-    })
-  : null;
-
 const COOKIE = "session_id";
 
-// ミドルウェア関数
+// KVクライアントを取得する関数（実行時に環境変数を読み込む）
+function getKvClient() {
+  const url = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
+  
+  // デバッグ用ログ
+  console.log('KV環境変数チェック:', {
+    hasUrl: !!url,
+    hasToken: !!token,
+    token20: token?.slice(0,20),
+    urlLength: url?.length || 0,
+    tokenLength: token?.length || 0,
+  });
+  
+  if (!url || !token) {
+    return null;
+  }
+  
+  return createClient({
+    url,
+    token,
+  });
+}
+
+  // ミドルウェア関数
 export async function middleware(request: NextRequest) {
-  const path = request.nextUrl.pathname
+  const path = request.nextUrl.pathname;
+  
+  // クッキーの読み込み（デバッグ用）
+  const cookieHeader = request.headers.get('cookie');
   const sid = request.cookies.get(COOKIE)?.value;
+  
+  // KVクライアントを実行時に取得（Edge Runtimeではこれが重要）
+  const kv = getKvClient();
+  
+  // デバッグログ
+  console.log('Middleware debug:', {
+    path,
+    hasCookieHeader: !!cookieHeader,
+    cookieHeaderLength: cookieHeader?.length || 0,
+    sidValue: sid || 'undefined',
+    allCookies: request.cookies.getAll().map(c => c.name),
+  });
+  
   if (kv === null || kv === undefined){
     console.log("kv:false")
   } else {
