@@ -218,15 +218,20 @@ export default function UpdaateQA(){
     const updateQA = async () => {
         if ((newAnswer !== ""&& newQuestion !== "") && selectedQA){
             setStatus2("更新を開始しました")
-            const translatedAnswers = await createForeign(newAnswer, eventData!.languages)
+            const answers = await createForeign(newAnswer, eventData!.languages)
+            console.log(answers)
             if (voiceSetting){
-                for (const answer of translatedAnswers){
-                    const lang = Object.keys(answer)[0]
-                    const ans = answer[lang]
+                for (const lang in Object.keys(answers)){
+                    const ans = answers[lang]
+                    console.log(lang)
+                    console.log(ans)
                     const idWord = `${String(eventData!.voiceNumber)}-${ans.trim()}`
                     const voiceId = `${md5(idWord)}`//voiceIdはtrimした値
-                    await registerVoice(voiceId, ans, lang, answer["日本語"], eventData!.voiceNumber, false)
+                    console.log(voiceId)
+                    console.log(voiceId,ans,newAnswer,eventData!.voiceNumber,"false")
+                    await registerVoice(voiceId, ans, lang, newAnswer, eventData!.voiceNumber, false)
                 }
+
             }
             const embedding = await createEmbedding(newQuestion,eventData!.embedding)
             const eventId = organization + "_" + event
@@ -235,7 +240,7 @@ export default function UpdaateQA(){
                 question:newQuestion,
                 answer:newAnswer,
                 read:newAnswer,
-                foreign:translatedAnswers,
+                foreign:answers,
                 vector:embedding
             }
             const docRef = doc(db, "Events", eventId, "QADB",qaId)
@@ -244,14 +249,13 @@ export default function UpdaateQA(){
             setIsUpdateFinished(true)
         } else if ((newQuestion === "" && newAnswer !== "") && selectedQA) {
             setStatus2("更新を開始しました")
-            const translatedAnswers = await createForeign(newAnswer, eventData!.languages)
+            const answers = await createForeign(newAnswer, eventData!.languages)
             if (voiceSetting){
-                for (const answer of translatedAnswers){
-                    const lang = Object.keys(answer)[0]
-                    const ans = answer[lang]
+                for (const lang of Object.keys(answers)){
+                    const ans = answers[lang]
                     const idWord = `${String(eventData!.voiceNumber)}-${ans.trim()}`
                     const voiceId = `${md5(idWord)}`//voiceIdはtrimした値                    const voiceId = `${md5(ans.trim())}`
-                    await registerVoice(voiceId, ans, lang, answer["日本語"], eventData!.voiceNumber, false)
+                    await registerVoice(voiceId, ans, lang, newAnswer, eventData!.voiceNumber, false)
                 }
             }
             const eventId = organization + "_" + event
@@ -259,7 +263,7 @@ export default function UpdaateQA(){
             const data = {
                 answer:newAnswer,
                 read:newAnswer,
-                foreign:translatedAnswers,
+                foreign:answers,
             }
             const docRef = doc(db, "Events", eventId, "QADB",qaId)
             await setDoc(docRef, data, {merge:true})
@@ -373,14 +377,13 @@ export default function UpdaateQA(){
     const addQA = async() => {
         if (newQuestion && newAnswer){
             setStatus2("Q&A登録を開始しました")
-            const translatedAnswers = await createForeign(newAnswer, eventData!.languages)
+            const answers = await createForeign(newAnswer, eventData!.languages)
             if (voiceSetting){
-                for (const answer of translatedAnswers){
-                    const lang = Object.keys(answer)[0]
-                    const ans = answer[lang]
+                for (const lang of Object.keys(answers)){
+                    const ans = answers[lang]
                     const idWord = `${String(eventData!.voiceNumber)}-${ans.trim()}`
                     const voiceId = `${md5(idWord)}`//voiceIdはtrimした値
-                    await registerVoice(voiceId, ans, lang, answer["日本語"], eventData!.voiceNumber, false)
+                    await registerVoice(voiceId, ans, lang, newAnswer, eventData!.voiceNumber, false)
                 }
             }
             const embedding = await createEmbedding(newQuestion,eventData!.embedding)
@@ -401,7 +404,7 @@ export default function UpdaateQA(){
                         modalUrl: modalData[0].url,
                         modalPath: modalData[0].path,
                         vector:embedding,
-                        foreign:translatedAnswers,
+                        foreign:answers,
                     }
                     await setDoc(docRef, data)
                     setTimeout(() => {
@@ -422,7 +425,7 @@ export default function UpdaateQA(){
                         modalUrl: "",
                         modalPath: "",
                         vector:embedding,
-                        foreign:translatedAnswers,
+                        foreign:answers,
                     }
                     await setDoc(docRef, data)
                     setStatus2("Q&Aの追加が完了しました")
