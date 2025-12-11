@@ -219,7 +219,6 @@ export default function UpdaateQA(){
         if ((newAnswer !== ""&& newQuestion !== "") && selectedQA){
             setStatus2("更新を開始しました")
             const answers = await createForeign(newAnswer, eventData!.languages)
-            console.log(answers)
             if (voiceSetting){
                 for (const lang in Object.keys(answers)){
                     const ans = answers[lang]
