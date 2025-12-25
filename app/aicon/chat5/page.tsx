@@ -102,24 +102,10 @@ export default function Aicon() {
         await ctx.resume(); // iOSでsuspend解除
         stop();
 
-        // iOSで音声出力をスピーカーに確実に設定する
+        // iOSでAudioContextが確実にresumeされていることを確認
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        if (isIOS) {
-            try {
-                // AudioContextの状態を確認して、必要に応じて再初期化
-                if (ctx.state === 'suspended') {
-                    await ctx.resume();
-                }
-                // 無音を短く再生してスピーカー出力を確実にする
-                const silentBuf = ctx.createBuffer(1, 1, 22050);
-                const silentSrc = ctx.createBufferSource();
-                silentSrc.buffer = silentBuf;
-                silentSrc.connect(ctx.destination);
-                silentSrc.start(0);
-                await sleep(50); // 短い待機時間
-            } catch (error) {
-                console.error('iOS audio routing setup error:', error);
-            }
+        if (isIOS && ctx.state === 'suspended') {
+            await ctx.resume();
         }
 
         const ab = await (await fetch(`/api/audio-proxy?src=${encodeURIComponent(url)}`, {
@@ -676,24 +662,16 @@ export default function Aicon() {
             
             closeMic()
             
-            // iOSで音声出力をスピーカーに戻すための処理
+            // iOSで音声出力をスピーカーに戻すための処理（AudioContextを確実にresume）
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
             if (isIOS && ctxRef.current) {
-                // AudioContextを一時的に停止して再開することで、オーディオルーティングをリセット
                 try {
-                    await ctxRef.current.suspend();
-                    await sleep(100); // 短い待機時間
-                    await ctxRef.current.resume();
-                    // 無音を再生してスピーカー出力を確実にする
-                    const ctx = ctxRef.current;
-                    const buf = ctx.createBuffer(1, 1, 22050);
-                    const src = ctx.createBufferSource();
-                    src.buffer = buf;
-                    src.connect(ctx.destination);
-                    src.start(0);
-                    await sleep(50);
+                    // AudioContextがsuspended状態の場合はresume
+                    if (ctxRef.current.state === 'suspended') {
+                        await ctxRef.current.resume();
+                    }
                 } catch (error) {
-                    console.error('AudioContext reset error:', error);
+                    console.error('AudioContext resume error:', error);
                 }
             }
         } catch(error) {
