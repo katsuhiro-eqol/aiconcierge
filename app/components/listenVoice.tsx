@@ -51,7 +51,7 @@ export default function ListenVoice({foreign, answer, voiceNumber, setIsAudio}:V
 
     return (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-20 flex items-center justify-center z-50">
-            <div className="flex flex-col w-96 h-11/12 bg-white p-6 rounded-lg shadow-lg relative ml-auto mr-24 mt-auto mb-24">
+            <div className="flex flex-col w-1/2 h-11/12 bg-white p-6 rounded-lg shadow-lg relative ml-auto mr-24 mt-auto mb-24 overflow-y-scroll">
             <div className="mb-2 text-center text-sm">{answer}</div>
             {Array.isArray(voiceUrlList) && voiceUrlList.map((ans, index) => (
                 <div key={index}>
@@ -63,7 +63,7 @@ export default function ListenVoice({foreign, answer, voiceNumber, setIsAudio}:V
                 </div>
                 )
             )}
-            <button className="text-xs border-2 w-16 h-6 mt-auto mb-1 mx-auto bg-slate-100" onClick={() => closeAudio()}>閉じる</button>
+            <button className="text-xs border-2 w-16 h-6 mt-4 mb-1 mx-auto bg-slate-100" onClick={() => closeAudio()}>閉じる</button>
             </div>
         </div>
     )

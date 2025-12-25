@@ -698,7 +698,7 @@ export default function Aicon() {
     useEffect(() => {
         if (Array.isArray(slides)){
             if (currentIndex === slides.length-2 && currentIndex != 0){
-                const s = initialSlides
+                //const s = initialSlides
                 setCurrentIndex(0)
                 setWavUrl(no_sound)
                 setSlides(Array(1).fill(initialSlides))
@@ -717,7 +717,7 @@ export default function Aicon() {
 
     useEffect(() => {
         clearSilenceTimer()
-        if (userInput.length !== 0){
+        if (userInput.length !== 0 && currentIndex == 0){
             setCanSend(true)
         } else {
             setCanSend(false)
@@ -726,6 +726,15 @@ export default function Aicon() {
             scheduleSilenceStop()
         }
     }, [userInput])
+
+    useEffect(() => {
+        if (userInput.length !== 0 && currentIndex == 0 && wavUrl == no_sound){
+            setCanSend(true)
+        } else {
+            setCanSend(false)
+        }
+    }, [wavUrl])
+
 
     // 音声ファイルの読み込み完了時の処理
     useEffect(() => {
@@ -774,7 +783,8 @@ export default function Aicon() {
                     )}
                     <p>{message.text}</p>
                     </div>
-                    {message.modalUrl && <img src={message.modalUrl} alt={message.modalFile??"image"} className="mt-2 w-24 h-24 mx-auto hover:cursor-pointer" onClick={() => {setIsModal(true); setModalUrl(message.modalUrl); setModalFile(message.modalFile)}} />}
+                    {message.modalUrl && message.modalFile.includes(".pdf") && <img src={"/document.png"} alt={"PDF"} className="mt-2 w-24 h-6 mx-auto hover:cursor-pointer" onClick={() => {setIsModal(true); setModalUrl(message.modalUrl); setModalFile(message.modalFile)}} />}
+                    {message.modalUrl && !message.modalFile.includes(".pdf") && <img src={message.modalUrl} alt={message.modalFile??"Image"} className="mt-2 w-24 h-24 mx-auto hover:cursor-pointer" onClick={() => {setIsModal(true); setModalUrl(message.modalUrl); setModalFile(message.modalFile)}} />}
                     {isModal && (<Modal setIsModal={setIsModal} modalUrl={modalUrl} modalFile={modalFile} />)}
                     </div>
                 </div>
@@ -812,9 +822,10 @@ export default function Aicon() {
                 </button>
                 )}
                 </div>
-                {isModal && (
-                    <Modal setIsModal={setIsModal} modalUrl={modalUrl} modalFile={modalFile}/>
-                )}
+
+
+
+
                 </div>
             </div>
         </div>):(
@@ -865,6 +876,10 @@ export default function Aicon() {
 }
 
 /*
+                {isModal && (
+                    <Modal setIsModal={setIsModal} modalUrl={modalUrl} modalFile={modalFile}/>
+                )}
+
    // 認証情報を保護する選択的キャッシュクリア
     const clearProblematicCache = () => {
         const keysToRemove = [];

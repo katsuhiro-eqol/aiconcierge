@@ -5,7 +5,7 @@ import React from "react";
 import { useSearchParams as useSearchParamsOriginal } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-import { Mic, Send, Eraser, X, LoaderCircle } from 'lucide-react';
+import { Mic, Send, Eraser, X, LoaderCircle, CircleStop } from 'lucide-react';
 import { db } from "@/firebase";
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion, increment } from "firebase/firestore";
 import Modal from "../../components/modalModal"
@@ -204,7 +204,7 @@ export default function Aicon() {
         const offset = date.getTimezoneOffset() * 60000
         const localDate = new Date(date.getTime() - offset)
         const now = localDate.toISOString()
-
+        resetTranscript()
         setUserInput("")
         
         const res = await fetch("/api/checkHugeRequest", { method: "POST" });
@@ -570,8 +570,8 @@ export default function Aicon() {
         }
     }
 
-    const inputClear = async () => {
-        await sttStop()
+    const inputClear = () => {
+        resetTranscript()
         setUserInput("")
     }
 
@@ -648,7 +648,7 @@ export default function Aicon() {
                 await waitUntil(() => !listening, hardWaitMs);
             }
             await sleep(cooldownMs)
-            resetTranscript();
+            
             closeMic()
         } catch(error) {
             console.error('音声認識の停止に失敗:', error)
@@ -741,7 +741,7 @@ export default function Aicon() {
     useEffect(() => {
         if (Array.isArray(slides)){
             if (currentIndex === slides.length-2 && currentIndex !== 0){
-                const s = initialSlides
+                //const s = initialSlides
                 setCurrentIndex(0)
                 setWavUrl("/noSound.wav")
 
@@ -761,7 +761,7 @@ export default function Aicon() {
     }, [transcript])
 
     useEffect(() => {
-        if (userInput.length !== 0){
+        if (userInput.length !== 0 && currentIndex == 0 && !listening){
             setCanSend(true)
         } else {
             setCanSend(false)
@@ -769,15 +769,19 @@ export default function Aicon() {
     }, [userInput])
 
     useEffect(() => {
-        console.log("listening state change")
-        /*
-        if (listening === false && userInput === "") {
-            if (audioRef.current) {
-                // デバイスのボリュームに追随
-                audioRef.current.volume = 1.0;
-            }
+        if (userInput.length !== 0 && currentIndex == 0 && wavUrl == "/noSound.wav" && !listening){
+            setCanSend(true)
+        } else {
+            setCanSend(false)
         }
-        */
+    }, [wavUrl])
+
+    useEffect(() => {
+        if (!listening && userInput.length !== 0 && currentIndex == 0){
+            setCanSend(true)
+        } else {
+            setCanSend(false)
+        }
     }, [listening])
  
     return (
@@ -806,7 +810,8 @@ export default function Aicon() {
                     )}
                     <p>{message.text}</p>
                     </div>
-                    {message.modalUrl && <img src={message.modalUrl} alt={message.modalFile??"image"} className="mt-2 w-24 h-24 mx-auto hover:cursor-pointer" onClick={() => {setIsModal(true); setModalUrl(message.modalUrl); setModalFile(message.modalFile)}} />}
+                    {message.modalUrl && message.modalFile.includes(".pdf") && <img src={"/document.png"} alt={"PDF"} className="mt-2 w-24 h-6 mx-auto hover:cursor-pointer" onClick={() => {setIsModal(true); setModalUrl(message.modalUrl); setModalFile(message.modalFile)}} />}
+                    {message.modalUrl && !message.modalFile.includes(".pdf") && <img src={message.modalUrl} alt={message.modalFile??"Image"} className="mt-2 w-24 h-24 mx-auto hover:cursor-pointer" onClick={() => {setIsModal(true); setModalUrl(message.modalUrl); setModalFile(message.modalFile)}} />}
                     {isModal && (<Modal setIsModal={setIsModal} modalUrl={modalUrl} modalFile={modalFile} />)}
                     </div>
                 </div>
@@ -823,16 +828,21 @@ export default function Aicon() {
                 onChange={(e) => setUserInput(e.target.value)}
             />
             <div  className="flex flex-row gap-x-4 justify-center">
-            {!listening ?(     
-                <button className="flex items-center mr-5 mx-auto border-2 border-sky-600 p-2 text-sky-800 bg-white text-xs rounded" disabled={!wavReady} onClick={sttStart}>
+            {!listening && userInput ==="" ?(     
+                <button className="flex items-center mx-auto border-2 border-sky-600 p-2 text-sky-800 bg-white text-xs rounded" disabled={currentIndex > 0} onClick={sttStart}>
                 <Mic size={16} />
                 音声入力(mic)
                 </button>
-            ):(
-                <button className="flex items-center mr-5 mx-auto text-xs border-2 bg-pink-600 text-white p-2 rounded" onClick={async() => {await inputClear()}}>
+            ):!listening && userInput !=="" ?(
+                <button className="flex items-center mx-auto text-xs border-2 bg-gray-600 text-white p-2 rounded" onClick={() => inputClear()}>
                 <Eraser size={16} />
                 クリア(clear)
-                </button>)}
+                </button>
+            ):(<button className="flex items-center mx-auto text-xs border-2 bg-pink-600 text-white p-2 rounded" onClick={async() => {await sttStop()}}>
+            <CircleStop size={16} />
+            入力停止(stop)
+            </button>)}
+
             {canSend ? (
                 <button className="flex items-center ml-5 mx-auto border-2 bg-sky-600 text-white p-2 text-xs rounded" onClick={async() => {await sendMessage2()}}>
                 <Send size={16} />

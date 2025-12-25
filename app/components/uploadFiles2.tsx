@@ -53,7 +53,7 @@ export default function FileUploadPage2({modal, setIsReady, setModalData, organi
   const { getRootProps, getInputProps, isDragActive, fileRejections } = useDropzone({
     onDrop,
     accept: {
-      //'application/pdf': ['.pdf'],
+      'application/pdf': ['.pdf'],
       //'text/plain': ['.txt'],
       'image/jpeg': ['.jpg', '.jpeg'],
       'image/png': ['.png']
@@ -142,7 +142,7 @@ export default function FileUploadPage2({modal, setIsReady, setModalData, organi
           ) : (
             <>
               <p className="text-gray-600 text-sm">ファイルをドラッグ＆ドロップしてください</p>
-              <p className="text-xs text-gray-500">対応ファイル: JPG, PNG (最大 5MB)</p>
+              <p className="text-xs text-gray-500">対応ファイル: JPG, PNG, PDF (最大 5MB)</p>
             </>
           )}
         </div>

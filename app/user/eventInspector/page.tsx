@@ -34,6 +34,7 @@ export default function EventInspector(){
     const buttons = [
         { key: 'all', label: '全会話閲覧'},
         { key: 'unanswerable', label: '回答不能質問'},
+        { key: 'public_information', label: '公開情報回答'},
         { key: 'time_series', label: '会話数推移'}
     ]
 
@@ -246,6 +247,7 @@ export default function EventInspector(){
             </div>
             )}
             {(selectedAnalysis ==="unanswerable") && (<div className="text-red-500">Under Construction</div>)}
+            {(selectedAnalysis ==="public_information") && (<div className="text-red-500">Under Construction</div>)}
             {(selectedAnalysis ==="time_series") && (<div className="text-red-500">Under Construction</div>)}
         </div>
     )

@@ -288,6 +288,7 @@ export default function UpdaateQA(){
 
     const updateModal = async() => {
         if (newModal === ""){
+            alert("添付ファイルは削除されます")
             const data = {
                 modalFile:"",
                 modalPath:"",
@@ -695,7 +696,9 @@ export default function UpdaateQA(){
                     {modalFiles && (
                         <div className="w-2/3">
                         <UploadFiles2 modal={modalFiles} setIsReady={setIsReady} setModalData={setModalData} organization={organization} event={event} setErrors={setErrors} />
+                        {isReady && (<div className="text-sm ml-3 text-green-500">Q&Aデータ更新の準備ができました</div>)}
                         </div>
+                        
                     )}
                     <div className="ml-3 mt-5">
                     <div className="flex flex-row gap-x-4">
