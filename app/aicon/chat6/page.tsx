@@ -627,7 +627,7 @@ export default function Aicon() {
     }, []);
 
     useEffect(() => {
-        if (recognizing){
+        if (recognizing || currentIndex>0){
             setRecord(true)
         } else {
             setRecord(false)
