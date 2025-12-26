@@ -19,7 +19,7 @@ export default function DownloadableQRCode(){
     const qrCodeRef = useRef(null);
     const size:number = 144
 
-    const options = ["AZURE STT", "react-speech-recognition", "音声入力/AIボイスなし"]
+    const options = ["AZURE STT", "react-speech-recognition", "音声入力/AIボイスなし", "local_test"]
     const loadEvents = async (org:string) => {
         try {
             const docRef = doc(db, "Users", org)
@@ -130,6 +130,10 @@ export default function DownloadableQRCode(){
         } else if (selectedOption === "react-speech-recognition") {
             const aiconUrl = `/aicon/chat5?attribute=${organization}_${event}&code=${code}`
             const renewUrl = `${rootUrl}api/renew?to=${encodeURIComponent(aiconUrl)}`
+            setUrl(renewUrl)
+        } else if (selectedOption === "local_test"){
+            const aiconUrl = `/aicon/chat5?attribute=${organization}_${event}&code=${code}`
+            const renewUrl = `http://192.168.0.101:3000/api/renew?to=${encodeURIComponent(aiconUrl)}`
             setUrl(renewUrl)
         } else {
             const aiconUrl = `/aicon/chat4?attribute=${organization}_${event}&code=${code}`

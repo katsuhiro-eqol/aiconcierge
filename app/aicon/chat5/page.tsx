@@ -104,8 +104,25 @@ export default function Aicon() {
 
         // iOSでAudioContextが確実にresumeされていることを確認
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        if (isIOS && ctx.state === 'suspended') {
-            await ctx.resume();
+        if (isIOS) {
+            if (ctx.state === 'suspended') {
+                await ctx.resume();
+            }
+            // 音声再生前にHTMLAudioElementで無音を再生してスピーカー出力を確実にする
+            if (audioRef.current && url !== "/noSound.wav") {
+                try {
+                    const originalSrc = audioRef.current.src;
+                    audioRef.current.src = '/noSound.wav';
+                    audioRef.current.volume = 0.01;
+                    await audioRef.current.play();
+                    await sleep(50);
+                    audioRef.current.pause();
+                    audioRef.current.src = originalSrc;
+                    audioRef.current.volume = 1.0;
+                } catch (error) {
+                    console.error('iOS audio routing setup error:', error);
+                }
+            }
         }
 
         const ab = await (await fetch(`/api/audio-proxy?src=${encodeURIComponent(url)}`, {
@@ -662,16 +679,27 @@ export default function Aicon() {
             
             closeMic()
             
-            // iOSで音声出力をスピーカーに戻すための処理（AudioContextを確実にresume）
+            // iOSで音声出力をスピーカーに戻すための処理
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-            if (isIOS && ctxRef.current) {
+            if (isIOS) {
                 try {
                     // AudioContextがsuspended状態の場合はresume
-                    if (ctxRef.current.state === 'suspended') {
+                    if (ctxRef.current && ctxRef.current.state === 'suspended') {
                         await ctxRef.current.resume();
                     }
+                    // HTMLAudioElementで無音を短く再生してスピーカー出力を強制
+                    if (audioRef.current) {
+                        const originalSrc = audioRef.current.src;
+                        audioRef.current.src = '/noSound.wav';
+                        audioRef.current.volume = 0.01; // ほぼ無音だが、オーディオルーティングを確立
+                        await audioRef.current.play();
+                        await sleep(100); // 短い待機時間
+                        audioRef.current.pause();
+                        audioRef.current.src = originalSrc; // 元のsrcに戻す
+                        audioRef.current.volume = 1.0; // 音量を戻す
+                    }
                 } catch (error) {
-                    console.error('AudioContext resume error:', error);
+                    console.error('iOS audio routing reset error:', error);
                 }
             }
         } catch(error) {
