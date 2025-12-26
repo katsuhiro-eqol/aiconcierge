@@ -689,14 +689,18 @@ export default function Aicon() {
                     }
                     // HTMLAudioElementで無音を短く再生してスピーカー出力を強制
                     if (audioRef.current) {
-                        const originalSrc = audioRef.current.src;
-                        audioRef.current.src = '/noSound.wav';
-                        audioRef.current.volume = 0.01; // ほぼ無音だが、オーディオルーティングを確立
-                        await audioRef.current.play();
-                        await sleep(100); // 短い待機時間
-                        audioRef.current.pause();
-                        audioRef.current.src = originalSrc; // 元のsrcに戻す
-                        audioRef.current.volume = 1.0; // 音量を戻す
+                        try {
+                            const originalSrc = audioRef.current.src;
+                            audioRef.current.src = '/noSound.wav';
+                            audioRef.current.volume = 0.01; // ほぼ無音だが、オーディオルーティングを確立
+                            await audioRef.current.play();
+                            await sleep(100); // 短い待機時間
+                            audioRef.current.pause();
+                            audioRef.current.src = originalSrc; // 元のsrcに戻す
+                            audioRef.current.volume = 1.0; // 音量を戻す
+                        } catch (error) {
+                            console.error('iOS audio routing reset: audioRef error:', error);
+                        }
                     }
                 } catch (error) {
                     console.error('iOS audio routing reset error:', error);
