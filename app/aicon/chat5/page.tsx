@@ -126,13 +126,21 @@ export default function Aicon() {
                 }
             }
 
+            console.log('[playUrl] Fetching audio', { url: url.substring(0, 100) }); // URLの最初の100文字のみログ
+            
             const response = await fetch(`/api/audio-proxy?src=${encodeURIComponent(url)}`, {
                 cache: "no-store",
             });
             
             if (!response.ok) {
-                console.error('audio-proxy fetch failed:', response.status, response.statusText);
-                throw new Error(`Audio fetch failed: ${response.status} ${response.statusText}`);
+                const errorText = await response.text().catch(() => 'Unable to read error response');
+                console.error('[playUrl] audio-proxy fetch failed:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    url: url.substring(0, 100),
+                    errorText: errorText.substring(0, 200)
+                });
+                throw new Error(`Audio fetch failed: ${response.status} ${response.statusText} - ${errorText.substring(0, 100)}`);
             }
             
             const ab = await response.arrayBuffer();
