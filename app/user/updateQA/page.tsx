@@ -220,7 +220,7 @@ export default function UpdaateQA(){
             setStatus2("更新を開始しました")
             const answers = await createForeign(newAnswer, eventData!.languages)
             if (voiceSetting){
-                for (const lang in Object.keys(answers)){
+                for (const lang of Object.keys(answers)){
                     const ans = answers[lang]
                     console.log(lang)
                     console.log(ans)
@@ -253,7 +253,7 @@ export default function UpdaateQA(){
                 for (const lang of Object.keys(answers)){
                     const ans = answers[lang]
                     const idWord = `${String(eventData!.voiceNumber)}-${ans.trim()}`
-                    const voiceId = `${md5(idWord)}`//voiceIdはtrimした値                    const voiceId = `${md5(ans.trim())}`
+                    const voiceId = `${md5(idWord)}`//voiceIdはtrimした値
                     await registerVoice(voiceId, ans, lang, newAnswer, eventData!.voiceNumber, false)
                 }
             }

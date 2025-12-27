@@ -98,58 +98,79 @@ export default function Aicon() {
 
     /** URLの音声をデコードして再生（完了まで待つ） */
     const playUrl = async (url: string) => {
-        const ctx = ensureCtx();
-        await ctx.resume(); // iOSでsuspend解除
-        stop();
+        try {
+            const ctx = ensureCtx();
+            await ctx.resume(); // iOSでsuspend解除
+            stop();
 
-        // iOSでAudioContextが確実にresumeされていることを確認
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        if (isIOS) {
-            if (ctx.state === 'suspended') {
-                await ctx.resume();
-            }
-            // 音声再生前にHTMLAudioElementで無音を再生してスピーカー出力を確実にする
-            if (audioRef.current && url !== "/noSound.wav") {
-                try {
-                    const originalSrc = audioRef.current.src;
-                    audioRef.current.src = '/noSound.wav';
-                    audioRef.current.volume = 0.01;
-                    await audioRef.current.play();
-                    await sleep(50);
-                    audioRef.current.pause();
-                    audioRef.current.src = originalSrc;
-                    audioRef.current.volume = 1.0;
-                } catch (error) {
-                    console.error('iOS audio routing setup error:', error);
+            // iOSでAudioContextが確実にresumeされていることを確認
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            if (isIOS) {
+                if (ctx.state === 'suspended') {
+                    await ctx.resume();
+                }
+                // 音声再生前にHTMLAudioElementで無音を再生してスピーカー出力を確実にする
+                if (audioRef.current && url !== "/noSound.wav") {
+                    try {
+                        const originalSrc = audioRef.current.src;
+                        audioRef.current.src = '/noSound.wav';
+                        audioRef.current.volume = 0.01;
+                        await audioRef.current.play();
+                        await sleep(50);
+                        audioRef.current.pause();
+                        audioRef.current.src = originalSrc;
+                        audioRef.current.volume = 1.0;
+                    } catch (error) {
+                        console.error('iOS audio routing setup error:', error);
+                    }
                 }
             }
+
+            const response = await fetch(`/api/audio-proxy?src=${encodeURIComponent(url)}`, {
+                cache: "no-store",
+            });
+            
+            if (!response.ok) {
+                console.error('audio-proxy fetch failed:', response.status, response.statusText);
+                throw new Error(`Audio fetch failed: ${response.status} ${response.statusText}`);
+            }
+            
+            const ab = await response.arrayBuffer();
+            if (!ab || ab.byteLength === 0) {
+                console.error('audio-proxy: empty arrayBuffer');
+                throw new Error('Empty audio data received');
+            }
+            
+            const buffer: AudioBuffer = await new Promise((res, rej) => {
+                ctx.decodeAudioData(ab, res, (error) => {
+                    console.error('Audio decode error:', error);
+                    rej(error);
+                });
+            });
+
+            const src = ctx.createBufferSource();
+            src.buffer = buffer;
+            src.connect(ctx.destination);
+            srcRef.current = src;
+
+            await new Promise<void>((resolve) => {
+                src.onended = () => { srcRef.current = null; resolve(); };
+                src.start(0);
+                if (Array.isArray(slides) && slides.length>1 && url != "/noSound.wav"){
+                    setCurrentIndex(0)
+                    if (intervalRef.current !== null) {//タイマーが進んでいる時はstart押せないように//2
+                        return;
+                    }
+                    intervalRef.current = setInterval(() => {
+                        setCurrentIndex((prevIndex) => (prevIndex + 1) % (slides.length))
+                    }, 250)
+                }
+            });
+        } catch (error) {
+            console.error('playUrl error:', error);
+            // エラーが発生しても処理を続行（ユーザー体験を損なわないため）
+            // 必要に応じて、エラーメッセージを表示するなどの処理を追加可能
         }
-
-        const ab = await (await fetch(`/api/audio-proxy?src=${encodeURIComponent(url)}`, {
-            cache: "no-store",
-        })).arrayBuffer();
-        const buffer: AudioBuffer = await new Promise((res, rej) =>
-            ctx.decodeAudioData(ab, res, rej)
-        );
-
-        const src = ctx.createBufferSource();
-        src.buffer = buffer;
-        src.connect(ctx.destination);
-        srcRef.current = src;
-
-        await new Promise<void>((resolve) => {
-            src.onended = () => { srcRef.current = null; resolve(); };
-            src.start(0);
-            if (Array.isArray(slides) && slides.length>1 && url != "/noSound.wav"){
-                setCurrentIndex(0)
-                if (intervalRef.current !== null) {//タイマーが進んでいる時はstart押せないように//2
-                    return;
-                }
-                intervalRef.current = setInterval(() => {
-                    setCurrentIndex((prevIndex) => (prevIndex + 1) % (slides.length))
-                }, 250)
-            }
-        });
     };
 
     /** 完全破棄（必要なときだけ） */
