@@ -182,7 +182,11 @@ export default function Aicon() {
                 gainNode.connect(ctx.destination);
             }
             src.connect(gainNode);
-            gainNode.gain.value = 1.0; // 音量を最大に設定
+            
+            // 音声再生前に、GainNodeのgain値を確実に設定
+            // 音声認識後の問題を回避するため、GainNodeの状態をリセット
+            gainNode.gain.cancelScheduledValues(ctx.currentTime);
+            gainNode.gain.setValueAtTime(1.0, ctx.currentTime);
             srcRef.current = src;
 
             await new Promise<void>((resolve) => {
@@ -746,6 +750,11 @@ export default function Aicon() {
                     if (ctxRef.current && ctxRef.current.state === 'suspended') {
                         await ctxRef.current.resume();
                     }
+                    // GainNodeの状態をリセット（音声認識後の問題を回避）
+                    if (gainNodeRef.current && ctxRef.current) {
+                        gainNodeRef.current.gain.cancelScheduledValues(ctxRef.current.currentTime);
+                        gainNodeRef.current.gain.setValueAtTime(1.0, ctxRef.current.currentTime);
+                    }
                     // HTMLAudioElementで無音を短く再生してスピーカー出力を強制
                     if (audioRef.current) {
                         try {
@@ -763,6 +772,12 @@ export default function Aicon() {
                     }
                 } catch (error) {
                     console.error('iOS audio routing reset error:', error);
+                }
+            } else {
+                // iOS以外でも、GainNodeの状態をリセット
+                if (ctxRef.current && gainNodeRef.current) {
+                    gainNodeRef.current.gain.cancelScheduledValues(ctxRef.current.currentTime);
+                    gainNodeRef.current.gain.setValueAtTime(1.0, ctxRef.current.currentTime);
                 }
             }
         } catch(error) {
