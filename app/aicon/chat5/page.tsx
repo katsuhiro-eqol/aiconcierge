@@ -128,16 +128,28 @@ export default function Aicon() {
 
             console.log('[playUrl] Fetching audio', { url: url.substring(0, 100) }); // URLの最初の100文字のみログ
             
-            const response = await fetch(`/api/audio-proxy?src=${encodeURIComponent(url)}`, {
-                cache: "no-store",
-            });
+            // Blob URLの場合は直接fetch、それ以外はaudio-proxy APIを使用
+            const isBlobUrl = url.startsWith('blob:');
+            let response: Response;
+            
+            if (isBlobUrl) {
+                // Blob URLはブラウザ内でのみ有効なので、直接fetch
+                console.log('[playUrl] Using blob URL directly');
+                response = await fetch(url, { cache: "no-store" });
+            } else {
+                // 通常のURL（Firebase Storageなど）はaudio-proxy APIを使用
+                response = await fetch(`/api/audio-proxy?src=${encodeURIComponent(url)}`, {
+                    cache: "no-store",
+                });
+            }
             
             if (!response.ok) {
                 const errorText = await response.text().catch(() => 'Unable to read error response');
-                console.error('[playUrl] audio-proxy fetch failed:', {
+                console.error('[playUrl] audio fetch failed:', {
                     status: response.status,
                     statusText: response.statusText,
                     url: url.substring(0, 100),
+                    isBlobUrl,
                     errorText: errorText.substring(0, 200)
                 });
                 throw new Error(`Audio fetch failed: ${response.status} ${response.statusText} - ${errorText.substring(0, 100)}`);
