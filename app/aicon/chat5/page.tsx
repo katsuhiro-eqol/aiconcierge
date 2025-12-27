@@ -64,6 +64,7 @@ export default function Aicon() {
     //以下WebAudio関連
     const ctxRef = useRef<AudioContext | null>(null);
     const srcRef = useRef<AudioBufferSourceNode | null>(null);
+    const gainNodeRef = useRef<GainNode | null>(null);
     const w = typeof window !== 'undefined' ? window as Window & {
         AudioContext?: AudioContextCtor;
         webkitAudioContext?: AudioContextCtor;
@@ -77,6 +78,10 @@ export default function Aicon() {
             const Ctx = w.AudioContext ?? w.webkitAudioContext;
             if (!Ctx) throw new Error('Web Audio API not supported');
             ctxRef.current = new Ctx({ latencyHint: "playback" });
+            // GainNodeを作成して音量制御を確実にする
+            gainNodeRef.current = ctxRef.current.createGain();
+            gainNodeRef.current.connect(ctxRef.current.destination);
+            gainNodeRef.current.gain.value = 1.0; // デフォルトは最大音量
         }
         return ctxRef.current!;
       };
@@ -170,7 +175,14 @@ export default function Aicon() {
 
             const src = ctx.createBufferSource();
             src.buffer = buffer;
-            src.connect(ctx.destination);
+            // GainNodeを通して接続することで、音量制御を確実にする
+            const gainNode = gainNodeRef.current || ctx.createGain();
+            if (!gainNodeRef.current) {
+                gainNodeRef.current = gainNode;
+                gainNode.connect(ctx.destination);
+            }
+            src.connect(gainNode);
+            gainNode.gain.value = 1.0; // 音量を最大に設定
             srcRef.current = src;
 
             await new Promise<void>((resolve) => {
@@ -196,6 +208,12 @@ export default function Aicon() {
     /** 完全破棄（必要なときだけ） */
     const dispose = async () => {
         stop();
+        if (gainNodeRef.current) {
+            try {
+                gainNodeRef.current.disconnect();
+            } catch {}
+            gainNodeRef.current = null;
+        }
         if (ctxRef.current) {
             try { await ctxRef.current.close(); } catch {}
             ctxRef.current = null;
