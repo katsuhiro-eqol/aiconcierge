@@ -181,12 +181,22 @@ export default function Aicon() {
                 gainNodeRef.current = gainNode;
                 gainNode.connect(ctx.destination);
             }
-            src.connect(gainNode);
             
-            // 音声再生前に、GainNodeのgain値を確実に設定
-            // 音声認識後の問題を回避するため、GainNodeの状態をリセット
-            gainNode.gain.cancelScheduledValues(ctx.currentTime);
-            gainNode.gain.setValueAtTime(1.0, ctx.currentTime);
+            // システム音量を取得（audio要素から）
+            const systemVolume = audioRef.current?.volume ?? 1.0;
+            
+            // 音量0の時は接続を切断して完全に消音、それ以外は接続
+            if (systemVolume === 0) {
+                // 音量0の時は接続を切断（完全消音）
+                // srcは接続せず、再生は続くが音は出ない
+            } else {
+                // 音量が0より大きい時は接続
+                src.connect(gainNode);
+                // 音声再生前に、GainNodeのgain値を確実に設定
+                // 音声認識後の問題を回避するため、GainNodeの状態をリセット
+                gainNode.gain.cancelScheduledValues(ctx.currentTime);
+                gainNode.gain.setValueAtTime(systemVolume, ctx.currentTime);
+            }
             srcRef.current = src;
 
             await new Promise<void>((resolve) => {
@@ -854,6 +864,55 @@ export default function Aicon() {
             setUndefindQA(undefind[0])
         }
     }, [embeddingsData])
+
+    // システム音量の変化を監視して、音量0の時に接続を切断する
+    useEffect(() => {
+        if (!audioRef.current) return;
+        
+        const handleVolumeChange = () => {
+            const systemVolume = audioRef.current?.volume ?? 1.0;
+            
+            // 再生中の場合のみ処理
+            if (srcRef.current && gainNodeRef.current && ctxRef.current) {
+                const ctx = ctxRef.current;
+                const src = srcRef.current;
+                const gainNode = gainNodeRef.current;
+                
+                if (systemVolume === 0) {
+                    // 音量0の時は接続を切断して完全に消音
+                    try {
+                        src.disconnect();
+                    } catch (error) {
+                        // 既に切断されている場合は無視
+                    }
+                } else {
+                    // 音量が0より大きい時は接続を確実にする
+                    try {
+                        // 既に接続されているかチェック（接続されていない場合のみ接続）
+                        src.connect(gainNode);
+                        gainNode.gain.cancelScheduledValues(ctx.currentTime);
+                        gainNode.gain.setValueAtTime(systemVolume, ctx.currentTime);
+                    } catch (error) {
+                        // 既に接続されている場合はgain値のみ更新
+                        gainNode.gain.cancelScheduledValues(ctx.currentTime);
+                        gainNode.gain.setValueAtTime(systemVolume, ctx.currentTime);
+                    }
+                }
+            }
+        };
+        
+        // volumechangeイベントは標準では存在しないため、定期的にチェック
+        // 再生中のみチェックするため、srcRef.currentが存在する時のみ実行
+        const volumeCheckInterval = setInterval(() => {
+            if (srcRef.current) {
+                handleVolumeChange();
+            }
+        }, 100); // 100msごとにチェック
+        
+        return () => {
+            clearInterval(volumeCheckInterval);
+        };
+    }, []);
 
     useEffect(() => {
         if (Array.isArray(slides) && slides.length>1 && wavUrl!= "/noSound.wav"){
