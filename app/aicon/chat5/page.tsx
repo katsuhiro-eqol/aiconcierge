@@ -185,9 +185,8 @@ export default function Aicon() {
             
             // 音声再生前に、GainNodeのgain値を確実に設定
             // 音声認識後の問題を回避するため、GainNodeの状態をリセット
-            // ミュート状態に応じてgain値を設定
             gainNode.gain.cancelScheduledValues(ctx.currentTime);
-            gainNode.gain.setValueAtTime(isMuted ? 0 : 1.0, ctx.currentTime);
+            gainNode.gain.setValueAtTime(1.0, ctx.currentTime);
             srcRef.current = src;
 
             await new Promise<void>((resolve) => {
@@ -578,7 +577,7 @@ export default function Aicon() {
                     }
                     
                 } else {
-                    alert("QRコードをもう一度読み込んでください")
+                    alert("QRコードが更新されています。最新のQRコードを読み込んでください")
                 }
             } else {
                 alert("イベントが登録されていません")
@@ -794,11 +793,9 @@ export default function Aicon() {
     }
 
     const closeApp = async () => {
-        try {
-            await sttStop()
-        } catch (error) {
+        sttStop().catch((error) => {
             console.error('sttStop error in closeApp:', error);
-        }
+        });
         
         // 少し待ってからリロード（確実に実行されるように）
         setTimeout(() => {
