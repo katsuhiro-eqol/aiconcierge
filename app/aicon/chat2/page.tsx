@@ -5,7 +5,7 @@ import React from "react";
 import { useSearchParams as useSearchParamsOriginal } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-import { Mic, Send, Eraser, X, LoaderCircle, CircleStop } from 'lucide-react';
+import { Mic, Send, Eraser, X, LoaderCircle, CircleStop, Volume2, VolumeX } from 'lucide-react';
 import { db } from "@/firebase";
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion, increment } from "firebase/firestore";
 import Modal from "../../components/modalModal"
@@ -43,6 +43,7 @@ export default function Aicon() {
     const [undefindQA, setUndefindQA] = useState<EmbeddingsData|null>(null)
     const [undefinedAnswer, setUndefinedAnswer] = useState<ForeignAnswer|null>(null)
     const [voiceCache, setVoiceCache] = useState<Map<string, VoiceData>>(new Map())
+    const [isMuted, setIsMuted] = useState<boolean>(false)
 
     const {
         transcript,
@@ -50,7 +51,6 @@ export default function Aicon() {
         listening,
         browserSupportsSpeechRecognition
     } = useSpeechRecognition();
-    //以下音声認識を確実に停止するための変数
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const nativeName = {"日本語":"日本語", "英語":"English","中国語（簡体）":"简体中文","中国語（繁体）":"繁體中文","韓国語":"한국어","フランス語":"Français","スペイン語":"Español","ポルトガル語":"Português"}
@@ -256,11 +256,11 @@ export default function Aicon() {
                     if (isIOS) {
                         await sleep(200); // 追加の待機時間
                     }
-                    await getAnswer()
+                    await getAnswer(userM)
                 })
             }
         } else {
-            await getAnswer()
+            await getAnswer(userM)
         }
     }
 
@@ -287,7 +287,7 @@ export default function Aicon() {
     const attribute = searchParams.get("attribute")
     const code = searchParams.get("code")
 
-    async function getAnswer() {    
+    async function getAnswer(userM:Message2) {    
         console.log("sttStatus2",sttStatus)  
         //closeMic()
         //await sttStop()  
@@ -373,7 +373,7 @@ export default function Aicon() {
                         thumbnail: thumbnail
                       };
                       setMessages(prev => [...prev, aiMessage]);
-                      await saveMessage(userMessage, aiMessage, attribute!)                    
+                      await saveMessage(userM, aiMessage, attribute!)                    
                 } else {
                     const aiMessage: Message2 = {
                         id: `A${now}`,
@@ -385,7 +385,7 @@ export default function Aicon() {
                         thumbnail: thumbnail
                       };
                       setMessages(prev => [...prev, aiMessage]);
-                      await saveMessage(userMessage, aiMessage, attribute!)
+                      await saveMessage(userM, aiMessage, attribute!)
                 }
             } else {
                 const aiMessage: Message2 = {
@@ -469,16 +469,16 @@ export default function Aicon() {
         let imageArray = []
         switch (initialSlides) {
             case "/AI-con_man_01.png":
-                imageArray = ["/AI-con_man_02.png","/AI-con_man_01.png"]
+                imageArray = ["/AI-con_man_01.png","/AI-con_man_02.png"]
                 break;
             case "/AI-con_man2_01.png":
-                imageArray = ["/AI-con_man2_02.png","/AI-con_man2_01.png"]
+                imageArray = ["/AI-con_man2_01.png","/AI-con_man2_02.png"]
                 break;
             case "/AI-con_woman_01.png":
-                imageArray = ["/AI-con_woman_02.png","/AI-con_woman_01.png"]
+                imageArray = ["/AI-con_woman_01.png","/AI-con_woman_02.png"]
                 break;
             case "/AI-con_woman2_01.png":
-                imageArray = ["/AI-con_woman2_02.png","/AI-con_woman2_01.png"]
+                imageArray = ["/AI-con_woman2_01.png","/AI-con_woman2_02.png"]
                 break;
             default:
                 imageArray = Array(2).fill(initialSlides)
@@ -577,7 +577,7 @@ export default function Aicon() {
                     }
                     
                 } else {
-                    alert("QRコードをもう一度読み込んでください")
+                    alert("QRコードが更新されています。最新のQRコードを読み込んでください")
                 }
             } else {
                 alert("イベントが登録されていません")
@@ -793,10 +793,16 @@ export default function Aicon() {
     }
 
     const closeApp = async () => {
-        await sttStop()
-        if (typeof window !== 'undefined') {
-            window.location.reload()
-        }
+        sttStop().catch((error) => {
+            console.error('sttStop error in closeApp:', error);
+        });
+        
+        // 少し待ってからリロード（確実に実行されるように）
+        setTimeout(() => {
+            if (typeof window !== 'undefined') {
+                window.location.reload()
+            }
+        }, 100);
     }
 
     useEffect(() => {
@@ -854,6 +860,26 @@ export default function Aicon() {
             setUndefindQA(undefind[0])
         }
     }, [embeddingsData])
+
+    // ミュート/アンミュート関数
+    const toggleMute = () => {
+        if (!ctxRef.current || !gainNodeRef.current) return;
+        
+        const ctx = ctxRef.current;
+        const gainNode = gainNodeRef.current;
+        
+        if (isMuted) {
+            // アンミュート: gain値を1.0に設定
+            gainNode.gain.cancelScheduledValues(ctx.currentTime);
+            gainNode.gain.setValueAtTime(1.0, ctx.currentTime);
+            setIsMuted(false);
+        } else {
+            // ミュート: gain値を0に設定して完全消音
+            gainNode.gain.cancelScheduledValues(ctx.currentTime);
+            gainNode.gain.setValueAtTime(0, ctx.currentTime);
+            setIsMuted(true);
+        }
+    };
 
     useEffect(() => {
         if (Array.isArray(slides) && slides.length>1 && wavUrl!= "/noSound.wav"){
@@ -983,6 +1009,7 @@ export default function Aicon() {
                 送信(send)
                 </button>
                 )}
+       
                 </div>
                 {isModal && (
                     <Modal setIsModal={setIsModal} modalUrl={modalUrl} modalFile={modalFile}/>
@@ -1013,12 +1040,34 @@ export default function Aicon() {
             <button className="mt-auto mb-32 text-blue-500 hover:text-blue-700 text-sm">はじめにお読みください</button>
             </div>            
             )}
-                        {wavReady && (
-            <div className="flex flex-row w-20 h-6 bg-white hover:bg-gray-200 p-1 rounded-lg shadow-lg relative ml-auto mr-3 mt-5 mb-auto" onClick={() => closeApp()}>
-            <X size={16} />
-            <div className="text-xs">終了する</div>
-            </div>
-            )}
+             {wavReady && (
+                 <div className="flex flex-col items-end gap-2 relative ml-auto mr-3 mt-5 mb-auto">
+                     <div className="flex flex-row items-center justify-center w-24 h-6 bg-white hover:bg-gray-200 p-1 rounded-lg shadow-lg cursor-pointer" onClick={() => closeApp()}>
+                         <X size={16} />
+                         <div className="text-xs">終了する</div>
+                     </div>
+                     <button 
+                         className={`flex items-center justify-center mt-5 w-24 h-6 border-2 p-1 rounded-lg shadow-lg text-xs ${
+                             isMuted 
+                                 ? 'bg-red-500 hover:bg-red-600 text-white border-red-600' 
+                                 : 'bg-green-500 hover:bg-green-600 text-white border-green-600'
+                         }`}
+                         onClick={toggleMute}
+                         title={isMuted ? '音声ON' : '音声OFF'}
+                     >
+                         {isMuted ? (
+                             <>
+                                 <VolumeX size={16} className="mr-1" />
+                                 <span>音声OFF</span>
+                             </>
+                         ) : (
+                             <>
+                                 <Volume2 size={16} className="mr-1" />
+                                 <span>音声ON</span>
+                             </>
+                         )}
+                     </button>       
+                 </div>)}
             <audio key={wavUrl} src={wavUrl} ref={audioRef} playsInline preload="auto"/>
         </div>
     );

@@ -143,11 +143,12 @@ export default function Aicon() {
                 response = await fetch(url, { cache: "no-store" });
             } else {
                 // 通常のURL（Firebase Storageなど）はaudio-proxy APIを使用
+                console.log("audio-proxy api")
                 response = await fetch(`/api/audio-proxy?src=${encodeURIComponent(url)}`, {
                     cache: "no-store",
                 });
             }
-            
+                
             if (!response.ok) {
                 const errorText = await response.text().catch(() => 'Unable to read error response');
                 console.error('[playUrl] audio fetch failed:', {
@@ -485,7 +486,7 @@ export default function Aicon() {
                 break;
         }
         let imageList:string[] = []
-        const n = Math.floor(duration*2)+1
+        const n = Math.floor(duration*2)
         for (let i = 0; i<n; i++){
             imageList = imageList.concat(imageArray)
         }
@@ -881,6 +882,7 @@ export default function Aicon() {
         }
     };
 
+
     useEffect(() => {
         if (Array.isArray(slides) && slides.length>1 && wavUrl!= "/noSound.wav"){
             playUrl(wavUrl)
@@ -888,11 +890,16 @@ export default function Aicon() {
             if (intervalRef.current !== null) {//タイマーが進んでいる時はstart押せないように//2
                 return;
             }
+            /*
             intervalRef.current = setInterval(() => {
                 setCurrentIndex((prevIndex) => (prevIndex + 1) % (slides.length))
             }, 250)
+            */
         }
     }, [slides])
+
+
+
 
     useEffect(() => {
         if (Array.isArray(slides)){
