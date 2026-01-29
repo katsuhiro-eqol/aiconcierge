@@ -72,6 +72,11 @@ export default function Aicon() {
         AudioContext?: AudioContextCtor;
         webkitAudioContext?: AudioContextCtor;
     };
+    const isSafari = typeof window !== 'undefined' && (
+        /^((?!chrome|android).)*safari/i.test(navigator.userAgent) || 
+        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.vendor && navigator.vendor.indexOf('Apple') > -1)
+    );
 
     const ensureCtx = () => {
         if (!ctxRef.current) {
@@ -211,6 +216,7 @@ export default function Aicon() {
     };
 
     /** 完全破棄（必要なときだけ） */
+    /*
     const dispose = async () => {
         stop();
         if (gainNodeRef.current) {
@@ -224,6 +230,7 @@ export default function Aicon() {
             ctxRef.current = null;
         }
     }
+        */
     //ここまでWebAudio関連
 
     const sendMessage2 = async () => {
@@ -981,7 +988,10 @@ export default function Aicon() {
                 ))}
                 <div ref={messagesEndRef} />
             </div>
-            <div className="flex-none h-[18%] w-full max-w-96 overflow-auto pb-[env(safe-area-inset-bottom,44px)]">
+            <div className="flex-none w-full max-w-96 style={{ 
+                minHeight: '18%', 
+                paddingBottom: isSafari ? '60px' : '0px'
+            }}">
             <div className="mt-2">
             <textarea className="block w-5/6 max-w-96 mx-auto mb-2 px-2 py-2 text-base"
                 name="message"
