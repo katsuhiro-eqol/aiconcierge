@@ -955,8 +955,10 @@ export default function Aicon() {
         <div className="flex flex-col w-full overflow-hidden" style={{ height: windowHeight || "100dvh" }}>
         {wavReady ? (
             <div className="fixed inset-x-0 top-0 flex flex-col items-center bg-stone-200" style={{ 
-                bottom: '60px',
-                height: 'calc(100vh - 60px)'
+                bottom: '0px',
+                height: '100vh',
+                paddingBottom: '60px',
+                boxSizing: 'border-box'
             }}>
             <div className="flex-none h-[35vh] w-full mb-5">
                 {Array.isArray(slides) && (<img className="mx-auto h-[35vh] " src={slides[currentIndex]} alt="Image" />)}
