@@ -77,6 +77,7 @@ export default function Aicon() {
         /iPad|iPhone|iPod/.test(navigator.userAgent) ||
         (navigator.vendor && navigator.vendor.indexOf('Apple') > -1)
     );
+    const messageAreaHeight = isSafari ? '28vh' : '32vh';
 
     const ensureCtx = () => {
         if (!ctxRef.current) {
@@ -958,7 +959,7 @@ export default function Aicon() {
             <div className="flex-none h-[35vh] w-full mb-5">
                 {Array.isArray(slides) && (<img className="mx-auto h-[35vh] " src={slides[currentIndex]} alt="Image" />)}
             </div>
-            <div className="flex-none h-[40vh] w-11/12 max-w-96 overflow-auto">
+            <div className={`flex-none w-11/12 max-w-96 overflow-auto`} style={{ height: messageAreaHeight }}>
             {messages.map((message) => (
                 <div 
                     key={message.id} 
@@ -985,10 +986,9 @@ export default function Aicon() {
                 ))}
                 <div ref={messagesEndRef} />
             </div>
-            <div className="absolute bottom-0 left-0 right-0 w-full max-w-96 mx-auto" style={{
+            <div className="flex-none w-full max-w-96 mx-auto" style={{
                 minHeight: '18%',
-                bottom: '0px',
-                backgroundColor: 'rgb(231 229 228)' // bg-stone-200と同じ色
+                paddingBottom: isSafari ? '60px': '0px',
             }}>
             <div className="mt-2">
             <textarea className="block w-5/6 max-w-96 mx-auto mb-2 px-2 py-2 text-base"
