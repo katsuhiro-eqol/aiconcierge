@@ -987,7 +987,7 @@ export default function Aicon() {
             </div>
             <div className="absolute bottom-0 left-0 right-0 w-full max-w-96 mx-auto" style={{
                 minHeight: '18%',
-                bottom: '3px',
+                bottom: '0px',
                 backgroundColor: 'rgb(231 229 228)' // bg-stone-200と同じ色
             }}>
             <div className="mt-2">
