@@ -905,9 +905,6 @@ export default function Aicon() {
         }
     }, [slides])
 
-
-
-
     useEffect(() => {
         if (Array.isArray(slides)){
             if (currentIndex === slides.length-2 && currentIndex !== 0){
@@ -990,7 +987,7 @@ export default function Aicon() {
             </div>
             <div className="flex-none w-full max-w-96" style={{ 
                 minHeight: '18%', 
-                paddingBottom: '60px'
+                paddingBottom: isSafari ? '60px' : '60px'
             }}>
             <div className="mt-2">
             <textarea className="block w-5/6 max-w-96 mx-auto mb-2 px-2 py-2 text-base"
