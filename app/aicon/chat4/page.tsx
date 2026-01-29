@@ -472,7 +472,18 @@ export default function Aicon4() {
             {eventData ? (
                 <div className="flex flex-col">
                     <div className="mx-auto mt-32 text-sm">使用言語(language)</div>
-                    <select className="mt-3 mx-auto text-sm w-36 h-8 text-center border-2 border-lime-600" value={dLang} onChange={selectLanguage}>
+                    <select 
+                        className="mt-3 mx-auto text-sm w-36 h-8 text-center border-2 border-lime-600" 
+                        value={dLang} 
+                        onChange={selectLanguage}
+                        style={{ 
+                            textAlign: 'center',
+                            textAlignLast: 'center',
+                            WebkitAppearance: 'none',
+                            MozAppearance: 'none',
+                            appearance: 'none'
+                        }}
+                    >
                         {langList.map((lang, index) => {
                         return <option className="text-center" key={index} value={lang}>{lang}</option>;
                         })}
