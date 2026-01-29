@@ -988,10 +988,10 @@ export default function Aicon() {
                 ))}
                 <div ref={messagesEndRef} />
             </div>
-            <div className="flex-none w-full max-w-96 style={{ 
+            <div className="flex-none w-full max-w-96" style={{ 
                 minHeight: '18%', 
-                paddingBottom: isSafari ? '60px' : '60px'
-            }}">
+                paddingBottom: '60px'
+            }}>
             <div className="mt-2">
             <textarea className="block w-5/6 max-w-96 mx-auto mb-2 px-2 py-2 text-base"
                 name="message"
