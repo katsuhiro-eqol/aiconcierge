@@ -63,6 +63,12 @@ export default function Aicon() {
     const intervalRef = useRef<NodeJS.Timeout | null>(null)
     const recognizerRef = useRef<SpeechSDK.SpeechRecognizer | null>(null)
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null)
+    const isSafari = typeof window !== 'undefined' && (
+        /^((?!chrome|android).)*safari/i.test(navigator.userAgent) || 
+        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.vendor && navigator.vendor.indexOf('Apple') > -1)
+    );
+    const messageAreaHeight = isSafari ? '28vh' : '32vh';
 
     const useSearchParams = ()  => {
         const searchParams = useSearchParamsOriginal();
@@ -764,7 +770,7 @@ export default function Aicon() {
             <div className="flex-none h-[35vh] w-full mb-5">
                 {Array.isArray(slides) && (<img className="mx-auto h-[35vh] " src={slides[currentIndex]} alt="Image" />)}
             </div>
-            <div className="flex-none h-[32vh] w-11/12 max-w-96 overflow-auto">
+            <div className={`flex-none w-11/12 max-w-96 overflow-auto`} style={{ height: messageAreaHeight }}>
             {messages.map((message) => (
                 <div 
                     key={message.id} 
@@ -791,7 +797,10 @@ export default function Aicon() {
                 ))}
                 <div ref={messagesEndRef} />
             </div>
-            <div className="flex-none h-[18%] w-full max-w-96 overflow-auto">
+            <div className="flex-none w-full max-w-96 mx-auto" style={{
+                minHeight: '18%',
+                paddingBottom: isSafari ? '60px': '0px',
+            }}>
             <div className="mt-2">
             <textarea className="block w-5/6 max-w-96 mx-auto mb-2 px-2 py-2 text-base"
                 name="message"
@@ -799,6 +808,10 @@ export default function Aicon() {
                 rows={2}
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
+                style={{ 
+                    WebkitAppearance: 'none',
+                    WebkitUserSelect: 'text'
+                }}
             />
             <div  className="flex flex-row gap-x-4 justify-center">
             {!record ?(     
