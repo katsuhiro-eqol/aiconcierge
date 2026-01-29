@@ -430,7 +430,7 @@ export default function Aicon4() {
                 ))}
                 <div ref={messagesEndRef} />
             </div>
-            <div className="flex-none h-[18%] w-full max-w-96 overflow-auto">
+            <div className="flex-none h-[18%] w-full max-w-96 overflow-auto pb-[env(safe-area-inset-bottom,44px)]">
             <div className="mt-2">
                 <div className="flex gap-2 mt-3 mx-2">
                 <textarea
@@ -440,6 +440,10 @@ export default function Aicon4() {
                     onChange={(e) => setUserInput(e.target.value)}
                     placeholder="質問を入力・・・"
                     className="flex-1 p-2 border rounde text-sm"
+                    style={{ 
+                        WebkitAppearance: 'none',
+                        WebkitUserSelect: 'text'
+                    }}
                 />
                 {canSend ? (
                     <button type="submit" className="px-2 py-1 text-sm bg-green-500 hover:bg-green-700 text-white rounded disabled:bg-gray-300" onClick={() => getAnswer()}>
