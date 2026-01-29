@@ -981,7 +981,7 @@ export default function Aicon() {
                 ))}
                 <div ref={messagesEndRef} />
             </div>
-            <div className="flex-none h-[18%] w-full max-w-96 overflow-auto">
+            <div className="flex-none h-[18%] w-full max-w-96 overflow-auto pb-[env(safe-area-inset-bottom,44px)]">
             <div className="mt-2">
             <textarea className="block w-5/6 max-w-96 mx-auto mb-2 px-2 py-2 text-base"
                 name="message"
@@ -989,6 +989,10 @@ export default function Aicon() {
                 rows={2}
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
+                style={{ 
+                    WebkitAppearance: 'none',
+                    WebkitUserSelect: 'text'
+                }}
             />
             <div  className="flex flex-row gap-x-4 justify-center">
             {!listening && userInput ==="" ?(     
@@ -1032,7 +1036,18 @@ export default function Aicon() {
             {eventData ? (
                 <div className="flex flex-col">
                     <div className="mx-auto mt-32 text-sm">使用言語(language)</div>
-                    <select className="mt-3 mx-auto text-sm w-36 h-8 text-center border-2 border-lime-600" value={dLang} onChange={selectLanguage}>
+                    <select 
+                        className="mt-3 mx-auto text-sm w-36 h-8 text-center border-2 border-lime-600" 
+                        value={dLang} 
+                        onChange={selectLanguage}
+                        style={{ 
+                            textAlign: 'center',
+                            textAlignLast: 'center',
+                            WebkitAppearance: 'none',
+                            MozAppearance: 'none',
+                            appearance: 'none'
+                        }}
+                    >
                         {langList.map((lang, index) => {
                         return <option className="text-center" key={index} value={lang}>{lang}</option>;
                         })}
