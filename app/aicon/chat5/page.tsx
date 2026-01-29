@@ -958,7 +958,7 @@ export default function Aicon() {
             <div className="flex-none h-[35vh] w-full mb-5">
                 {Array.isArray(slides) && (<img className="mx-auto h-[35vh] " src={slides[currentIndex]} alt="Image" />)}
             </div>
-            <div className="flex-none h-[32vh] w-11/12 max-w-96 overflow-auto">
+            <div className="flex-none h-[45vh] w-11/12 max-w-96 overflow-auto">
             {messages.map((message) => (
                 <div 
                     key={message.id} 
