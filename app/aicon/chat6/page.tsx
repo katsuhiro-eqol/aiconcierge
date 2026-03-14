@@ -4,6 +4,7 @@ import "regenerator-runtime";
 import React from "react";
 import { useSearchParams as useSearchParamsOriginal } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
+import { getDeviceId } from "@/lib/deviceFingerprint";
 import * as SpeechSDK from "microsoft-cognitiveservices-speech-sdk"
 //import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { Mic, Send, Eraser, Paperclip, X, LoaderCircle } from 'lucide-react';
@@ -53,6 +54,7 @@ export default function Aicon() {
     const [isManual, setIsManual] = useState<boolean>(false)
     const [sttStartTime, setSttStartTime] = useState<number>(0)
     const [sttDuration, setSttDuration] = useState<number>(0)
+    const [deviceId, setDeviceId] = useState<string>("")
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const nativeName = {"日本語":"日本語", "英語":"English","中国語（簡体）":"简体中文","中国語（繁体）":"繁體中文","韓国語":"한국어","フランス語":"Français","スペイン語":"Español","ポルトガル語":"Português"}
@@ -411,7 +413,8 @@ export default function Aicon() {
             id:userMessage.id,
             user:userMessage.text,
             aicon:message.text,
-            unanswerable:judge
+            unanswerable:judge,
+            deviceId:deviceId
         }
         setHistory(prev => [...prev, data])
         await setDoc(doc(db, "Events",attr, "Conversation", convId), {conversations: arrayUnion(data), date:userMessage.id, language:language}, {merge:true})
@@ -624,6 +627,8 @@ export default function Aicon() {
     }
 
     useEffect(() => {
+        const device = getDeviceId()
+        setDeviceId(device)
         return () => {
             clearSilenceTimer();
             if (recognizerRef.current) {

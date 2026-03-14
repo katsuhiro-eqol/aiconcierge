@@ -3,6 +3,7 @@
 import "regenerator-runtime";
 import React from "react";
 import { useSearchParams as useSearchParamsOriginal } from "next/navigation";
+import { getDeviceId } from "@/lib/deviceFingerprint";
 import { useState, useEffect, useRef, useCallback } from "react";
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { Mic, Send, Eraser, X, LoaderCircle, CircleStop, Volume2, VolumeX } from 'lucide-react';
@@ -44,6 +45,7 @@ export default function Aicon() {
     const [undefinedAnswer, setUndefinedAnswer] = useState<ForeignAnswer|null>(null)
     const [voiceCache, setVoiceCache] = useState<Map<string, VoiceData>>(new Map())
     const [isMuted, setIsMuted] = useState<boolean>(false)
+    const [deviceId, setDeviceId] = useState<string>("")
 
     const {
         transcript,
@@ -489,6 +491,9 @@ export default function Aicon() {
             case "/AI-con_woman2_01.png":
                 imageArray = ["/AI-con_woman2_01.png","/AI-con_woman2_02.png"]
                 break;
+            case "/concierge_woman2_0.png":
+                imageArray = ["/concierge_woman2_0.png","/concierge_woman2_1.png"]
+                break;
             default:
                 imageArray = Array(2).fill(initialSlides)
                 break;
@@ -581,6 +586,8 @@ export default function Aicon() {
                         setThumnail("/AICON-w.png")
                     } else if (data.image.name === "AI-con_woman2_01.png"){
                         setThumnail("/AICON-w2.png")
+                    } else if (data.image.name === "concierge_woman2_0.png"){
+                        setThumnail("/concierge_woman2_T.png")
                     } else {
                         setThumnail("")
                     }
@@ -602,7 +609,8 @@ export default function Aicon() {
             id:userMessage.id,
             user:userMessage.text,
             aicon:message.text,
-            unanswerable:judge
+            unanswerable:judge,
+            deviceId:deviceId
         }
         setHistory(prev => [...prev, data])
         await setDoc(doc(db, "Events",attr, "Conversation", convId), {conversations: arrayUnion(data), date:userMessage.id, language:language}, {merge:true})
@@ -815,6 +823,8 @@ export default function Aicon() {
     }
 
     useEffect(() => {
+        const device = getDeviceId()
+        setDeviceId(device)
         return () => {
             clearSilenceTimer();
         };
@@ -953,9 +963,9 @@ export default function Aicon() {
     }, [listening])
  
     return (
-        <div className="flex flex-col w-full overflow-hidden" style={{ height: windowHeight || "100dvh" }}>
+        <div className="flex flex-col w-full overflow-hidden bg-stone-200" style={{ height: windowHeight || "100dvh" }}>
         {wavReady ? (
-            <div className="fixed inset-x-0 top-0 flex flex-col items-center bg-stone-200">
+            <div className="fixed inset-0 flex flex-col items-center bg-stone-200">
             <div className="flex-none h-[35vh] w-full mb-5">
                 {Array.isArray(slides) && (<img className="mx-auto h-[35vh] " src={slides[currentIndex]} alt="Image" />)}
             </div>
@@ -1035,6 +1045,33 @@ export default function Aicon() {
                 )}
                 </div>
             </div>
+            <div className="absolute right-3 top-5 flex flex-col items-end gap-2">
+                <div className="flex flex-row items-center justify-center w-24 h-6 bg-white hover:bg-gray-200 p-1 rounded-lg shadow-lg cursor-pointer" onClick={() => closeApp()}>
+                    <X size={16} />
+                    <div className="text-xs">終了する</div>
+                </div>
+                <button
+                    className={`flex items-center justify-center mt-5 w-24 h-6 border-2 p-1 rounded-lg shadow-lg text-xs ${
+                        isMuted
+                            ? 'bg-red-500 hover:bg-red-600 text-white border-red-600'
+                            : 'bg-green-500 hover:bg-green-600 text-white border-green-600'
+                    }`}
+                    onClick={toggleMute}
+                    title={isMuted ? '音声ON' : '音声OFF'}
+                >
+                    {isMuted ? (
+                        <>
+                            <VolumeX size={16} className="mr-1" />
+                            <span>音声OFF</span>
+                        </>
+                    ) : (
+                        <>
+                            <Volume2 size={16} className="mr-1" />
+                            <span>音声ON</span>
+                        </>
+                    )}
+                </button>
+            </div>
         </div>):(
             <div className="flex flex-col h-screen bg-stone-200">
             <button className="w-2/3 bg-cyan-500 hover:bg-cyan-700 text-white mx-auto mt-24 px-4 py-2 rounded" disabled={!eventData} onClick={() => {talkStart()}}>
@@ -1070,34 +1107,6 @@ export default function Aicon() {
             <button className="mt-auto mb-32 text-blue-500 hover:text-blue-700 text-sm">はじめにお読みください</button>
             </div>            
             )}
-             {wavReady && (
-                 <div className="flex flex-col items-end gap-2 relative ml-auto mr-3 mt-5 mb-auto">
-                     <div className="flex flex-row items-center justify-center w-24 h-6 bg-white hover:bg-gray-200 p-1 rounded-lg shadow-lg cursor-pointer" onClick={() => closeApp()}>
-                         <X size={16} />
-                         <div className="text-xs">終了する</div>
-                     </div>
-                     <button 
-                         className={`flex items-center justify-center mt-5 w-24 h-6 border-2 p-1 rounded-lg shadow-lg text-xs ${
-                             isMuted 
-                                 ? 'bg-red-500 hover:bg-red-600 text-white border-red-600' 
-                                 : 'bg-green-500 hover:bg-green-600 text-white border-green-600'
-                         }`}
-                         onClick={toggleMute}
-                         title={isMuted ? '音声ON' : '音声OFF'}
-                     >
-                         {isMuted ? (
-                             <>
-                                 <VolumeX size={16} className="mr-1" />
-                                 <span>音声OFF</span>
-                             </>
-                         ) : (
-                             <>
-                                 <Volume2 size={16} className="mr-1" />
-                                 <span>音声ON</span>
-                             </>
-                         )}
-                     </button>       
-                 </div>)}
             <audio key={wavUrl} src={wavUrl} ref={audioRef} playsInline preload="auto"/>
         </div>
     );

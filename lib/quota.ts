@@ -46,5 +46,5 @@ export async function checkQuotaOrThrow({
     throw err;
   }
 
-  return { remaining: Math.max(0, limit - n) };
+  return { remaining: Math.max(0, limit - n)};
 }

@@ -119,6 +119,7 @@ export default function RegisterCSV() {
     })
 
     const voiceRegistration = async (answers: TranslatedAnswers) => {
+        setStatus("AI音声を作成しています")
         let count = 0
         const answerKeys = Object.keys(answers)
         for (const answer in answers){
@@ -126,6 +127,8 @@ export default function RegisterCSV() {
                 const ans = answers[answer][lang]
                 const idWord = `${String(eventData!.voiceNumber)}-${ans.trim()}`
                 const voiceId = `${md5(idWord)}`//voiceIdはtrimした値
+                console.log(idWord)
+                console.log(voiceId)
                 await registerVoice(voiceId, ans, lang, answer, eventData!.voiceNumber,false)
             }
             count += 1

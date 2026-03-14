@@ -10,7 +10,7 @@ export default function DownloadableQRCode(){
     const [events, setEvents] = useState<string[]>([""]) //firestoreから読み込む
     const [event, setEvent] = useState<string>("")
     const [organization, setOrganization] = useState<string>("")
-    const [code, setCode] = useState<string>("")
+    const [code, setCode] = useState<string|null>(null)
     const [voiceSetting, setVoiceSetting] = useState<boolean>(false)
     const [selectedOption, setSelectedOption] = useState<string>("AZURE STT")
     const [url, setUrl] = useState<string|null>(null)
@@ -69,18 +69,23 @@ export default function DownloadableQRCode(){
     }
 
     const downloadQRAsJPG = () => {
-        if (qrCodeRef.current) {
-        toJpeg(qrCodeRef.current, { quality: 0.95 })
-            .then((dataUrl) => {
-            const link = document.createElement('a');
-            link.download = 'qrcode.jpg';
-            link.href = dataUrl;
-            link.click();
-            })
-            .catch((err) => {
-            console.error('QRコードの変換に失敗しました:', err);
-            });
+        if (code) {
+            if (qrCodeRef.current) {
+                toJpeg(qrCodeRef.current, { quality: 0.95 })
+                    .then((dataUrl) => {
+                    const link = document.createElement('a');
+                    link.download = 'qrcode.jpg';
+                    link.href = dataUrl;
+                    link.click();
+                    })
+                    .catch((err) => {
+                    console.error('QRコードの変換に失敗しました:', err);
+                    });
+            }
+        } else {
+            alert("イベントを選択してください")
         }
+
     };
 
     const selectEvent = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -98,15 +103,19 @@ export default function DownloadableQRCode(){
     }
 
     const setNewEventCode = async () => {
-        const nCode = randomStr(4)
-        const eventId = organization + "_" + event
-        try {
-            await setDoc(doc(db,"Events",eventId), {code:nCode}, {merge:true})
-            setCode(nCode)
-            setStatus("イベントコードの変更が完了しました")
-        } catch (error){
-            console.log(error)
-            alert("codeの更新に失敗しました")
+        if (code) {
+            const nCode = randomStr(4)
+            const eventId = organization + "_" + event
+            try {
+                await setDoc(doc(db,"Events",eventId), {code:nCode}, {merge:true})
+                setCode(nCode)
+                setStatus("イベントコードの変更が完了しました")
+            } catch (error){
+                console.log(error)
+                alert("codeの更新に失敗しました")
+            }
+        } else {
+            alert("イベントを選択してください")
         }
     }
 
@@ -143,6 +152,14 @@ export default function DownloadableQRCode(){
     }, [code,selectedOption])
 
     useEffect(() => {
+        if (code){
+            const aiconUrl = `/aicon/chat5?attribute=${organization}_${event}&code=${code}`
+            const renewUrl = `${rootUrl}api/renew?to=${encodeURIComponent(aiconUrl)}`
+            setUrl(renewUrl)
+        }
+    }, [code])
+
+    useEffect(() => {
         const org = sessionStorage.getItem("user")
         if (org){
             setOrganization(org)
@@ -162,6 +179,30 @@ export default function DownloadableQRCode(){
         return <option key={name} value={name}>{name}</option>;
         })}
         </select>
+
+        {code && url && (
+            <div>
+            <div className="mb-10 w-1/2"><a className="text-indigo-700" href={url}  target="_blank" rel="noreferrer">{url}</a></div>
+            <div 
+            ref={qrCodeRef} 
+            className="w-60 py-5 px-12 bg-white"
+        >
+
+            <QRCodeCanvas value={url} size={size} level="H"/>
+
+            </div>
+            </div>
+        )}
+            <div className="text-green-500 font-semibold mt-5">{status}</div>
+            <div className="flex flex-row gap-x-4">
+            <button onClick={downloadQRAsJPG} className="mt-10 px-2 py-1 text-sm bg-amber-300 rounded hover:bg-amber-400">ダウンロード</button>
+            <button onClick={setNewEventCode} className="ml-2 mt-10 px-2 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">イベントコード変更</button>
+            </div>       
+        </div>
+    );
+};
+
+/*
         <div className="mt-5">音声認識方法の選択<span className="ml-3 text-xs">（デフォルトはAZURE STTだが、react-speech-recognitionの開発テストを実施中）</span></div>
             <div className="flex flex-row gap-x-4">
             {options.map((option) => (
@@ -175,29 +216,7 @@ export default function DownloadableQRCode(){
             </div>
             ))}
         </div>    
-        {url && (
-            <div>
-            <div className="mb-10 w-1/2"><a className="text-indigo-700" href={url}  target="_blank" rel="noreferrer">{url}</a></div>
-            <div 
-            ref={qrCodeRef} 
-            className="w-60 py-5 px-12 bg-white"
-        >
-
-            <QRCodeCanvas value={url} size={size} level="H"/>
-
-            </div>
-            </div>
-        )}
-
-            <div className="flex flex-row gap-x-4">
-            <button onClick={downloadQRAsJPG} className="mt-10 px-2 py-1 text-sm bg-amber-300 rounded hover:bg-amber-400">ダウンロード</button>
-            <button onClick={setNewEventCode} className="ml-2 mt-10 px-2 py-1 text-sm bg-gray-100 rounded hover:bg-gray-200">イベントコード変更</button>
-            </div>
-            <div className="text-green-500 font-semibold mt-5">{status}</div>
-        
-        </div>
-    );
-};
+*/
 
 /*
         <div className="flex flex-row gap-x-4">
