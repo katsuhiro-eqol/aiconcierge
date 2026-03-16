@@ -18,12 +18,18 @@ export default function Price() {
                 <div>ベーシックプラン</div>
                 <div>(QAデータ数500未満)</div>
                 </td>
-            <td className="p-4 border border-gray-400">        
-                <li>多言語対応（日本語、英語、中国語（簡体、繁体）、韓国語</li>
-                <li>任意の言語の追加が可能（応相談）</li>
-                <li>インターネット情報も併用して回答</li>
+            <td className="p-4 border border-gray-400">    
+              <li>事業者様と協力して想定Q&Aリスト作成</li>
+              <li>３ヶ月間月額料金無料</li>    
+              <li>多言語対応（日本語、英語、中国語（簡体、繁体）、韓国語</li>
+              <li>音声認識・AIボイス</li>
+              <li>任意の言語の追加が可能（応相談）</li>
+              <li>インターネット情報も併用して回答</li>
             </td>
-            <td className="p-4 border border-gray-400">¥30,000/月</td>
+            <td className="p-4 border border-gray-400">
+              <li>初期費用：¥300,000</li>¥30,000/月
+              <li>月額：¥100,000/月</li>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -34,14 +40,14 @@ export default function Price() {
         <tbody>
           <tr className="border-b">
             <td className="p-4 border border-gray-400">
-                <div>音声認識・AIボイス</div>
+                <div>オプション言語</div>
                 </td>
             <td className="p-4 border border-gray-400">        
-                <li>音声認識はAZURE APIを使用</li>
-                <li>AIボイスはGoogle APIを使用</li>
-                <li className="mt-2 text-red-500 text-xs">オリジナルAIボイスを検討されている場合は別途ご相談ください</li>
+                <li>ご希望の言語を追加可能</li>
             </td>
-            <td className="p-4 border border-gray-400">¥30,000/月</td>
+            <td className="p-4 border border-gray-400">
+              <li>¥50,000/言語</li>
+            </td>
           </tr>
           <tr className="border-b">
             <td className="p-4 border border-gray-400">
@@ -50,16 +56,6 @@ export default function Price() {
             <td className="p-4 border border-gray-400">        
                 <li>ユーザー要請でシームレスにAIからスタップチャットに移行</li>
                 <li>スタッフ用のシステム・専用ページを追加</li>
-            </td>
-            <td className="p-4 border border-gray-400">¥100,000/月</td>
-          </tr>
-          <tr className="border-b">
-            <td className="p-4 border border-gray-400">
-                <div>質問内容・AI回答の解析サポート</div>
-                </td>
-            <td className="p-4 border border-gray-400">        
-                <li>AIが回答不能となった質問の分析</li>
-                <li>ユーザー関心事の解析、など</li>
             </td>
             <td className="p-4 border border-gray-400">¥100,000/月</td>
           </tr>

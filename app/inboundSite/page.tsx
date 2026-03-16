@@ -19,9 +19,9 @@ export default function InboundSite() {
           <li className="ml-5">地図や写真なども表示可能</li>
           <li className="ml-5">臨時のイベント情報などの追加・更新も簡単</li>
           <li className="ml-5">インターネット情報も参照して回答</li>
-          <li className="ml-5">多言語対応の音声入力・AIボイス（オプション）</li>
+          <li className="ml-5">多言語対応の音声入力・AIボイス</li>
+          <li className="ml-5">問い合わせや回答内容の解析支援</li>
           <li className="ml-5">人間スタップの対応が必要な場面でのチャットアプリへの移行サービス（オプション）</li>
-          <li className="ml-5">問い合わせや回答内容の解析支援サービス（オプション）</li>
         </div>
 
 

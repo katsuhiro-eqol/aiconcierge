@@ -113,7 +113,7 @@ export default function Features() {
             <div className="text-base text-slate-800">インバウンドコンシェルジュアプリを利用する際にユーザーが使用言語を指定します</div>
         </section>
         <section id="voice" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
-            <div className="mb-5 font-bold text-2xl text-blue-800">音声認識＆AIボイス（オプション）</div>
+            <div className="mb-5 font-bold text-2xl text-blue-800">音声認識＆AIボイス</div>
             <div className="text-base text-slate-800">多言語での音声認識とAIボイスに対応していますので、会話をするようにAIコンシェルジュを利用できます</div>
         </section>
         <section id="human_chat" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
@@ -121,8 +121,8 @@ export default function Features() {
             <div className="text-base text-slate-800">人間スタッフとのチャットにシームレスに移行することができます</div>
         </section>
         <section id="research" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
-            <div className="mb-5 font-bold text-2xl text-blue-800">会話履歴解析（オプション）</div>
-            <div className="text-base text-slate-800">AIコンシェルジュの会話履歴を解析することが可能です</div>
+            <div className="mb-5 font-bold text-2xl text-blue-800">会話履歴解析</div>
+            <div className="text-base text-slate-800">AIコンシェルジュの会話履歴および解析結果を提供します</div>
         </section>
     </div>
   );
