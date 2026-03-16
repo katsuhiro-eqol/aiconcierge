@@ -27,7 +27,8 @@ export default function Price() {
               <li>インターネット情報も併用して回答</li>
             </td>
             <td className="p-4 border border-gray-400">
-              <li>初期費用：¥300,000</li>¥30,000/月
+              <li>初期費用：¥300,000</li>
+              <li>（3ヶ月間の月額料金が含まれます）</li>
               <li>月額：¥100,000/月</li>
             </td>
           </tr>

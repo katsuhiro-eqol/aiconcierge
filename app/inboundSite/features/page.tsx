@@ -35,7 +35,7 @@ export default function Features() {
     {
         icon: <MicVocal className="w-12 h-12 text-lime-500" />,
         title: "音声認識＆AIボイス",
-        description: "音声認識とAIボイスが多言語で使用可能です（オプション）",
+        description: "音声認識とAIボイスが多言語で使用可能です",
         id:"voice"
         },
     {
