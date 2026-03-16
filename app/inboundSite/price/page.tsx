@@ -29,6 +29,7 @@ export default function Price() {
             <td className="p-4 border border-gray-400">
               <li>初期費用：¥300,000</li>
               <li>（3ヶ月間の月額料金が含まれます）</li>
+              <li></li>
               <li>月額：¥100,000/月</li>
             </td>
           </tr>
