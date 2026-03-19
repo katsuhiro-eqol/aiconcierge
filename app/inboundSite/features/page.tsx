@@ -39,17 +39,17 @@ export default function Features() {
         id:"voice"
         },
     {
+        icon: <FileStack className="w-12 h-12 text-amber-500" />,
+        title: "会話履歴解析",
+        description: "会話履歴を解析しより良いサービス提供に繋げることができます",
+        id:"research"
+        },
+    {
         icon: <Smile className="w-12 h-12 text-green-500" />,
         title: "ヒューマンサポートチャット",
         description: "人間スタッフとのチャットにシームレスに移行できます（オプション）",
         id:"human_chat"
-        },
-    {
-        icon: <FileStack className="w-12 h-12 text-amber-500" />,
-        title: "会話履歴解析",
-        description: "会話履歴を解析しより良いサービス提供に繋げることができます（オプション）",
-        id:"research"
-        }
+    }
   ];
 
   return (
@@ -116,13 +116,13 @@ export default function Features() {
             <div className="mb-5 font-bold text-2xl text-blue-800">音声認識＆AIボイス</div>
             <div className="text-base text-slate-800">多言語での音声認識とAIボイスに対応していますので、会話をするようにAIコンシェルジュを利用できます</div>
         </section>
-        <section id="human_chat" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
-            <div className="mb-5 font-bold text-2xl text-blue-800">ヒューマンサポートチャット（オプション）</div>
-            <div className="text-base text-slate-800">人間スタッフとのチャットにシームレスに移行することができます</div>
-        </section>
         <section id="research" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
             <div className="mb-5 font-bold text-2xl text-blue-800">会話履歴解析</div>
             <div className="text-base text-slate-800">AIコンシェルジュの会話履歴および解析結果を提供します</div>
+        </section>
+        <section id="human_chat" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
+            <div className="mb-5 font-bold text-2xl text-blue-800">ヒューマンサポートチャット（オプション）</div>
+            <div className="text-base text-slate-800">人間スタッフとのチャットにシームレスに移行することができます</div>
         </section>
     </div>
   );
