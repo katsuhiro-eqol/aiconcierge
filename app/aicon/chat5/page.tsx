@@ -376,7 +376,7 @@ export default function Aicon() {
                 if (modal.length > 0){
                     const aiMessage: Message2 = {
                         id: `A${now}`,
-                        text: `${data.answer} ${data.source} ${data.id}`,
+                        text: `${data.answer} ${modal[0].displayOnly ?? ""} ${data.source} ${data.id}`,
                         sender: 'AIcon',
                         modalUrl:modal[0].modalUrl,
                         modalFile:modal[0].modalFile,
@@ -527,6 +527,7 @@ export default function Aicon() {
                         vector: embeddingsArray,
                         question: data.question,
                         answer: data.answer,
+                        displayOnly:data.displayOnly,
                         modalUrl: data.modalUrl,
                         modalFile: data.modalFile,
                         foreign: data.foreign,

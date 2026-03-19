@@ -140,6 +140,7 @@ export default function UpdaateQA(){
                     code:data.code,
                     question:data.question,
                     answer:data.answer,
+                    displayOnly: data.onlyDisplay,
                     modalFile:data.modalFile,
                     modalUrl:data.modalUrl,
                     foreign:data.foreign,
@@ -235,10 +236,14 @@ export default function UpdaateQA(){
             const embedding = await createEmbedding(newQuestion,eventData!.embedding)
             const eventId = organization + "_" + event
             const qaId = selectedQA.id
+            const readQ = newAnswer.replace(/<表示のみ>.*?<\/表示のみ>/g, "");  
+            const displayOnly = Array.from(newAnswer.matchAll(/<表示のみ>(.*?)<\/表示のみ>/g),(m) => m[1]);
+            console.log("displayOnly", displayOnly)
             const data = {
                 question:newQuestion,
                 answer:newAnswer,
-                read:newAnswer,
+                displayOnly: displayOnly,
+                read:readQ,
                 foreign:answers,
                 vector:embedding
             }
@@ -259,9 +264,13 @@ export default function UpdaateQA(){
             }
             const eventId = organization + "_" + event
             const qaId = selectedQA.id
+            const readQ = newAnswer.replace(/<表示のみ>.*?<\/表示のみ>/g, "");  
+            const displayOnly = Array.from(newAnswer.matchAll(/<表示のみ>(.*?)<\/表示のみ>/g),(m) => m[1]);
+            console.log("displayOnly", displayOnly)
             const data = {
                 answer:newAnswer,
-                read:newAnswer,
+                displayOnly:displayOnly,
+                read:readQ,
                 foreign:answers,
             }
             const docRef = doc(db, "Events", eventId, "QADB",qaId)
@@ -393,12 +402,15 @@ export default function UpdaateQA(){
                 const newId = String(parseInt(lastId?.id)+1)
                 const eventId = organization + "_" + event
                 const docRef = doc(db, "Events", eventId, "QADB",newId)
-                
+                const displayOnly = Array.from(newAnswer.matchAll(/<表示のみ>(.*?)<\/表示のみ>/g),(m) => m[1]);
+                const readQ = newAnswer.replace(/<表示のみ>.*?<\/表示のみ>/g, "");  
+                console.log("displayOnly", displayOnly)
                 if (modalData){
                     const data = {
                         question:newQuestion,
                         answer:newAnswer,
-                        read:newAnswer,
+                        displayOnly:displayOnly,
+                        read:readQ,
                         pronunciations:[],
                         modalFile:modalData[0].name,
                         modalUrl: modalData[0].url,
@@ -419,7 +431,8 @@ export default function UpdaateQA(){
                     const data = {
                         question:newQuestion,
                         answer:newAnswer,
-                        read:newAnswer,
+                        displayOnly: displayOnly,
+                        read:readQ,
                         pronunciations:[],
                         modalFile:"",
                         modalUrl: "",
@@ -482,6 +495,7 @@ export default function UpdaateQA(){
                         code:data.code,
                         question:data.question,
                         answer:data.answer,
+                        displayOnly:data.displayOnly,
                         modalFile:data.modalFile,
                         modalUrl:data.modalUrl,
                         foreignStr:"",

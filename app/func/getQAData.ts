@@ -13,6 +13,7 @@ export default async function getQAData(eventId:string):Promise<QaData[]>{
             code:data.code,
             question:data.question,
             answer:data.answer,
+            displayOnly:data.displayOnly,
             read:data.read,
             modalFile:data.modalFile,
             modalUrl:data.modalUrl,

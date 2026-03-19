@@ -1,4 +1,12 @@
 //音声入力・AIボイスなし
+
+export default function AICONN4(){
+    return (
+        <div>現在使用してないページ</div>
+    )
+}
+
+/*
 "use client"
 import "regenerator-runtime";
 import React from "react";
@@ -511,3 +519,4 @@ export default function Aicon4() {
         </div>
     );
 }
+*/

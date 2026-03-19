@@ -1,8 +1,5 @@
 import { db } from "@/firebase"
 import { getDocs, collection, doc, getDoc } from "firebase/firestore"
-import {registerVoice} from "./updateWav"
-import createEmbedding from "./createEmbedding"
-import createForeign from "./createForeign"
 import { QaData } from "@/types"
 import md5 from 'md5';
 
@@ -53,6 +50,7 @@ async function loadQA(eventId:string){
             code:data.code,
             question:data.question,
             answer:data.answer,
+            displayOnly:data.displayOnly,
             modalFile:data.modalFile,
             modalUrl:data.modalUrl,
             foreign:data.foreign,

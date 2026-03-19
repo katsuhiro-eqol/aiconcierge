@@ -148,6 +148,8 @@ export default function AddCSV({eventData, organization, event, voiceSetting}: A
                 alert("id、question、answerに空欄がないようにしてください")
             } else {
             try {
+                const displayOnly = Array.from(item.answer.matchAll(/<表示のみ>(.*?)<\/表示のみ>/g),(m) => m[1]);
+                const readQ = item.answer.replace(/<表示のみ>.*?<\/表示のみ>/g, ""); 
                 const embedding = await createEmbedding(item.question, eventData!.embedding)
                 let data2 = {}
                 if (item.modal_file && modalData){
@@ -155,7 +157,8 @@ export default function AddCSV({eventData, organization, event, voiceSetting}: A
                     data2 = {
                         question: item.question,
                         answer: item.answer,
-                        read: item.answer,
+                        displayOnly:displayOnly,
+                        read: readQ,
                         modalFile:item.modal_file,
                         modalUrl: modalList[0].url,
                         modalPath: modalList[0].path,
@@ -167,7 +170,8 @@ export default function AddCSV({eventData, organization, event, voiceSetting}: A
                     data2 = {
                         question: item.question,
                         answer: item.answer,
-                        read: item.answer,
+                        displayOnly:displayOnly,
+                        read: readQ,
                         modalFile:"",
                         modalUrl: "",
                         modalPath: "",
@@ -192,7 +196,10 @@ export default function AddCSV({eventData, organization, event, voiceSetting}: A
 
     const registerForeignLang = async () => {
         setStatus("外国語に翻訳しています")
-        const answerList = jsonData.map((item) => item.answer)
+        const answerList = jsonData.map((item) => {
+            const readQ = item.answer.replace(/<表示のみ>.*?<\/表示のみ>/g, "");    
+            return readQ
+        })
         const answerSet = new Set(answerList)
         const languages = eventData?.languages ?? ["日本語"]
         let count = 0

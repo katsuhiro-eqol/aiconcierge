@@ -63,6 +63,7 @@ export interface EmbeddingsData {
     id: string;
     vector: number[];
     question: string;
+    displayOnly:string | null;
     answer: string;
     modalUrl: string;
     modalFile: string;
@@ -119,13 +120,14 @@ export interface QaData {
     code: string;
     question: string;
     answer: string;
+    displayOnly: string | null;
     read: string;
     modalFile: string;
     modalUrl: string;
     foreign: Answer;
     vector: string;
     pronunciations:Pronunciation[];
-    [key: string]: string | Answer | Pronunciation[];
+    [key: string]: string | Answer | Pronunciation[] | null;
 }
 
 export interface ModalData {

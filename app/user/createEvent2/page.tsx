@@ -11,18 +11,18 @@ export default function CreateEvent2(){
     const [newEvent, setNewEvent] = useState<string>("")
     const [organization, setOrganization] = useState<string>("")
     const [events, setEvents] = useState<string[]>([])
-    const [voiceSetting, setVoiceSetting] = useState<string>("音声入力／AIボイスなし")
+    const [voiceSetting, setVoiceSetting] = useState<string>("音声入力／AIボイスあり")
     const [comment, setComment] = useState<string>("")
-    const [selectedOptions, setSelectedOptions] = useState<string[]>(["日本語"]);
+    const [selectedOptions, setSelectedOptions] = useState<string[]>(["日本語","英語", "中国語（簡体）", "中国語（繁体）", "韓国語"]);
     const [role, setRole] = useState<string>("")
     const [address, setAddress] = useState<string>("")
     //const [referenceUrl, setReferenceUrl] = useState<string[]>([])
     const [other, setOther] = useState<string>("")//他言語
     const [uiOption, setUiOption] = useState<Image[]>([])
-    const [image, setImage] = useState<Image>({name:"AI-con_woman_01.png", url:"/AI-con_woman_01.png"})
+    const [image, setImage] = useState<Image>({name:"concierge_woman2_0.png", url:"/concierge_woman2_0.png"})
     const options = ["英語", "中国語（簡体）", "中国語（繁体）", "韓国語"];
     const otherOptions = ["その他","フランス語","ポルトガル語","スペイン語"]
-    const voiceSettingOptions = ["音声入力／AIボイスなし", "音声入力／AIボイスあり"]
+    const voiceSettingOptions = ["音声入力／AIボイスあり"]
     const model = "text-embedding-3-small" //embeddingモデル
     const gpt = "gpt-4o-mini"
 
@@ -219,14 +219,14 @@ export default function CreateEvent2(){
             <div className="font-semibold text-sm ml-3 mt-8 underline">AIの役割</div>
             <input className="w-2/3 rounded-md px-4 py-2 bg-inherit border mt-2 mb-6 border-lime-600"
                 name="event"
-                placeholder="（例）ホテルメトロポリタン池袋のコンシェルジュ"
+                placeholder="（例）ホテル東京のコンシェルジュ"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
             />
             <div className="font-semibold text-sm ml-3 mt-8 underline">サービス拠点住所（任意）</div>
             <input className="w-2/3 rounded-md px-4 py-2 bg-inherit border mt-2 mb-6 border-lime-600"
                 name="event"
-                placeholder="（例）東京都豊島区西池袋1-6-1"
+                placeholder="（例）東京都千代田区丸の内1-1-1"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
             />
