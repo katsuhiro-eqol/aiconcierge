@@ -15,7 +15,7 @@ export default function Template(){
         </Link>
         <Link className="flex items-center space-x-2 hover:text-blue-600 transition-color mb-5" href="/AIコンQAテンプレート.xlsx" target="_blank" >
             <Paperclip />
-            <a>Excelファイルのダウンロード</a>
+            <span>Excelファイルのダウンロード</span>
         </Link>
         <div className="w-full h-screen overflow-hidden">
         <iframe

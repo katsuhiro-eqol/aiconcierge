@@ -11,6 +11,7 @@ export default function CreateEvent2(){
     const [newEvent, setNewEvent] = useState<string>("")
     const [organization, setOrganization] = useState<string>("")
     const [events, setEvents] = useState<string[]>([])
+    const [isLimit, setIsLimit] = useState<boolean>(false)
     const [voiceSetting, setVoiceSetting] = useState<string>("音声入力／AIボイスあり")
     const [comment, setComment] = useState<string>("")
     const [selectedOptions, setSelectedOptions] = useState<string[]>(["日本語","英語", "中国語（簡体）", "中国語（繁体）", "韓国語"]);
@@ -32,6 +33,13 @@ export default function CreateEvent2(){
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                 const data = docSnap.data()
+                const eventCount = data.events.length
+                const eventLimit = data.eventLimit
+                if (eventCount >= eventLimit){
+                    setIsLimit(true)
+                    alert("作成可能なイベント数の上限に達しています。既存のイベントを削除するか、上限数を増やす必要があります。")
+                    return
+                }
                 setEvents(data.events)
                 setUiOption(data.uiImages)
             } else {
@@ -68,6 +76,10 @@ export default function CreateEvent2(){
     }
 
     const registerEvent = async () => {
+        if (isLimit) {
+            alert("作成可能なイベント数の上限に達しています。既存のイベントを削除するか、上限数を増やす必要があります。")
+            return
+        }
         const judge = judgeNewEvent()
         const code = randomStr(4)
         const prompt = 

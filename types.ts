@@ -57,13 +57,14 @@ export type Message2 = {
     modalFile: string;
     source: boolean | null;
     thumbnail?: string | null;
+    displayOnly:string | null;
 }
 //aiconに読み込むデータ
 export interface EmbeddingsData {
     id: string;
     vector: number[];
     question: string;
-    displayOnly:string | null;
+    displayOnly:string[] | null;
     answer: string;
     modalUrl: string;
     modalFile: string;
@@ -120,14 +121,14 @@ export interface QaData {
     code: string;
     question: string;
     answer: string;
-    displayOnly: string | null;
+    displayOnly: string[] | null;
     read: string;
     modalFile: string;
     modalUrl: string;
     foreign: Answer;
     vector: string;
     pronunciations:Pronunciation[];
-    [key: string]: string | Answer | Pronunciation[] | null;
+    [key: string]: string | string[] | Answer | Pronunciation[] | null;
 }
 
 export interface ModalData {
@@ -153,4 +154,5 @@ export interface ConvData {
     user:string;
     aicon:string;
     unanswerable:boolean;
+    deviceId:string;
 }

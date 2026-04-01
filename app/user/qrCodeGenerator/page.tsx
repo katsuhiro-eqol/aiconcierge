@@ -4,22 +4,22 @@ import {QRCodeCanvas} from 'qrcode.react'
 import { db } from "@/firebase"
 import { doc, getDoc, setDoc } from "firebase/firestore"
 import { toJpeg } from 'html-to-image';
-import { Circle, CircleDot } from 'lucide-react'
+//import { Circle, CircleDot } from 'lucide-react'
 
 export default function DownloadableQRCode(){
     const [events, setEvents] = useState<string[]>([""]) //firestoreから読み込む
     const [event, setEvent] = useState<string>("")
     const [organization, setOrganization] = useState<string>("")
     const [code, setCode] = useState<string|null>(null)
-    const [voiceSetting, setVoiceSetting] = useState<boolean>(false)
-    const [selectedOption, setSelectedOption] = useState<string>("AZURE STT")
+    //const [voiceSetting, setVoiceSetting] = useState<boolean>(false)
+    //const [selectedOption, setSelectedOption] = useState<string>("AZURE STT")
     const [url, setUrl] = useState<string|null>(null)
     const [rootUrl, setRootUrl] = useState<string>("")
     const [status, setStatus] = useState<string>("")
     const qrCodeRef = useRef(null);
     const size:number = 144
 
-    const options = ["AZURE STT", "react-speech-recognition", "音声入力/AIボイスなし", "local_test"]
+    //const options = ["AZURE STT", "react-speech-recognition", "音声入力/AIボイスなし", "local_test"]
     const loadEvents = async (org:string) => {
         try {
             const docRef = doc(db, "Users", org)
@@ -50,11 +50,13 @@ export default function DownloadableQRCode(){
                     const data = docSnap.data()
                     if (data.qaData){
                         setCode(data.code)
+                        /*
                         if (data.voiceSetting === "音声入力／AIボイスあり"){
                             setVoiceSetting(true)
                         } else {
                             setVoiceSetting(false)
                         }
+                        */
                     }else{
                         alert("イベントにQ&Aデータが登録されていません")
                         setEvent("")
@@ -128,9 +130,12 @@ export default function DownloadableQRCode(){
         }
     };
 
+    /*
     const fetchAICONpage = async () => {
         await fetch(`/api/renew?url=${url}`)
     }
+        */
+    /*
     useEffect(() => {
         if (selectedOption === "AZURE STT"){
             const aiconUrl = `/aicon/chat6?attribute=${organization}_${event}&code=${code}`
@@ -150,10 +155,11 @@ export default function DownloadableQRCode(){
             setUrl(renewUrl)
         }
     }, [code,selectedOption])
+    */
 
     useEffect(() => {
         if (code){
-            const aiconUrl = `/aicon/chat5?attribute=${organization}_${event}&code=${code}`
+            const aiconUrl = `/aicon/chat?attribute=${organization}_${event}&code=${code}`
             const renewUrl = `${rootUrl}api/renew?to=${encodeURIComponent(aiconUrl)}`
             setUrl(renewUrl)
         }

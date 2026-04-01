@@ -13,6 +13,22 @@ export async function GET(request: NextRequest) {
     const y = new Date(date.getTime() - 24 * 60 * 60 * 1000)
     const yDate = new Date(y.getTime() + jOffset)
     const yesterday = yDate.toISOString()
+    const dateString = now.split("T")[0]
+    const hi = dateString.split("-")[2]
+    
+    if (hi === "01"){
+      const year = yesterday.split("T")[0].split("-")[0]
+      const month = yesterday.split("T")[0].split("-")[1]
+      const response = await fetch(`${process.env.NEXT_PUBLIC_HOST_URL}/api/monthlySummary`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task: "monthly summary", year:year, month:month}),
+      }).then(r => r.json());
+
+      const updated = response.updated
+
+    return NextResponse.json({updated})
+    }
 
     const cronRef = doc(db, "Cron",now)
     await setDoc(cronRef, {date:now, yesterday:yesterday})

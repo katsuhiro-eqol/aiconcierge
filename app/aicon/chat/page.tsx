@@ -1,10 +1,10 @@
-//SpeechRecognition新バージョン
+//SpeechRecognition languageを自動取得
 "use client"
 import "regenerator-runtime";
 import React from "react";
 import { useSearchParams as useSearchParamsOriginal } from "next/navigation";
 import { getDeviceId } from "@/lib/deviceFingerprint";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { Mic, Send, Eraser, X, LoaderCircle, CircleStop, Volume2, VolumeX } from 'lucide-react';
 import { db } from "@/firebase";
@@ -34,7 +34,7 @@ export default function Aicon() {
     const [slides, setSlides] = useState<string[]|null>(null)
     const [currentIndex, setCurrentIndex] = useState<number>(0)
     const [wavReady, setWavReady] = useState<boolean>(false)
-    const [record,setRecord] = useState<boolean>(false)
+    //const [record,setRecord] = useState<boolean>(false)
     const [canSend, setCanSend] = useState<boolean>(false)
     const [isModal, setIsModal] = useState<boolean>(false)
     const [modalUrl, setModalUrl] = useState<string|null>(null)
@@ -57,7 +57,7 @@ export default function Aicon() {
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const nativeName = {"日本語":"日本語", "英語":"English","中国語（簡体）":"简体中文","中国語（繁体）":"繁體中文","韓国語":"한국어","フランス語":"Français","スペイン語":"Español","ポルトガル語":"Português"}
     const japaneseName = {"日本語":"日本語", "English":"英語","简体中文":"中国語（簡体）","繁體中文":"中国語（繁体）","한국어":"韓国語","Français":"フランス語","Español":"スペイン語","Português":"ポルトガル語"}
-    
+    const japaneseName2 = {"ja":"日本語", "en":"英語","zh-CN":"中国語（簡体）","zh-TW":"中国語（繁体）","ko":"韓国語","fr":"フランス語","es":"スペイン語","pt":"ポルトガル語"}
     const foreignLanguages: Record<string, LanguageCode> = {"日本語": "ja-JP","英語": "en-US","中国語（簡体）": "zh-CN","中国語（繁体）": "zh-TW","韓国語": "ko-KR","フランス語": "fr-FR","ポルトガル語": "pt-BR","スペイン語": "es-ES"}
     const audioRef = useRef<HTMLAudioElement>(null)
     const intervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -109,20 +109,17 @@ export default function Aicon() {
         srcRef.current = null;
     };
 
-    /** URLの音声をデコードして再生（完了まで待つ） */
     const playUrl = async (url: string) => {
         try {
             const ctx = ensureCtx();
             await ctx.resume(); // iOSでsuspend解除
             stop();
 
-            // iOSでAudioContextが確実にresumeされていることを確認
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
             if (isIOS) {
                 if (ctx.state === 'suspended') {
                     await ctx.resume();
                 }
-                // 音声再生前にHTMLAudioElementで無音を再生してスピーカー出力を確実にする
                 if (audioRef.current && url !== "/noSound.wav") {
                     try {
                         const originalSrc = audioRef.current.src;
@@ -140,8 +137,7 @@ export default function Aicon() {
             }
 
             console.log('[playUrl] Fetching audio', { url: url.substring(0, 100) }); // URLの最初の100文字のみログ
-            
-            // Blob URLの場合は直接fetch、それ以外はaudio-proxy APIを使用
+
             const isBlobUrl = url.startsWith('blob:');
             let response: Response;
             
@@ -191,9 +187,6 @@ export default function Aicon() {
                 gainNode.connect(ctx.destination);
             }
             src.connect(gainNode);
-            
-            // 音声再生前に、GainNodeのgain値を確実に設定
-            // 音声認識後の問題を回避するため、GainNodeの状態をリセット
             gainNode.gain.cancelScheduledValues(ctx.currentTime);
             gainNode.gain.setValueAtTime(1.0, ctx.currentTime);
             srcRef.current = src;
@@ -213,28 +206,8 @@ export default function Aicon() {
             });
         } catch (error) {
             console.error('playUrl error:', error);
-            // エラーが発生しても処理を続行（ユーザー体験を損なわないため）
-            // 必要に応じて、エラーメッセージを表示するなどの処理を追加可能
         }
     };
-
-    /** 完全破棄（必要なときだけ） */
-    /*
-    const dispose = async () => {
-        stop();
-        if (gainNodeRef.current) {
-            try {
-                gainNodeRef.current.disconnect();
-            } catch {}
-            gainNodeRef.current = null;
-        }
-        if (ctxRef.current) {
-            try { await ctxRef.current.close(); } catch {}
-            ctxRef.current = null;
-        }
-    }
-        */
-    //ここまでWebAudio関連
 
     const sendMessage2 = async () => {
         const date = new Date()
@@ -242,7 +215,7 @@ export default function Aicon() {
         const localDate = new Date(date.getTime() - offset)
         const now = localDate.toISOString()
         const userM: Message2 = {
-            id: now,
+            id: `${now}${randomStr(4)}`,
             text: userInput,
             sender: 'user',
             modalUrl:"",
@@ -433,6 +406,15 @@ export default function Aicon() {
         }
       }
 
+      const randomStr = (length: number) => {
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            result += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+        return result;
+    }
+
       function cosineSimilarity(vec1:number[], vec2:number[]) {
         if (vec1.length !== vec2.length) {
           throw new Error('ベクトルの次元数が一致しません');
@@ -549,7 +531,6 @@ export default function Aicon() {
                     };
                 })
             );
-            console.log(qaData)
             console.log(`Successfully loaded ${qaData.length} QA items`);
             setEmbeddingsData(qaData);
             
@@ -629,17 +610,17 @@ export default function Aicon() {
             deviceId:deviceId
         }
         setHistory(prev => [...prev, data])
-        await setDoc(doc(db, "Events",attr, "Conversation", convId), {conversations: arrayUnion(data), date:userMessage.id, language:language}, {merge:true})
+        await setDoc(doc(db, "Events",attr, "Conversation", convId), {conversations: arrayUnion(data), date:userMessage.id, language:language, deviceId:deviceId}, {merge:true})
     }
 
 
-    const createConvField = (attr:string) => {
+    const createConvField = () => {
         const date = new Date()
         const offset = date.getTimezoneOffset() * 60000
         const localDate = new Date(date.getTime() - offset)
         const now = localDate.toISOString()
 
-        setConvId(now)
+        setConvId(`${now}${randomStr(4)}`)
     }
 
     const getLanguageList = () => {
@@ -655,7 +636,7 @@ export default function Aicon() {
             alert("使用する言語を選択してください。Please select your language")
             return
         }
-        createConvField(attribute!)
+        createConvField()
         await unlock()
 
         setWavReady(true)
@@ -706,13 +687,6 @@ export default function Aicon() {
           silenceTimerRef.current = null;
         }
     };
-
-    /*
-    const scheduleSilenceStop = () => {
-        clearSilenceTimer();
-        silenceTimerRef.current = setTimeout(() => sttStop(), 4000);
-    };
-    */
 
     const sttStatus = {
         listening: listening,
@@ -839,9 +813,40 @@ export default function Aicon() {
         }, 100);
     }
 
+    const detectChineseLocale = (lang:string) => {
+        const l = lang.toLowerCase()
+        if (l.startsWith("zh-tw") || l.startsWith("zh-hk")){
+            return "zh-TW"
+        } else if (l.startsWith("zh-cn") || l.startsWith("zh-sg")){
+             return "zh-CN"
+        } else if (l.includes("hant")) {
+            return "zh-TW"
+        } if (l.includes("hans")) {
+            return "zh-CN"
+        } else {
+            return "zh-TW"
+        }
+    }
+
     useEffect(() => {
         const device = getDeviceId()
         setDeviceId(device)
+        const browserLang = navigator.language;
+        console.log("browserLang",browserLang)
+        if (!browserLang.startsWith("zh")){
+            const jLang = japaneseName2[browserLang as keyof typeof japaneseName2]
+            if (jLang){
+                setLanguage(jLang)
+                setDLang(nativeName[jLang as keyof typeof nativeName])
+            } else {
+                setLanguage("en")
+                setDLang("English")
+            }
+        } else {
+            const jLang = detectChineseLocale(browserLang)
+            setLanguage(jLang)
+            setDLang(nativeName[jLang as keyof typeof nativeName])            
+        }
         return () => {
             clearSilenceTimer();
         };
@@ -880,9 +885,6 @@ export default function Aicon() {
     useEffect(() => {
         if (eventData){
             getLanguageList()
-            console.log(eventData)
-            //setInitialSlides(eventData?.image.url)
-            
         }
     }, [eventData])
     
@@ -925,11 +927,6 @@ export default function Aicon() {
             if (intervalRef.current !== null) {//タイマーが進んでいる時はstart押せないように//2
                 return;
             }
-            /*
-            intervalRef.current = setInterval(() => {
-                setCurrentIndex((prevIndex) => (prevIndex + 1) % (slides.length))
-            }, 250)
-            */
         }
     }, [slides])
 

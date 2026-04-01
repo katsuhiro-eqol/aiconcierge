@@ -1,9 +1,12 @@
-//音声入力・AIボイスあり
-export default function AICONN6(){
+"use client"
+
+export default function AICON6(){
     return (
-        <div>現在使用してないページ</div>
+        <div>不使用</div>
     )
 }
+
+//音声入力・AIボイスあり
 /*
 "use client"
 import "regenerator-runtime";
@@ -909,7 +912,7 @@ export default function Aicon() {
         </div>
     );
 }
-    */
+*/
 
 /*
                 {isModal && (

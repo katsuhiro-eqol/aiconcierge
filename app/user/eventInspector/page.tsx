@@ -3,11 +3,12 @@ import React from "react";
 import { useState, useEffect, useMemo } from "react";
 import { db } from "@/firebase"
 import { doc, getDoc, collection, query, getDocs, orderBy, limit, deleteDoc, getCountFromServer, startAfter, setDoc, where } from "firebase/firestore"
+import MonthlyBarChart from "@/app/components/monthlyBarChart";
 import { ConvData, ForeignAnswer } from "@/types"
 import { constants } from "fs";
 
 type Cursor = { date: string } | null
-
+type DailyCounts = Record<string, number>;
 
 export default function EventInspector(){
     const [events, setEvents] = useState<string[]>([""]) //firestoreから読み込む
@@ -20,12 +21,16 @@ export default function EventInspector(){
     const [cursors, setCursors] = useState<Cursor[]>([])
     const [selectedAnalysis, setSelectedAnalysis] = useState<string>("")
     const [convCount, setConvCount] = useState<number>(0)
+    const [year, setYear] = useState<string | null>("2025")
+    const [month, setMonth] = useState<string | null>("10")
+    const [dailyCounts, setDailyCounts] = useState<DailyCounts|null>(null)
 
     const PAGE_SIZE = 10
     
     const columns = [
         { key: 'id', label: 'id' },
-        { key: 'userNumber', label: 'userNumber' },
+        { key: 'deviceId', label: 'deviceId' },
+        { key: 'user', label: 'user' },
         { key: 'lamguage', label: 'language' },
         { key: 'question', label: 'question' },
         { key: 'answer', label: 'answer' }
@@ -113,7 +118,8 @@ export default function EventInspector(){
                                 language:data.language,
                                 user:c.user,
                                 aicon: c.aicon,
-                                unanswerable:c.unanswerable
+                                unanswerable:c.unanswerable,
+                                deviceId:c.deviceId ?? ""
                             }
                             rows.push(con)
                         })
@@ -141,6 +147,10 @@ export default function EventInspector(){
             if (selectedAnalysis === "all"){
                 await loadConvData(e.target.value, 1)
             } 
+            const eventRef = doc(db, "Events", eventId)
+            const eventSnap = await getDoc(eventRef)
+            const dailycounts = eventSnap.data()?.dailyCounts
+            setDailyCounts(dailycounts)
         }
     }
 
@@ -148,7 +158,7 @@ export default function EventInspector(){
         setSelectedAnalysis(analysis)
         if (analysis === "all" && event !== ""){
             await loadConvData(event, 1)
-        } else if (analysis === "unanswerable"){
+        } else if (analysis === 'time_series'){
 
         }
 
@@ -236,6 +246,7 @@ export default function EventInspector(){
                     {convData.map(conv => (
                         <tr key={conv.id} className={`border border-gray-300 ${conv.unanswerable ? "bg-yellow-200" : "bg-slate-100"}`}>
                             <td className="border border-gray-300 text-xs px-1">{conv.id}</td>
+                            <td className="border border-gray-300 text-xs px-1">{conv.deviceId.slice(0,10)}</td>
                             <td className="border border-gray-300 text-xs px-1">{conv.userNumber}</td>
                             <td className="border border-gray-300 text-xs px-1">{conv.language}</td>
                             <td className="border border-gray-300 text-xs px-1">{conv.user}</td>
@@ -248,7 +259,11 @@ export default function EventInspector(){
             )}
             {(selectedAnalysis ==="unanswerable") && (<div className="text-red-500">Under Construction</div>)}
             {(selectedAnalysis ==="public_information") && (<div className="text-red-500">Under Construction</div>)}
-            {(selectedAnalysis ==="time_series") && (<div className="text-red-500">Under Construction</div>)}
+            {(selectedAnalysis ==="time_series") && (<div className="text-red-500">
+                {year && month && dailyCounts && (
+                    <MonthlyBarChart dailyCounts={dailyCounts} year={year} month={month} />
+                )}
+            </div>)}
         </div>
     )
 }

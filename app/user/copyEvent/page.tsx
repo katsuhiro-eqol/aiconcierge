@@ -13,6 +13,7 @@ export default function CopyEvent(){
     const [organization, setOrganization] = useState<string>("")
     const [newEvent, setNewEvent] = useState<string>("")
     const [status, setStatus] = useState<string>("")
+    const [isLimit, setIsLimit] = useState<boolean>(false)
 
     const loadEvents = async (org:string) => {
         try {
@@ -20,6 +21,13 @@ export default function CopyEvent(){
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                 const data = docSnap.data()
+                const eventCount = data.events.length
+                const eventLimit = data.eventLimit
+                if (eventCount >= eventLimit){
+                    setIsLimit(true)
+                    alert("作成可能なイベント数の上限に達しています。既存のイベントを削除するか、上限数を増やす必要があります。")
+                    return
+                }
                 setEvents(data.events)
                 const array1 = [""]
                 const array2 = array1.concat(data.events)
@@ -41,6 +49,10 @@ export default function CopyEvent(){
     }
 
     const copyEvent = async() => {
+        if (isLimit) {
+            alert("作成可能なイベント数の上限に達しています。既存のイベントを削除するか、上限数を増やす必要があります。")
+            return
+        }
         if (event !== "" && newEvent !== ""){
             setStatus("イベントの複製を開始しました")
             const sourceId = `${organization}_${event}`

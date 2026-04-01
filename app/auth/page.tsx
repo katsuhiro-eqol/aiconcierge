@@ -1,12 +1,24 @@
 "use client"
 import React from "react";
-import { useState, useCallback, KeyboardEvent } from "react";
+import { useState, useRef, useCallback, KeyboardEvent } from "react";
 import { useRouter } from 'next/navigation';
 
 export default function AUTH() {
     const [organization, setOrganization] = useState<string>("")
     const [password, setPassword] = useState<string>("")
+    const organizationRef = useRef("")
+    const passwordRef = useRef("")
     const router = useRouter()
+
+    const handleOrganizationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      organizationRef.current = e.target.value;
+      setOrganization(e.target.value); // 表示用にstateも更新
+    };
+    
+    const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      passwordRef.current = e.target.value;
+      setPassword(e.target.value);
+    };
 
     const handleKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter') {
@@ -15,7 +27,9 @@ export default function AUTH() {
     }, []);
 
     const login = async() => {
-        
+        const organizationValue = organizationRef.current
+        const passwordValue = passwordRef.current
+        console.log(organizationValue)
         try {
             const response = await fetch("/api/login", {
                 method: "POST",
@@ -23,7 +37,7 @@ export default function AUTH() {
                   "Content-Type": "application/json",
                 },
                 //body: JSON.stringify({ input: userInput, character: character, fewShot: fewShot, previousData: previousData, sca: scaList[character] }),
-                body: JSON.stringify({ organization: organization, password: password}),
+                body: JSON.stringify({ organization: organizationValue, password: passwordValue}),
               });
               const data = await response.json()
               console.log(data)
@@ -51,7 +65,7 @@ export default function AUTH() {
         name="organization"
         placeholder="会社名"
         value={organization}
-        onChange={(e) => setOrganization(e.target.value)}
+        onChange={(e) => handleOrganizationChange(e)}
         />
         <label className="text-sm font-bold">
         Password
@@ -63,7 +77,7 @@ export default function AUTH() {
         placeholder="••••••••"
         value={password}
         onKeyDown={handleKeyDown}
-        onChange={(e) => setPassword(e.target.value)}
+        onChange={(e) => handlePasswordChange(e)}
         />
 
         <br />
