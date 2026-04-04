@@ -602,11 +602,13 @@ export default function Aicon() {
 
     const saveMessage = async (userMessage:Message2, message:Message2, attr:string) => {
         const judge = message.text.endsWith("QA情報 2")
+        const judge2 = message.text.endsWith("公開情報")
         const data = {
             id:userMessage.id,
             user:userMessage.text,
             aicon:message.text,
             unanswerable:judge,
+            publicInformation:judge2,
             deviceId:deviceId
         }
         setHistory(prev => [...prev, data])

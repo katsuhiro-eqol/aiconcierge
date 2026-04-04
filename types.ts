@@ -154,5 +154,6 @@ export interface ConvData {
     user:string;
     aicon:string;
     unanswerable:boolean;
+    publicInformation:boolean;
     deviceId:string;
 }

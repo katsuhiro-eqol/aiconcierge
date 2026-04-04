@@ -28,11 +28,9 @@ export default function QADataList({qaData, voiceNumber}: QADataProps){
         { key: 'id', label: 'id' },
         { key: 'question', label: '質問' },
         { key: 'answer', label: '回答' },
-        { key: 'read', label: '読み' },
         { key: 'foreignStr', label: '外国語回答' },
         { key: 'modalUrl', label: '添付書類' },
-        { key: 'voiceId', label: 'AI音声' },
-        { key: 'vector', label: 'Embedding' }
+        { key: 'voiceId', label: 'AI音声' }
     ]
 
     const qaDataList = (data:QaData) => {
@@ -83,13 +81,21 @@ export default function QADataList({qaData, voiceNumber}: QADataProps){
     return (
         <div>
             <div className="container mx-auto p-4">
-            <table className="min-w-full border border-gray-300">
+            <table className="w-full min-w-full table-fixed border border-gray-300">
+                <colgroup>
+                    <col className="w-[5%]" />
+                    <col className="w-[27%]" />
+                    <col className="w-[50%]" />
+                    <col className="w-[6%]" />
+                    <col className="w-[6%]" />
+                    <col className="w-[6%]" />
+                </colgroup>
                 <thead>
                 <tr className="bg-gray-100">
                     {columns.map((column) => (
                     <th 
                         key={column.key}
-                        className="border border-gray-300 px-2 py-1 text-left font-medium text-gray-700 text-sm"
+                        className="border border-gray-300 px-2 py-1 text-left align-top font-medium text-gray-700 text-sm break-words"
                     >
                         {column.label}
                     </th>
@@ -104,7 +110,7 @@ export default function QADataList({qaData, voiceNumber}: QADataProps){
                             return (
                                 <td 
                                 key={`${row.id}-${column.key}`}
-                                className="border border-gray-300 px-4 py-2"
+                                className="border border-gray-300 px-2 py-2 align-top whitespace-nowrap"
                               >
                                 <div className="flex space-x-2">
                                   <button
@@ -121,7 +127,7 @@ export default function QADataList({qaData, voiceNumber}: QADataProps){
                             return (
                                 <td 
                                 key={`${row.id}-${column.key}`}
-                                className="border border-gray-300 px-4 py-2"
+                                className="border border-gray-300 px-2 py-2 align-top whitespace-nowrap"
                               >
                                 <div className="flex space-x-2">
                                   <button
@@ -138,7 +144,7 @@ export default function QADataList({qaData, voiceNumber}: QADataProps){
                             return (
                                 <td 
                                 key={`${row.id}-${column.key}`}
-                                className="border border-gray-300 px-4 py-2"
+                                className="border border-gray-300 px-2 py-2 align-top whitespace-nowrap"
                               >
                                 <div className="flex space-x-2">
                                   <button
@@ -154,7 +160,7 @@ export default function QADataList({qaData, voiceNumber}: QADataProps){
                         return (
                         <td 
                             key={`${row.id}-${column.key}`}
-                            className="border border-gray-300 px-2 py-2 text-xs"
+                            className="border border-gray-300 px-2 py-2 text-xs align-top break-words min-w-0"
                         >
                             {row[column.key] as React.ReactNode}
                         </td>

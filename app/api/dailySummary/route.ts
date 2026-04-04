@@ -31,13 +31,26 @@ export async function POST(request: NextRequest) {
             }
             
             if (count !== 0){
+                // today は YYYY-MM-DD → monthlyCounts のキーは YYYY-MM（monthlySummary と同じ形式）
+                const yearMonth = today.slice(0, 7);
+                const monthlyCounts = data["monthlyCounts"];
+                const prevMonthCount =
+                    monthlyCounts &&
+                    typeof monthlyCounts === "object" &&
+                    typeof monthlyCounts[yearMonth] === "number"
+                        ? monthlyCounts[yearMonth]
+                        : 0;
+
                 batch.set(
                     doc.ref,
                     {
                       ["dailyCounts"]: { [today]: count },
                       ["counter"]: 0,
                       ["dailySTT"]: {[today]: stt},
-                      ["sttDuration"]: 0
+                      ["sttDuration"]: 0,
+                      ["monthlyCounts"]: {
+                        [yearMonth]: prevMonthCount + count,
+                      },
                     },
                     { merge: true }
                   );
