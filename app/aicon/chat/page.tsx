@@ -300,12 +300,42 @@ export default function Aicon() {
                 },
                 body: JSON.stringify({ input: userInput, model: eventData?.embedding ?? "text-embedding-3-small", language: language }),
             });
-            const data1 = await response1.json();
-            if (response1.status !== 200) {
-              throw data1.error || new Error(`Request failed with status ${response1.status}`);
+            const data1 = await response1.json().catch(() => ({}));
+            if (!response1.ok) {
+              const raw =
+                typeof data1?.error === "string" ? data1.error : "";
+              const isQuota =
+                response1.status === 429 ||
+                /429|quota|exceeded your current quota|rate limit/i.test(
+                  raw
+                );
+              if (isQuota) {
+                alert(
+                  "AI埋め込み（OpenAI）の利用上限に達しています。プラン・請求（クォータ）をご確認いただくか、しばらく時間をおいてから再度お試しください。"
+                );
+                return;
+              }
+              alert(
+                raw ||
+                  `埋め込み処理に失敗しました（${response1.status}）。しばらくしてから再度お試しください。`
+              );
+              return;
             }
-            //const translatedQuestion = data1.input
-            const similarityList = findMostSimilarQuestion(data1.embedding)
+            const emb = data1.embedding;
+            const embOk =
+              typeof emb === "string"
+                ? emb.trim().length > 0
+                : Array.isArray(emb) && emb.length > 0;
+            if (!embOk) {
+              const msg =
+                typeof data1?.error === "string"
+                  ? data1.error
+                  : "埋め込みデータが空です";
+              console.error("embedding2 invalid payload", data1);
+              alert(msg);
+              return;
+            }
+            const similarityList = findMostSimilarQuestion(emb);
             const refQA = chooseQA(similarityList)
             const undefined = undefinedAnswer?.[language] || "申し訳ありません。回答できない質問です"
             const response = await fetch("/api/concierge", {
@@ -391,8 +421,13 @@ export default function Aicon() {
             }
             //全ユーザーの質問総数
             await incrementCounter(attribute!)
-        } catch(error) {
-        console.error(error);
+        } catch (error) {
+          console.error(error);
+          const message =
+            error instanceof Error
+              ? error.message
+              : "処理中にエラーが発生しました。";
+          alert(message);
         }
       }
 
@@ -428,8 +463,8 @@ export default function Aicon() {
         return dotProduct / (magnitude1 * magnitude2);
       }
     
-    function findMostSimilarQuestion(base64Data:string){
-        const inputVector = binaryToList(base64Data)
+    function findMostSimilarQuestion(embeddingInput: unknown) {
+        const inputVector = binaryToList(embeddingInput);
         
         // 類似度計算を最適化（上位10件のみ計算）
         const similarities = embeddingsData
@@ -456,15 +491,58 @@ export default function Aicon() {
         return QAs
     }
 
-    function binaryToList(binaryStr:string){
-        const decodedBuffer = Buffer.from(binaryStr, 'base64')
-        const embeddingsArray = new Float32Array(
-            decodedBuffer.buffer, 
-            decodedBuffer.byteOffset, 
-            decodedBuffer.byteLength / Float32Array.BYTES_PER_ELEMENT
-          )
-          const embeddingsList = Array.from(embeddingsArray)
-          return embeddingsList
+    /** Base64（標準 / URL-safe）・空白除去・数値配列・JSON 配列文字列に対応 */
+    function binaryToList(raw: unknown): number[] {
+        if (raw == null) {
+            throw new Error("Embedding is missing");
+        }
+        if (Array.isArray(raw)) {
+            const nums = raw.map((v) => Number(v));
+            if (!nums.length || !nums.every((n) => Number.isFinite(n))) {
+                throw new Error("Invalid embedding array");
+            }
+            return nums;
+        }
+        if (typeof raw === "string") {
+            const trimmed = raw.trim();
+            if (trimmed.startsWith("[")) {
+                try {
+                    const parsed: unknown = JSON.parse(trimmed);
+                    if (Array.isArray(parsed)) return binaryToList(parsed);
+                } catch {
+                    /* base64 として続行 */
+                }
+            }
+            const normalized = trimmed
+                .replace(/\s+/g, "")
+                .replace(/-/g, "+")
+                .replace(/_/g, "/");
+            let padded = normalized;
+            const mod4 = padded.length % 4;
+            if (mod4) padded += "=".repeat(4 - mod4);
+            let binary: string;
+            try {
+                binary = atob(padded);
+            } catch {
+                throw new Error("Invalid embedding: base64 decode failed");
+            }
+            const len = binary.length;
+            if (len % Float32Array.BYTES_PER_ELEMENT !== 0) {
+                throw new Error("Invalid embedding payload length");
+            }
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return Array.from(
+                new Float32Array(
+                    bytes.buffer,
+                    bytes.byteOffset,
+                    len / Float32Array.BYTES_PER_ELEMENT
+                )
+            );
+        }
+        throw new Error("Invalid embedding type");
     }
 
     const incrementCounter = async (attribute:string) => {
