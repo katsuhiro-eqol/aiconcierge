@@ -11,6 +11,7 @@ export default function InboundSite() {
 
         <div className="mt-6 w-4/5 mx-auto bg-yellow-400 p-5 rounded-xl">
           <li className="ml-5">事業者様の日本語想定Q&Aリストを元にAIデータベースを作成します</li>
+          <li className="ml-5">サービス拠点付近の情報（最寄駅など）は公開情報を併用することも可能です</li>
           <li className="ml-5">想定Q&Aリストの作成は弊社がサポートいたします</li>
           <li className="ml-5">ユーザーはQRコードで一発アクセス。選択した言語でサービスを利用できます</li>
           <li className="ml-5">対応言語は、「日本語」「英語」「中国語（簡体）」「中国語（繁体）」「韓国語」（デフォルト）</li>
