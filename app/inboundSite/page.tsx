@@ -18,7 +18,7 @@ export default function InboundSite() {
           <li className="ml-5">地図や写真などの画像ファイル、pdfファイルなども回答に添付して表示可能です</li>
           <li className="ml-5">臨時のイベント情報などの追加・更新も事業者様自身で簡単にできるようになっています</li>
           <li className="ml-5">質問や回答には多言語対応の音声入力・AIボイスが利用できます</li>
-          <li className="ml-5">問い合わせや回答内容を確認できます</li>
+          <li className="ml-5">問い合わせや回答内容を確認・解析してQ&Aの改善に繋げることができます</li>
           <li className="ml-5">人間スタップの対応が必要な場面でのチャットアプリへの移行サービスもオプションで用意しています</li>
         </div>
 

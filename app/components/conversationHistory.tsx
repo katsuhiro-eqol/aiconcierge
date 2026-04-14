@@ -69,6 +69,16 @@ export default function ConversationHistory({dailyCounts, organization, event}: 
         return end
     }
 
+    const getNextDate = (ymd: string): string => {
+        const [y, m, d] = ymd.split("-").map(Number);
+        const dt = new Date(Date.UTC(y, m - 1, d));
+        dt.setUTCDate(dt.getUTCDate() + 1);
+        const yy = dt.getUTCFullYear();
+        const mm = String(dt.getUTCMonth() + 1).padStart(2, "0");
+        const dd = String(dt.getUTCDate()).padStart(2, "0");
+        return `${yy}-${mm}-${dd}`;
+    }
+
     const fetchMonthConversationCount = async (
         organization: string,
         event: string,

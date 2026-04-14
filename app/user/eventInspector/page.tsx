@@ -4,11 +4,11 @@ import { useState, useEffect, useMemo } from "react";
 import { db } from "@/firebase"
 import { doc, getDoc } from "firebase/firestore"
 import MonthlyBarChart from "@/app/components/monthlyBarChart";
-import ConversationHistory from "@/app/components/conversationHistory";
-import { ConvData } from "@/types"
+//import ConversationHistory from "@/app/components/conversationHistory";
+import ConversationCounts from "@/app/components/conversationCounts";
 
-type Cursor = { date: string } | null
 type DailyCounts = Record<string, number>;
+type MonthlyCounts = Record<string, number>;
 
 export default function EventInspector(){
     const [events, setEvents] = useState<string[]>([""]) //firestoreから読み込む
@@ -16,6 +16,7 @@ export default function EventInspector(){
     const [organization, setOrganization] = useState<string>("")
     const [selectedAnalysis, setSelectedAnalysis] = useState<string>("")
     const [dailyCounts, setDailyCounts] = useState<DailyCounts|null>(null)
+    const [monthlyCounts, setMonthlyCounts] = useState<MonthlyCounts|null>(null)
     
     const buttons = [
         { key: 'conversationHistory', label: '会話閲覧'},
@@ -49,7 +50,9 @@ export default function EventInspector(){
             const eventRef = doc(db, "Events", eventId)
             const eventSnap = await getDoc(eventRef)
             const dailycounts = eventSnap.data()?.dailyCounts
+            const monthlyCounts = eventSnap.data()?.monthlyCounts
             setDailyCounts(dailycounts)
+            setMonthlyCounts(monthlyCounts)
         }
     }
 
@@ -87,14 +90,12 @@ export default function EventInspector(){
             </div>
 
             {(selectedAnalysis === "conversationHistory") && dailyCounts && (
-                <ConversationHistory organization={organization} event={event} dailyCounts={dailyCounts} />
-            )}
-            {(selectedAnalysis ==="time_series") && (
                 <div>
-                {dailyCounts && (
-                    <MonthlyBarChart dailyCounts={dailyCounts} />
-                )}
+                    <MonthlyBarChart dailyCounts={dailyCounts} organization={organization} event={event} />
                 </div>
+            )}
+            {(selectedAnalysis === "time_series") && event && (
+                <ConversationCounts monthlyCounts={monthlyCounts ?? {}} />
             )}
         </div>
     )

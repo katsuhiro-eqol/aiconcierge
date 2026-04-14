@@ -38,6 +38,7 @@
     "react-dropzone": "^14.3.5",
     "react-qr-code": "^2.0.15",
     "react-speech-recognition": "^3.10.0",
+    "recharts": "^3.8.1",
     "regenerator-runtime": "^0.14.1",
     "resend": "^6.0.2",
     "socket.io": "^4.8.1",
