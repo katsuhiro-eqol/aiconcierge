@@ -38,6 +38,9 @@ export default function InboundSite() {
             <img src="/中文1.png" alt="エクセルやスプレッドシート" />
             </div>            
         </div>
+        <div className="mt-8 mb-8 w-3/5 mx-auto">
+        <YouTubeEmbed videoId="bER629Yt4Pc?si=oeNjrw14aJnXqyCG" title="インバウンドコンシェルジュ紹介動画"/>
+        </div>
     </div>
   );
 }
