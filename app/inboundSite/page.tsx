@@ -39,7 +39,7 @@ export default function InboundSite() {
             </div>            
         </div>
         <div className="mt-8 mb-8 w-3/5 mx-auto">
-        <YouTubeEmbed videoId="bER629Yt4Pc?si=oeNjrw14aJnXqyCG" title="インバウンドコンシェルジュ紹介動画"/>
+          <YouTubeEmbed videoId="bER629Yt4Pc?si=oeNjrw14aJnXqyCG" title="インバウンドコンシェルジュ紹介動画"/>
         </div>
     </div>
   );
