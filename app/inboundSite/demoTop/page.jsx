@@ -6,8 +6,8 @@ export default function DemoTop() {
             <div className="mt-10 text-2xl font-bold text-blue-800 text-center lg:text-3xl sm:text-2xl">インバウンドコンシェルジュ無料体験</div>
             <div className="mt-4 text-lg font-bold text-blue-800 text-center lg:text-2xl sm:text-xl">「ホテル池袋」（架空のホテルです）の宿泊客になったつもりで質問してみましょう</div>
             <div className="mt-6 w-4/5 mx-auto bg-yellow-400 p-5 rounded-xl">
-                <li className="ml-5">東京都豊島区内の仮想のホテル「ホテル池袋」を念頭にQ&Aリストを設定しました<span className="mx-5">Q&Aデータを確認したい場合は<a className="text-blue-500" href="https://docs.google.com/spreadsheets/d/1Ff0Ip7R6sMI0oX4pR9PuoKPU9hsYvmL5/edit?usp=sharing&ouid=117492770886811328460&rtpof=true&sd=true" target="_blank" rel="noopener noreferrer">こちら</a></span></li>
-                <li className="ml-5">設定したQ&Aは93 WiFi、朝食場所、近隣情報などを学習しています</li>
+                <li className="ml-5">東京都豊島区内の仮想のホテル「ホテル池袋」を念頭にデモ用Q&Aリストを設定しました<span className="mx-5">Q&Aデータを確認したい場合は<a className="text-blue-500" href="https://docs.google.com/spreadsheets/d/1Ff0Ip7R6sMI0oX4pR9PuoKPU9hsYvmL5/edit?usp=sharing&ouid=117492770886811328460&rtpof=true&sd=true" target="_blank" rel="noopener noreferrer">こちら</a></span></li>
+                <li className="ml-5">設定したQ&Aは93 WiFi、朝食、近隣情報などを学習しています</li>
                 <li className="ml-5">学習済みQ&Aを元に回答した場合は、回答の最後に参照したQ&A番号を表示します</li>
                 <li className="ml-5">学習済みQ&Aに回答すべき内容がない場合は、汎用AIの知識でコンシェルジュとしてふさわしい回答をするように設計されています</li>
                 <li className="ml-5">それでも適切な回答を導けない場合は、あらかじめ設定した回答不能時の応答をします</li>
