@@ -1,7 +1,9 @@
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db } from "@/firebase"
 import { doc, getDoc, setDoc } from "firebase/firestore"
+import { foreignLanguageVoice } from "@/lib/constant"
 
+/*
 const foreignLanguages: Record<string, string[]> = {
     "日本語": ["ja-JP","ja-JP-Standard-B", "ja-JP-Standard-C"],
     "英語": ["en-US", "en-US-Standard-F", "en-US-Standard-B"],
@@ -12,6 +14,7 @@ const foreignLanguages: Record<string, string[]> = {
     "ポルトガル語": ["pt-BR", "pt-BR-Standard-A", "pt-BR-Standard-B"],
     "スペイン語": ["es-ES", "es-ES-Standard-H", "es-ES-Standard-G"]
 }
+*/
 
 export const registerVoice = async (voiceId:string, text:string, language:string, japanese:string, voiceNumber:number, isUpdate:boolean): Promise<void> => {
     const voiceRef = doc(db, "Voice", voiceId)
@@ -22,8 +25,8 @@ export const registerVoice = async (voiceId:string, text:string, language:string
 }
 
 const createAudioFile = async (voiceId:string, text:string, language:string, japanese:string, voiceNumber:number) => {
-    const langCode = foreignLanguages[language][0]
-    const voice = foreignLanguages[language][voiceNumber]
+    const langCode = foreignLanguageVoice[language][0]
+    const voice = foreignLanguageVoice[language][voiceNumber]
     const ttsApiKey = process.env.NEXT_PUBLIC_GOOGLE_TTS_API_KEY
 
     const audio = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key='+ ttsApiKey, {

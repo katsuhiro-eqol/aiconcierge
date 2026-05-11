@@ -1,9 +1,11 @@
 import {decode} from "html-entities"
+import { foreignLanguages } from "@/lib/constant"
 import { NextRequest, NextResponse } from 'next/server';
 
 
 const url = `https://translation.googleapis.com/language/translate/v2?key=${process.env.GCP_API_KEY}`;
 
+/*
 const foreignLanguages: Record<string, string> = {
   "日本語": "ja-JP",
   "英語": "en-US",
@@ -14,6 +16,7 @@ const foreignLanguages: Record<string, string> = {
   "ポルトガル語": "pt-BR",
   "スペイン語": "es-ES"
 }
+*/
 
 export async function POST(req: NextRequest): Promise<NextResponse>  {
 

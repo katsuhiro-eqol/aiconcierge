@@ -1,10 +1,10 @@
-//SpeechRecognition新バージョン
+//SpeechRecognition languageを自動取得
 "use client"
 import "regenerator-runtime";
 import React from "react";
 import { useSearchParams as useSearchParamsOriginal } from "next/navigation";
 import { getDeviceId } from "@/lib/deviceFingerprint";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { Mic, Send, Eraser, X, LoaderCircle, CircleStop, Volume2, VolumeX } from 'lucide-react';
 import { db } from "@/firebase";
@@ -13,7 +13,8 @@ import Modal from "../../components/modalModal"
 import getVoiceData from "@/app/func/getVoiceData";
 import {Message2, EmbeddingsData, EventData, VoiceData, ForeignAnswer} from "@/types"
 import { realtimeVoice } from "@/app/func/realtimeVoice";
-type LanguageCode = 'ja-JP' | 'en-US' | 'zh-CN' | 'zh-TW' | 'ko-KR' | 'fr-FR' | 'pt-BR' | 'es-ES'
+import { foreignLanguages, nativeName, japaneseName, japaneseName2 } from "@/lib/constant"
+//type LanguageCode = 'ja-JP' | 'en-US' | 'zh-CN' | 'zh-TW' | 'ko-KR' | 'fr-FR' | 'pt-BR' | 'es-ES'
 type AudioContextCtor = new (opts?: AudioContextOptions) => AudioContext
 //const no_sound = "https://firebasestorage.googleapis.com/v0/b/conciergeproject-1dc77.firebasestorage.app/o/voice%2Fno_sound.wav?alt=media&token=80abe4c5-a52d-40eb-9e6f-23b265fd9d72"
 
@@ -34,7 +35,7 @@ export default function Aicon() {
     const [slides, setSlides] = useState<string[]|null>(null)
     const [currentIndex, setCurrentIndex] = useState<number>(0)
     const [wavReady, setWavReady] = useState<boolean>(false)
-    const [record,setRecord] = useState<boolean>(false)
+    //const [record,setRecord] = useState<boolean>(false)
     const [canSend, setCanSend] = useState<boolean>(false)
     const [isModal, setIsModal] = useState<boolean>(false)
     const [modalUrl, setModalUrl] = useState<string|null>(null)
@@ -55,10 +56,10 @@ export default function Aicon() {
     } = useSpeechRecognition();
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
-    const nativeName = {"日本語":"日本語", "英語":"English","中国語（簡体）":"简体中文","中国語（繁体）":"繁體中文","韓国語":"한국어","フランス語":"Français","スペイン語":"Español","ポルトガル語":"Português"}
-    const japaneseName = {"日本語":"日本語", "English":"英語","简体中文":"中国語（簡体）","繁體中文":"中国語（繁体）","한국어":"韓国語","Français":"フランス語","Español":"スペイン語","Português":"ポルトガル語"}
-    
-    const foreignLanguages: Record<string, LanguageCode> = {"日本語": "ja-JP","英語": "en-US","中国語（簡体）": "zh-CN","中国語（繁体）": "zh-TW","韓国語": "ko-KR","フランス語": "fr-FR","ポルトガル語": "pt-BR","スペイン語": "es-ES"}
+    //const nativeName = {"日本語":"日本語", "英語":"English","中国語（簡体）":"简体中文","中国語（繁体）":"繁體中文","韓国語":"한국어","フランス語":"Français","スペイン語":"Español","ポルトガル語":"Português"}
+    //const japaneseName = {"日本語":"日本語", "English":"英語","简体中文":"中国語（簡体）","繁體中文":"中国語（繁体）","한국어":"韓国語","Français":"フランス語","Español":"スペイン語","Português":"ポルトガル語"}
+    //const japaneseName2 = {"ja":"日本語", "en":"英語","zh-CN":"中国語（簡体）","zh-TW":"中国語（繁体）","ko":"韓国語","fr":"フランス語","es":"スペイン語","pt":"ポルトガル語"}
+    //const foreignLanguages: Record<string, string> = {"日本語": "ja-JP","英語": "en-US","中国語（簡体）": "zh-CN","中国語（繁体）": "zh-TW","韓国語": "ko-KR","フランス語": "fr-FR","ポルトガル語": "pt-BR","スペイン語": "es-ES"}
     const audioRef = useRef<HTMLAudioElement>(null)
     const intervalRef = useRef<NodeJS.Timeout | null>(null)
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -109,20 +110,17 @@ export default function Aicon() {
         srcRef.current = null;
     };
 
-    /** URLの音声をデコードして再生（完了まで待つ） */
     const playUrl = async (url: string) => {
         try {
             const ctx = ensureCtx();
             await ctx.resume(); // iOSでsuspend解除
             stop();
 
-            // iOSでAudioContextが確実にresumeされていることを確認
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
             if (isIOS) {
                 if (ctx.state === 'suspended') {
                     await ctx.resume();
                 }
-                // 音声再生前にHTMLAudioElementで無音を再生してスピーカー出力を確実にする
                 if (audioRef.current && url !== "/noSound.wav") {
                     try {
                         const originalSrc = audioRef.current.src;
@@ -140,8 +138,7 @@ export default function Aicon() {
             }
 
             console.log('[playUrl] Fetching audio', { url: url.substring(0, 100) }); // URLの最初の100文字のみログ
-            
-            // Blob URLの場合は直接fetch、それ以外はaudio-proxy APIを使用
+
             const isBlobUrl = url.startsWith('blob:');
             let response: Response;
             
@@ -191,9 +188,6 @@ export default function Aicon() {
                 gainNode.connect(ctx.destination);
             }
             src.connect(gainNode);
-            
-            // 音声再生前に、GainNodeのgain値を確実に設定
-            // 音声認識後の問題を回避するため、GainNodeの状態をリセット
             gainNode.gain.cancelScheduledValues(ctx.currentTime);
             gainNode.gain.setValueAtTime(1.0, ctx.currentTime);
             srcRef.current = src;
@@ -213,28 +207,8 @@ export default function Aicon() {
             });
         } catch (error) {
             console.error('playUrl error:', error);
-            // エラーが発生しても処理を続行（ユーザー体験を損なわないため）
-            // 必要に応じて、エラーメッセージを表示するなどの処理を追加可能
         }
     };
-
-    /** 完全破棄（必要なときだけ） */
-    /*
-    const dispose = async () => {
-        stop();
-        if (gainNodeRef.current) {
-            try {
-                gainNodeRef.current.disconnect();
-            } catch {}
-            gainNodeRef.current = null;
-        }
-        if (ctxRef.current) {
-            try { await ctxRef.current.close(); } catch {}
-            ctxRef.current = null;
-        }
-    }
-        */
-    //ここまでWebAudio関連
 
     const sendMessage2 = async () => {
         const date = new Date()
@@ -242,7 +216,7 @@ export default function Aicon() {
         const localDate = new Date(date.getTime() - offset)
         const now = localDate.toISOString()
         const userM: Message2 = {
-            id: now,
+            id: `${now}${randomStr(4)}`,
             text: userInput,
             sender: 'user',
             modalUrl:"",
@@ -327,12 +301,42 @@ export default function Aicon() {
                 },
                 body: JSON.stringify({ input: userInput, model: eventData?.embedding ?? "text-embedding-3-small", language: language }),
             });
-            const data1 = await response1.json();
-            if (response1.status !== 200) {
-              throw data1.error || new Error(`Request failed with status ${response1.status}`);
+            const data1 = await response1.json().catch(() => ({}));
+            if (!response1.ok) {
+              const raw =
+                typeof data1?.error === "string" ? data1.error : "";
+              const isQuota =
+                response1.status === 429 ||
+                /429|quota|exceeded your current quota|rate limit/i.test(
+                  raw
+                );
+              if (isQuota) {
+                alert(
+                  "AI埋め込み（OpenAI）の利用上限に達しています。プラン・請求（クォータ）をご確認いただくか、しばらく時間をおいてから再度お試しください。"
+                );
+                return;
+              }
+              alert(
+                raw ||
+                  `埋め込み処理に失敗しました（${response1.status}）。しばらくしてから再度お試しください。`
+              );
+              return;
             }
-            //const translatedQuestion = data1.input
-            const similarityList = findMostSimilarQuestion(data1.embedding)
+            const emb = data1.embedding;
+            const embOk =
+              typeof emb === "string"
+                ? emb.trim().length > 0
+                : Array.isArray(emb) && emb.length > 0;
+            if (!embOk) {
+              const msg =
+                typeof data1?.error === "string"
+                  ? data1.error
+                  : "埋め込みデータが空です";
+              console.error("embedding2 invalid payload", data1);
+              alert(msg);
+              return;
+            }
+            const similarityList = findMostSimilarQuestion(emb);
             const refQA = chooseQA(similarityList)
             const undefined = undefinedAnswer?.[language] || "申し訳ありません。回答できない質問です"
             const response = await fetch("/api/concierge", {
@@ -344,9 +348,23 @@ export default function Aicon() {
             });
             const data = await response.json();
             const answer = data.answer
+
+            const resVoice = await fetch("https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=N278h64-1581q2q&speaker=1&pitch=0&intonationScale=1&speed=1&text="+answer)
+
+            if (resVoice.url) {
+                setWavUrl(resVoice.url)
+                const ctx = new AudioContext();
+                const buf = await fetch(resVoice.url).then((r) => r.arrayBuffer());
+                const audio = await ctx.decodeAudioData(buf.slice(0))
+                console.log(audio.duration)
+                const sl = createSlides(audio.duration)
+                setSlides(sl)
+            }
             
+            /*
             // キャッシュキーを生成
             const cacheKey = `${eventData!.voiceNumber}-${answer.trim()}`;
+            
             
             // キャッシュから音声データを確認
             let existingVoice: VoiceData | null = voiceCache.get(cacheKey) || null;
@@ -371,7 +389,7 @@ export default function Aicon() {
                 const sl = createSlides(voiceData.duration)
                 setSlides(sl)
             }
-
+            */
             if (data.id !== ""){
                 const modal = embeddingsData.filter((item) => item.id === data.id)
                 if (modal.length > 0){                 
@@ -418,8 +436,13 @@ export default function Aicon() {
             }
             //全ユーザーの質問総数
             await incrementCounter(attribute!)
-        } catch(error) {
-        console.error(error);
+        } catch (error) {
+          console.error(error);
+          const message =
+            error instanceof Error
+              ? error.message
+              : "処理中にエラーが発生しました。";
+          alert(message);
         }
       }
 
@@ -432,6 +455,15 @@ export default function Aicon() {
             return null
         }
       }
+
+      const randomStr = (length: number) => {
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+            result += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+        return result;
+    }
 
       function cosineSimilarity(vec1:number[], vec2:number[]) {
         if (vec1.length !== vec2.length) {
@@ -446,8 +478,8 @@ export default function Aicon() {
         return dotProduct / (magnitude1 * magnitude2);
       }
     
-    function findMostSimilarQuestion(base64Data:string){
-        const inputVector = binaryToList(base64Data)
+    function findMostSimilarQuestion(embeddingInput: unknown) {
+        const inputVector = binaryToList(embeddingInput);
         
         // 類似度計算を最適化（上位10件のみ計算）
         const similarities = embeddingsData
@@ -474,15 +506,58 @@ export default function Aicon() {
         return QAs
     }
 
-    function binaryToList(binaryStr:string){
-        const decodedBuffer = Buffer.from(binaryStr, 'base64')
-        const embeddingsArray = new Float32Array(
-            decodedBuffer.buffer, 
-            decodedBuffer.byteOffset, 
-            decodedBuffer.byteLength / Float32Array.BYTES_PER_ELEMENT
-          )
-          const embeddingsList = Array.from(embeddingsArray)
-          return embeddingsList
+    /** Base64（標準 / URL-safe）・空白除去・数値配列・JSON 配列文字列に対応 */
+    function binaryToList(raw: unknown): number[] {
+        if (raw == null) {
+            throw new Error("Embedding is missing");
+        }
+        if (Array.isArray(raw)) {
+            const nums = raw.map((v) => Number(v));
+            if (!nums.length || !nums.every((n) => Number.isFinite(n))) {
+                throw new Error("Invalid embedding array");
+            }
+            return nums;
+        }
+        if (typeof raw === "string") {
+            const trimmed = raw.trim();
+            if (trimmed.startsWith("[")) {
+                try {
+                    const parsed: unknown = JSON.parse(trimmed);
+                    if (Array.isArray(parsed)) return binaryToList(parsed);
+                } catch {
+                    /* base64 として続行 */
+                }
+            }
+            const normalized = trimmed
+                .replace(/\s+/g, "")
+                .replace(/-/g, "+")
+                .replace(/_/g, "/");
+            let padded = normalized;
+            const mod4 = padded.length % 4;
+            if (mod4) padded += "=".repeat(4 - mod4);
+            let binary: string;
+            try {
+                binary = atob(padded);
+            } catch {
+                throw new Error("Invalid embedding: base64 decode failed");
+            }
+            const len = binary.length;
+            if (len % Float32Array.BYTES_PER_ELEMENT !== 0) {
+                throw new Error("Invalid embedding payload length");
+            }
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return Array.from(
+                new Float32Array(
+                    bytes.buffer,
+                    bytes.byteOffset,
+                    len / Float32Array.BYTES_PER_ELEMENT
+                )
+            );
+        }
+        throw new Error("Invalid embedding type");
     }
 
     const incrementCounter = async (attribute:string) => {
@@ -549,7 +624,6 @@ export default function Aicon() {
                     };
                 })
             );
-            console.log(qaData)
             console.log(`Successfully loaded ${qaData.length} QA items`);
             setEmbeddingsData(qaData);
             
@@ -621,25 +695,27 @@ export default function Aicon() {
 
     const saveMessage = async (userMessage:Message2, message:Message2, attr:string) => {
         const judge = message.text.endsWith("QA情報 2")
+        const judge2 = message.text.endsWith("公開情報")
         const data = {
             id:userMessage.id,
             user:userMessage.text,
             aicon:message.text,
             unanswerable:judge,
+            publicInformation:judge2,
             deviceId:deviceId
         }
         setHistory(prev => [...prev, data])
-        await setDoc(doc(db, "Events",attr, "Conversation", convId), {conversations: arrayUnion(data), date:userMessage.id, language:language}, {merge:true})
+        await setDoc(doc(db, "Events",attr, "Conversation", convId), {conversations: arrayUnion(data), date:userMessage.id, language:language, deviceId:deviceId}, {merge:true})
     }
 
 
-    const createConvField = (attr:string) => {
+    const createConvField = () => {
         const date = new Date()
         const offset = date.getTimezoneOffset() * 60000
         const localDate = new Date(date.getTime() - offset)
         const now = localDate.toISOString()
 
-        setConvId(now)
+        setConvId(`${now}${randomStr(4)}`)
     }
 
     const getLanguageList = () => {
@@ -655,7 +731,7 @@ export default function Aicon() {
             alert("使用する言語を選択してください。Please select your language")
             return
         }
-        createConvField(attribute!)
+        createConvField()
         await unlock()
 
         setWavReady(true)
@@ -706,13 +782,6 @@ export default function Aicon() {
           silenceTimerRef.current = null;
         }
     };
-
-    /*
-    const scheduleSilenceStop = () => {
-        clearSilenceTimer();
-        silenceTimerRef.current = setTimeout(() => sttStop(), 4000);
-    };
-    */
 
     const sttStatus = {
         listening: listening,
@@ -839,9 +908,40 @@ export default function Aicon() {
         }, 100);
     }
 
+    const detectChineseLocale = (lang:string) => {
+        const l = lang.toLowerCase()
+        if (l.startsWith("zh-tw") || l.startsWith("zh-hk")){
+            return "zh-TW"
+        } else if (l.startsWith("zh-cn") || l.startsWith("zh-sg")){
+             return "zh-CN"
+        } else if (l.includes("hant")) {
+            return "zh-TW"
+        } if (l.includes("hans")) {
+            return "zh-CN"
+        } else {
+            return "zh-TW"
+        }
+    }
+
     useEffect(() => {
         const device = getDeviceId()
         setDeviceId(device)
+        const browserLang = navigator.language;
+        console.log("browserLang",browserLang)
+        if (!browserLang.startsWith("zh")){
+            const jLang = japaneseName2[browserLang as keyof typeof japaneseName2]
+            if (jLang){
+                setLanguage(jLang)
+                setDLang(nativeName[jLang as keyof typeof nativeName])
+            } else {
+                setLanguage("en")
+                setDLang("English")
+            }
+        } else {
+            const jLang = detectChineseLocale(browserLang)
+            setLanguage(jLang)
+            setDLang(nativeName[jLang as keyof typeof nativeName])            
+        }
         return () => {
             clearSilenceTimer();
         };
@@ -880,9 +980,6 @@ export default function Aicon() {
     useEffect(() => {
         if (eventData){
             getLanguageList()
-            console.log(eventData)
-            //setInitialSlides(eventData?.image.url)
-            
         }
     }, [eventData])
     
@@ -925,11 +1022,6 @@ export default function Aicon() {
             if (intervalRef.current !== null) {//タイマーが進んでいる時はstart押せないように//2
                 return;
             }
-            /*
-            intervalRef.current = setInterval(() => {
-                setCurrentIndex((prevIndex) => (prevIndex + 1) % (slides.length))
-            }, 250)
-            */
         }
     }, [slides])
 

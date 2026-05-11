@@ -200,11 +200,6 @@ export default function CreateEvent2(){
                 <span className="ml-2 text-gray-700 text-sm">{option}</span>
                 </div>
             ))}
-            <select className="mx-8 my-3 w-20 h-4 text-xs text-center" value={other} onChange={selectOtherLanguage}>
-            {otherOptions.map((name) => {
-            return <option key={name} value={name}>{name}</option>;
-            })}
-            </select>
             </div>
 
             <div className="w-2/3 ml-3 mt-1 p-2 bg-gray-100 rounded">
@@ -251,3 +246,11 @@ export default function CreateEvent2(){
         </div>
     )
 }
+
+/*
+            <select className="mx-8 my-3 w-20 h-4 text-xs text-center" value={other} onChange={selectOtherLanguage}>
+            {otherOptions.map((name) => {
+            return <option key={name} value={name}>{name}</option>;
+            })}
+            </select>
+*/

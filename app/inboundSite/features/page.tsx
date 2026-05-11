@@ -1,147 +1,190 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import YouTubeEmbed from "@/app/components/youtubeEmbedded";
-import { ChevronRight, Zap, Globe, Info, Menu, X, Star, Smile, Paperclip, MicVocal, FolderKanban, FileStack } from 'lucide-react';
+import { ChevronRight, Globe, Info, FolderKanban, MicVocal, FileStack, Smile } from 'lucide-react';
+
+const features = [
+  {
+    icon: <FolderKanban className="w-7 h-7 text-yellow-500" />,
+    iconBg: "bg-yellow-50",
+    title: "簡単なQ&A登録",
+    description: "Q&Aを記載したCSVファイルを登録するだけでデータベースが自動構築されます",
+    id: "procedure",
+  },
+  {
+    icon: <Info className="w-7 h-7 text-fuchsia-500" />,
+    iconBg: "bg-fuchsia-50",
+    title: "インターネット情報を併用",
+    description: "QA情報に加えてインターネット情報も参照して回答を生成します",
+    id: "generative",
+  },
+  {
+    icon: <Globe className="w-7 h-7 text-blue-500" />,
+    iconBg: "bg-blue-50",
+    title: "多言語対応",
+    description: "日本語Q&Aを登録するだけで5言語対応のアプリが構築されます",
+    id: "language",
+  },
+  {
+    icon: <MicVocal className="w-7 h-7 text-lime-600" />,
+    iconBg: "bg-lime-50",
+    title: "音声認識 & AIボイス",
+    description: "多言語の音声認識とAIボイスで会話するように使えます",
+    id: "voice",
+  },
+  {
+    icon: <FileStack className="w-7 h-7 text-amber-500" />,
+    iconBg: "bg-amber-50",
+    title: "会話履歴解析",
+    description: "会話履歴を解析してQ&Aの改善やサービス向上に活かせます",
+    id: "research",
+  },
+  {
+    icon: <Smile className="w-7 h-7 text-green-500" />,
+    iconBg: "bg-green-50",
+    title: "ヒューマンサポートチャット",
+    description: "人間スタッフとのチャットにシームレスに移行できます（オプション）",
+    id: "human_chat",
+  },
+];
+
+const detailSections = [
+  {
+    id: "procedure",
+    title: "簡単な手順でQ&Aを登録",
+    bg: "bg-white",
+    body: [
+      "オリジナルのQ&AデータをCSVファイルで登録するだけで、AIコンシェルジュに必要なデータベースが自動的にセッティングされます。",
+      "登録したQ&Aデータは常時修正・更新・削除が可能です。データの追加も簡単に行えます。",
+      "チャットボットとは異なり、単に用意した回答を返すだけでなく、ユーザーの質問に応じてQA情報を再編集するアルゴリズムを採用しています。",
+      "Q&A情報の登録にはエクセルやスプレッドシートのテンプレートを用意しています。",
+    ],
+    image: { src: "/QAtable.png", alt: "エクセルやスプレッドシート" },
+    video: { videoId: "p_fKVBbyUN8?si=_7TC6TnTWzP8yJb0", title: "Q&A登録紹介動画" },
+  },
+  {
+    id: "generative",
+    title: "インターネット情報を活用",
+    bg: "bg-slate-50",
+    body: [
+      "登録されたQAに該当する情報がない、あるいは不足する場合はインターネット情報等を組み合わせて回答を生成します。",
+      "サービス拠点情報をもとに交通アクセスや周辺情報などを回答したり、指定したインターネットページのみを参照させたりも可能です。",
+    ],
+    image: { src: "/回答アルゴリズム.png", alt: "回答生成アルゴリズム" },
+  },
+  {
+    id: "language",
+    title: "多言語対応",
+    bg: "bg-white",
+    body: [
+      "日本語でQA情報を登録するだけで、多言語に対応したAIコンシェルジュを生成できます。",
+      "デフォルトで日本語・英語・中国語（簡体）・中国語（繁体）・韓国語の5言語を使用できます。",
+      "テキスト表示だけでなく、音声認識・音声出力も多言語対応しています。",
+      "その他の言語への対応も応相談です。",
+    ],
+  },
+  {
+    id: "voice",
+    title: "音声認識 & AIボイス",
+    bg: "bg-slate-50",
+    body: [
+      "多言語での音声認識とAIボイスに対応しているので、会話をするようにAIコンシェルジュを利用できます。",
+    ],
+  },
+  {
+    id: "research",
+    title: "会話履歴解析",
+    bg: "bg-white",
+    body: [
+      "AIコンシェルジュの会話履歴および解析結果を提供します。",
+      "問い合わせ内容や回答を確認・分析してQ&Aの改善に繋げることができます。",
+    ],
+  },
+  {
+    id: "human_chat",
+    title: "ヒューマンサポートチャット（オプション）",
+    bg: "bg-slate-50",
+    body: [
+      "人間スタッフとのチャットにシームレスに移行することができます。",
+    ],
+  },
+];
 
 export default function Features() {
-  const [scrollY, setScrollY] = useState(0);
-
-
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const features = [
-    {
-        icon: <FolderKanban className="w-12 h-12 text-yellow-500" />,
-        title: "簡単な手順でQ&Aを登録",
-        description: "Q&Aを記載したCSVファイルを登録するだけです",
-        id:"procedure"
-    },
-    {
-        icon: <Info className="w-12 h-12 text-fuchsia-500" />,
-        title: "インターネット情報を併用",
-        description: "QA情報に加えてインターネット情報も参照します",
-        id:"generative"
-        } ,
-    {
-        icon: <Globe className="w-12 h-12 text-orange-400" />,
-        title: "多言語対応",
-        description: "日本語Q&Aを登録するだけで多言語対応アプリが構築されます",
-        id:"language"
-        },
-    {
-        icon: <MicVocal className="w-12 h-12 text-lime-500" />,
-        title: "音声認識＆AIボイス",
-        description: "音声認識とAIボイスが多言語で使用可能です",
-        id:"voice"
-        },
-    {
-        icon: <FileStack className="w-12 h-12 text-amber-500" />,
-        title: "会話履歴解析",
-        description: "会話履歴を解析しより良いサービス提供に繋げることができます",
-        id:"research"
-        },
-    {
-        icon: <Smile className="w-12 h-12 text-green-500" />,
-        title: "ヒューマンサポートチャット",
-        description: "人間スタッフとのチャットにシームレスに移行できます（オプション）",
-        id:"human_chat"
-    }
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-slate-200 to-slate-100 overflow-hidden">
-      <section id="features" className="relative z-10 mt-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="mb-8 text-2xl font-bold text-blue-800 text-center lg:text-3xl sm:text-2xl">
-              <div>インバウンドコンシェルジュには</div>
-              <div>顧客満足度を高めるさまざまな機能があります</div>
-            </div>
-          </div>
+    <div className="min-h-screen bg-white overflow-hidden">
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <div 
-                key={index}
-                className="p-5 border-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white"
-              >
-                <div className="mb-6 transform group-hover:scale-110 transition-transform">
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-bold mb-4 text-white">{feature.title}</h3>
-                <p className="text-gray-300 leading-relaxed">{feature.description}</p>
-                <div className="mt-6 flex items-center text-blue-400 group-hover:text-purple-400 transition-colors">
-                    <a href={`#${feature.id}`}>
-                    <span className="text-sm font-semibold">詳細を見る</span>
-                    <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                    </a>
-                </div>
+      {/* Page header */}
+      <section className="bg-gradient-to-b from-blue-50 to-white pt-14 pb-12 px-4 text-center">
+        <span className="inline-block mb-4 px-4 py-1.5 rounded-full bg-blue-100 text-blue-700 text-sm font-medium">
+          特徴
+        </span>
+        <h1 className="text-3xl font-bold text-slate-900 lg:text-4xl">
+          顧客満足度を高める<br className="sm:hidden" />さまざまな機能
+        </h1>
+        <p className="mt-4 text-slate-600 text-sm max-w-xl mx-auto leading-relaxed">
+          インバウンドコンシェルジュは、事業者様の負担を最小限に抑えながら、<br className="hidden sm:block" />
+          訪日外国人のお客様に最高のサービス体験を提供します。
+        </p>
+      </section>
+
+      {/* Feature cards grid */}
+      <section className="py-12 px-4 bg-white">
+        <div className="max-w-5xl mx-auto grid sm:grid-cols-2 md:grid-cols-3 gap-5">
+          {features.map((feature, i) => (
+            <a
+              key={i}
+              href={`#${feature.id}`}
+              className="group flex flex-col gap-4 p-6 rounded-2xl border border-slate-200 bg-white hover:shadow-lg hover:border-blue-200 transition-all"
+            >
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${feature.iconBg}`}>
+                {feature.icon}
               </div>
-            ))}
-          </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-800 mb-1">{feature.title}</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">{feature.description}</p>
+              </div>
+              <div className="mt-auto flex items-center gap-1 text-blue-500 text-sm font-medium group-hover:gap-2 transition-all">
+                詳細を見る <ChevronRight className="w-4 h-4" />
+              </div>
+            </a>
+          ))}
         </div>
       </section>
 
-
-        <section id="procedure" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
-            <div className="mb-5 font-bold text-2xl text-blue-800">簡単な手順でQ&Aを登録</div>
-            <div className="text-base text-slate-800">オリジナルのQ&Aデータを保存したCSVファイルを登録するだけで、AIコンシェルジュに必要なデータベースが自動的にセッティングされます</div>
-            <div className="text-base text-slate-800">登録したQ&Aデータは常時修正・更新・削除が可能です。またデータの追加も簡単です</div>
-            <div className="text-base text-slate-800">チャットボットとは異なり、単に用意した回答を返すだけでなく、ユーザー質問に応じてQA情報を再編集するアルゴリズムを採用しています</div>
-            <div className="text-base text-slate-800">QA情報の登録にはエクセルやスプレッドシートのテンプレートを用意しています</div>
-            <img className="min-w-72 w-3/5 mx-auto mt-8 opacity-60" src="/QAtable.png" alt="エクセルやスプレッドシート" />
-            <div className="mt-8 mb-8 w-3/5 mx-auto">
-            <YouTubeEmbed videoId="p_fKVBbyUN8?si=_7TC6TnTWzP8yJb0" title="インバウンドコンシェルジュ紹介動画"/>
+      {/* Detail sections */}
+      {detailSections.map((section) => (
+        <section
+          key={section.id}
+          id={section.id}
+          className={`py-14 px-4 ${section.bg}`}
+        >
+          <div className="max-w-3xl mx-auto">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-1 h-7 rounded-full bg-blue-500 shrink-0" />
+              <h2 className="text-xl font-bold text-slate-800">{section.title}</h2>
             </div>
+            <div className="flex flex-col gap-2 mb-8">
+              {section.body.map((text, i) => (
+                <p key={i} className="text-slate-600 text-sm leading-relaxed">{text}</p>
+              ))}
+            </div>
+            {section.image && (
+              <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm mb-8">
+                <img
+                  src={section.image.src}
+                  alt={section.image.alt}
+                  className="w-full opacity-90"
+                />
+              </div>
+            )}
+            {section.video && (
+              <YouTubeEmbed videoId={section.video.videoId} title={section.video.title} />
+            )}
+          </div>
         </section>
-        <section id="generative" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
-            <div className="mb-5 font-bold text-2xl text-blue-800">インターネット情報を活用</div>
-            <div className="text-base text-slate-800">登録されたQAに該当する情報がない、あるいは不足する場合はインターネット情報等を組み合わせて回答を生成します</div>
-            <div className="text-base text-slate-800">サービスを提供する拠点情報をもとに、交通アクセスや周辺情報などを回答したり、指定したインターネットページのみを参照させたりも可能です</div>
-            <img className="min-w-72 w-3/5 mx-auto mt-8" src="/回答アルゴリズム.png" alt="回答生成アルゴリズム" />
-        </section>
-        <section id="language" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
-            <div className="mb-5 font-bold text-2xl text-blue-800">多言語対応</div>
-            <div className="text-base text-slate-800">日本語でQA情報を登録するだけで、多言語に対応したAIコンシェルジュを生成できます</div>
-            <div className="text-base text-slate-800">デフォルトで日本語、英語、中国語（簡体）、中国語（繁体）、韓国語を使用できます</div>
-            <div className="text-base text-slate-800">これ以外の言語に関しても応相談です</div>
-            <div className="text-base text-slate-800">テキスト表示以外に、音声認識、音声出力も多言語対応しています</div>
-            <div className="text-base text-slate-800">インバウンドコンシェルジュアプリを利用する際にユーザーが使用言語を指定します</div>
-        </section>
-        <section id="voice" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
-            <div className="mb-5 font-bold text-2xl text-blue-800">音声認識＆AIボイス</div>
-            <div className="text-base text-slate-800">多言語での音声認識とAIボイスに対応していますので、会話をするようにAIコンシェルジュを利用できます</div>
-        </section>
-        <section id="research" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
-            <div className="mb-5 font-bold text-2xl text-blue-800">会話履歴解析</div>
-            <div className="text-base text-slate-800">AIコンシェルジュの会話履歴および解析結果を提供します</div>
-        </section>
-        <section id="human_chat" className="mx-8 mt-10 mb-20 p-3 rounded-xl text-black bg-white backdrop-blur-sm border border-white/10">
-            <div className="mb-5 font-bold text-2xl text-blue-800">ヒューマンサポートチャット（オプション）</div>
-            <div className="text-base text-slate-800">人間スタッフとのチャットにシームレスに移行することができます</div>
-        </section>
+      ))}
+
     </div>
   );
 }
-
-/*
-className="group p-8 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all hover:transform hover:scale-105"
-
-
-<div className="fixed inset-0 z-0">
-<div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 animate-pulse"></div>
-<div 
-    className="absolute inset-0 opacity-30"
-    style={{
-    backgroundImage: `radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.3) 0%, transparent 50%), 
-                        radial-gradient(circle at 80% 20%, rgba(168, 85, 247, 0.3) 0%, transparent 50%), 
-                        radial-gradient(circle at 40% 80%, rgba(14, 165, 233, 0.3) 0%, transparent 50%)`,
-    transform: `translateY(${scrollY * 0.5}px)`
-    }}
-></div>
-</div>
-*/
