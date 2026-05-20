@@ -23,7 +23,6 @@ export default function Aicon() {
     const [initialSlides, setInitialSlides] = useState<string|null>(null)
     const [thumbnail, setThumnail] = useState<string|null>("")
     const [userInput, setUserInput] = useState<string>("")
-    const [userMessage, setUserMessage] = useState<Message2>({id: "",text: "",sender: 'user',modalUrl:"",modalFile:"",source:null, displayOnly:null})
     const [messages, setMessages] = useState<Message2[]>([])
     const [history, setHistory] = useState<{user: string, aicon: string}[]>([])
     const [eventData, setEventData] = useState<EventData|null>(null)
@@ -225,7 +224,6 @@ export default function Aicon() {
             displayOnly:null
         }
         console.log(userM)
-        setUserMessage(userM)
         setMessages(prev => [...prev, userM]);
         setCanSend(false)//同じInputで繰り返し送れないようにする
 
@@ -418,7 +416,7 @@ export default function Aicon() {
                     displayOnly: null
                   };
                 setMessages(prev => [...prev, aiMessage]);
-                await saveMessage(userMessage, aiMessage, attribute!)
+                await saveMessage(userM, aiMessage, attribute!)
             }
             //全ユーザーの質問総数
             await incrementCounter(attribute!)
