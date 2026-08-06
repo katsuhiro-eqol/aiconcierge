@@ -10,7 +10,6 @@ export async function POST(req: NextRequest): Promise<NextResponse>  {
     const staff = params.staff
     const password = params.password
     const eventId = `${organization}_${event}`
-    console.log(eventId, password)
 
     try {
         const docRef = doc(db, "Events", eventId);

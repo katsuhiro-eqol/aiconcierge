@@ -3,12 +3,14 @@ import React from 'react';
 import { Check } from 'lucide-react';
 
 const basicFeatures = [
+  "ユーザー質問30,000アクセス/月まで追加料金なし",
   "Q&Aリスト作成を全面サポート",
-  "3ヶ月間の月額料金が初期費用に含まれます",
+  "2ヶ月間の月額料金が初期費用に含まれます",
   "多言語対応（日本語・英語・中国語（簡体・繁体）・韓国語）",
   "音声認識・AIボイス",
   "インターネット情報を併用して回答",
   "任意の言語の追加が可能（応相談）",
+  "ユーザー質問が30,000アクセス/月を超えた分は、10,000アクセスあたり¥10,000"
 ];
 
 const options = [
@@ -63,14 +65,14 @@ export default function Price() {
                 </div>
                 <div className="text-right">
                   <p className="text-blue-200 text-xs mb-0.5">月額</p>
-                  <p className="text-3xl font-bold">¥100,000<span className="text-lg font-medium text-blue-200"> / 月</span></p>
+                  <p className="text-3xl font-bold">¥50,000<span className="text-lg font-medium text-blue-200"> / 月</span></p>
                 </div>
               </div>
             </div>
             <div className="bg-white px-8 py-6">
               <div className="flex items-center justify-between mb-5">
                 <p className="text-sm font-semibold text-slate-700">初期費用</p>
-                <p className="text-lg font-bold text-slate-900">¥300,000<span className="text-sm font-normal text-slate-500 ml-1">（3ヶ月分の月額を含む）</span></p>
+                <p className="text-lg font-bold text-slate-900">¥100,000<span className="text-sm font-normal text-slate-500 ml-1">（3ヶ月分の月額を含む）</span></p>
               </div>
               <div className="h-px bg-slate-100 mb-5" />
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">含まれる機能</p>
