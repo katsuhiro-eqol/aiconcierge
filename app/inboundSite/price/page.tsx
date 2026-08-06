@@ -72,7 +72,7 @@ export default function Price() {
             <div className="bg-white px-8 py-6">
               <div className="flex items-center justify-between mb-5">
                 <p className="text-sm font-semibold text-slate-700">初期費用</p>
-                <p className="text-lg font-bold text-slate-900">¥100,000<span className="text-sm font-normal text-slate-500 ml-1">（3ヶ月分の月額を含む）</span></p>
+                <p className="text-lg font-bold text-slate-900">¥100,000<span className="text-sm font-normal text-slate-500 ml-1">（2ヶ月分の月額を含む）</span></p>
               </div>
               <div className="h-px bg-slate-100 mb-5" />
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">含まれる機能</p>
