@@ -431,7 +431,7 @@ export default function Aicon() {
       }
 
       function extractURL(text:string[]|null){
-        if (text) {
+        if (text && text.length > 0 && text[0] != null) {
             const urlRegex = /(https?:\/\/[\w/:%#\$&\?\(\)~\.=\+\-]+(?<![。、.,!?]))/g;
             const display = text[0].replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
             return display
