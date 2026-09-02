@@ -52,7 +52,7 @@ export default function DemoTop() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
             <a
-              href="https://aiconcierge.vercel.app/api/renew?to=%2Faicon%2Fchat%3Fattribute%3DeQOL_Hotel_Ikebukuro_Demo%26code%3DkNQT"
+              href="https://aiconcierge.vercel.app/api/renew?to=%2Faicon%2Fchat%3Fattribute%3DeQOL_Hotel_Ikebukuro_Demo%26code%3DFS8T"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-10 py-4 rounded-xl bg-white text-blue-700 font-bold text-base hover:bg-blue-50 transition-colors shadow-md"

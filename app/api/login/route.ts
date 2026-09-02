@@ -7,7 +7,6 @@ export async function POST(req: NextRequest): Promise<NextResponse>  {
     const params = await req.json()
     const organization = params.organization
     const password = params.password
-    console.log(organization, password)
 
     try {
         const docRef = doc(db, "Users", organization);
