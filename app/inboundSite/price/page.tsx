@@ -45,7 +45,6 @@ export default function Price() {
           シンプルな料金体系
         </h1>
         <p className="mt-4 text-slate-600 text-sm max-w-xl mx-auto leading-relaxed">
-          まずは3ヶ月間、実際にサービスをお試しください。<br className="hidden sm:block" />
           Q&Aリストの作成から導入まで、弊社が全面サポートします。
         </p>
       </section>
@@ -61,7 +60,7 @@ export default function Price() {
               <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
                 <div>
                   <p className="text-blue-200 text-sm mb-1">ベーシックプラン</p>
-                  <h3 className="text-2xl font-bold">QAデータ数 500件未満</h3>
+                  <h3 className="text-2xl font-bold">QAデータ数 1万件</h3>
                 </div>
                 <div className="text-right">
                   <p className="text-blue-200 text-xs mb-0.5">月額</p>
@@ -87,7 +86,7 @@ export default function Price() {
             </div>
           </div>
           <p className="mt-4 text-slate-400 text-xs text-center">
-            ＊ QAデータが500件を超える場合はご相談ください
+            ＊ QAデータが1万件を超える場合はご相談ください
           </p>
         </div>
       </section>

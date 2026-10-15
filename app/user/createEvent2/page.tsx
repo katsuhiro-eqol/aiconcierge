@@ -17,7 +17,7 @@ export default function CreateEvent2(){
     const [selectedOptions, setSelectedOptions] = useState<string[]>(["日本語","英語", "中国語（簡体）", "中国語（繁体）", "韓国語"]);
     const [role, setRole] = useState<string>("")
     const [address, setAddress] = useState<string>("")
-    //const [referenceUrl, setReferenceUrl] = useState<string[]>([])
+    const [referenceUrl, setReferenceUrl] = useState<string[]>([])
     const [other, setOther] = useState<string>("")//他言語
     const [uiOption, setUiOption] = useState<Image[]>([])
     const [image, setImage] = useState<Image>({name:"concierge_woman2_0.png", url:"/concierge_woman2_0.png"})
@@ -119,9 +119,34 @@ export default function CreateEvent2(){
             
                 const eventRef = collection(db, "Events")
                 await setDoc(doc(eventRef, id), data)
-        
+
                 const usersRef = collection(db, "Users")
                 await updateDoc(doc(usersRef, organization), {events: arrayUnion(newEvent)})
+
+                // referenceUrl ごとに要約を取得してサブコレクションに保存
+                if (referenceUrl.length > 0) {
+                    await Promise.allSettled(
+                        referenceUrl.map(async (url) => {
+                            const res = await fetch("/api/summarizeUrl", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ url }),
+                            })
+                            const result = await res.json()
+                            if (!res.ok || !result.results) return
+                            await Promise.allSettled(
+                                result.results.map(async (item: { summary: string; url: string; hash: string }) => {
+                                    const docId = new URL(item.url).pathname.replace(/\//g, '-') || '-'
+                                    const docRef = doc(db, "Events", id, "ReferenceUrls", docId)
+                                    const existing = await getDoc(docRef)
+                                    if (existing.exists() && existing.data().hash === item.hash) return
+                                    await setDoc(docRef, { summary: item.summary, url: item.url, hash: item.hash })
+                                })
+                            )
+                        })
+                    )
+                }
+
                 setComment("イベント新規登録が完了しました")
             } catch (error) {
                 console.log(error)
@@ -130,6 +155,19 @@ export default function CreateEvent2(){
         } else {
 
         }
+    }
+
+    const convertRefUrl = (urlString: string) => {
+        let hasInvalid = false
+        const urls = urlString
+            .split(",")
+            .map(u => u.trim())
+            .filter(u => {
+                if (!u) return false
+                try { new URL(u); return true } catch { hasInvalid = true; return false }
+            })
+        if (hasInvalid) alert("URLの書式が正しくない項目があります。入力内容をご確認ください。")
+        setReferenceUrl(urls)
     }
 
     const handleOptionClick = (option: string) => {
@@ -223,14 +261,21 @@ export default function CreateEvent2(){
             </div>
             <div className="font-semibold mt-3 text-sm ml-3 underline">キャラクター画像</div>
             <UIOption uiOption={uiOption} setImage={setImage} organization={organization} setUiOption={setUiOption} />
-            <div className="font-semibold text-sm ml-3 mt-8 underline">AIの役割</div>
-            <input className="w-2/3 rounded-md px-4 py-2 bg-inherit border mt-2 mb-6 border-lime-600"
+            <div className="font-semibold text-sm ml-3 mt-6 underline">参照するURL（任意。親URLのみ記載、複数ある場合はカンマ(,)区切りで）</div>
+            <input className="w-2/3 rounded-md px-4 py-2 bg-inherit border mt-2 mb-2 border-lime-600"
+                name="event"
+                placeholder="（例）https://aiconcierge.vercel.app/inboundSite"
+                value={referenceUrl}
+                onChange={(e) => convertRefUrl(e.target.value)}
+            />
+           <div className="font-semibold text-sm ml-3 mt-6 underline">AIの役割</div>
+            <input className="w-2/3 rounded-md px-4 py-2 bg-inherit border mt-2 mb-2 border-lime-600"
                 name="event"
                 placeholder="（例）ホテル東京のコンシェルジュ"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
             />
-            <div className="font-semibold text-sm ml-3 mt-8 underline">サービス拠点住所（任意）</div>
+            <div className="font-semibold text-sm ml-3 mt-6 underline">サービス拠点住所（任意）</div>
             <input className="w-2/3 rounded-md px-4 py-2 bg-inherit border mt-2 mb-6 border-lime-600"
                 name="event"
                 placeholder="（例）東京都千代田区丸の内1-1-1"
